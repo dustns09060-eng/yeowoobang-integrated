@@ -838,3 +838,171 @@ body.gate-open{overflow:hidden}
 .invite-admin-item.expel{border-color:#f1b7b7;background:#fffafa}.invite-admin-item .joinMeta{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
 .invite-pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:#f3f3f3;font-size:11px;font-weight:800}.invite-pill.good{background:#eaf8ef;color:#147a43}.invite-pill.warn{background:#fff2f2;color:#b13232}
 @media(max-width:700px){.invite-start-box{align-items:stretch;flex-direction:column}.invite-start-box button{width:100%}}
+
+
+/* =========================================================
+   V4.5 PINK UNIFIED UI
+   기능은 유지하고 전체 색상/하단 메뉴만 통일
+   ========================================================= */
+:root{
+  --orange:#f46f91;
+  --text:#222222;
+  --muted:#85808a;
+  --line:#f0dce4;
+  --bg:#fff7fa;
+  --white:#ffffff;
+  --green:#36a96b;
+  --blue:#5b8def;
+  --red:#df5d6f;
+}
+
+html,body{background:var(--bg)}
+.header{
+  background:rgba(255,255,255,.97);
+  border-bottom:1px solid var(--line);
+}
+.brand p{color:#d85d7c}
+.brand-logo{
+  border-color:#f7d7e1!important;
+  box-shadow:0 4px 14px rgba(244,111,145,.14)!important;
+}
+.card,.notice-card{
+  border-color:var(--line);
+  box-shadow:0 8px 24px rgba(156,92,116,.06);
+}
+.primary{
+  background:linear-gradient(135deg,#f78aa6,#f35f83);
+  box-shadow:0 6px 14px rgba(244,111,145,.18);
+}
+.primary:active{transform:translateY(1px)}
+.outline,.install{
+  border-color:#ecd5de;
+  background:#fff;
+}
+.group-tab.active,.tab.active{
+  border-color:#f48aa4;
+  color:#d95e7d;
+  background:#fff0f5;
+}
+.insta-btn,.insta{
+  background:#fff0f5;
+  color:#d95e7d;
+}
+.notice-card{border-left-color:#f46f91}
+.rate strong,.orange strong{color:#e96484}
+.file-input{background:#fffafb;border-color:#e8cfd9}
+.search-wrap,
+.admin-login input,
+input[type=text],
+textarea,
+.invite-field input,
+.invite-admin-search,
+.invite-admin-login-card input{
+  border-color:#ead4dd!important;
+  background:#fff;
+}
+input:focus,textarea:focus,.search-wrap:focus-within{
+  border-color:#f28aa4!important;
+  box-shadow:0 0 0 3px rgba(244,111,145,.10);
+}
+
+/* 초대별 */
+.invite-mode-tabs{border-color:#ead4dd}
+.invite-mode-tab.active{
+  background:#2a2a2a;
+  color:#fff;
+}
+.invite-help-box,
+.invite-admin-policy{
+  background:#fff4f7;
+}
+.invite-start-box,
+.invite-admin-item,
+.invite-summary-row,
+.invite-my-row{
+  border-color:#f0dce4;
+}
+.invite-benefit-list article{
+  border-color:#efd9e2;
+  background:#fff;
+}
+.invite-expel-summary{
+  background:#fff0f2;
+  color:#bd4058;
+}
+.invite-pill{background:#f7f1f4}
+.invite-pill.good{background:#edf9f1;color:#247c4d}
+.invite-pill.warn{background:#fff0f2;color:#b43c55}
+
+/* 폭스바겐 */
+.fox-mode-badge{
+  background:#fff0f5;
+  color:#d65c7b;
+}
+.fox-mode-badge.admin{
+  background:#2a2a2a;
+  color:#fff;
+}
+.fox-admin-notice{
+  background:#fff2f6;
+  color:#9f4962;
+}
+
+/* 하단 메뉴: 항상 정확히 5개가 한 줄 */
+.bottom-nav.integrated-bottom-nav{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:5px;
+  overflow:visible!important;
+  justify-content:stretch!important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.98);
+  border-top:1px solid #f0dce4;
+}
+.bottom-nav.integrated-bottom-nav .nav-btn{
+  min-width:0!important;
+  width:100%;
+  flex:none!important;
+  padding:9px 2px 8px;
+  border-radius:15px;
+  color:#7f7d84;
+  font-size:11px;
+}
+.bottom-nav.integrated-bottom-nav .nav-icon{
+  font-size:21px;
+}
+.bottom-nav.integrated-bottom-nav .nav-btn.active{
+  color:#df5f80;
+  background:#fff0f5;
+}
+.bottom-nav.integrated-bottom-nav .nav-btn.hidden{
+  display:none!important;
+}
+
+/* 모바일 하단 메뉴 글자/아이콘 균일 */
+@media(max-width:760px){
+  .container{padding-bottom:108px}
+  .bottom-nav.integrated-bottom-nav{
+    left:0!important;
+    right:0!important;
+    width:100%!important;
+    transform:none!important;
+    border-radius:0!important;
+  }
+  .bottom-nav.integrated-bottom-nav .nav-btn{
+    min-width:0!important;
+    font-size:10.5px;
+  }
+  .bottom-nav.integrated-bottom-nav .nav-icon{font-size:20px}
+}
+@media(max-width:360px){
+  .bottom-nav.integrated-bottom-nav .nav-btn{font-size:9.5px;padding-left:0;padding-right:0}
+  .bottom-nav.integrated-bottom-nav .nav-icon{font-size:18px}
+}
+
+/* 초대별 관리자 숫자키패드 유도 입력창 */
+#inviteAdminPassword{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.12em;
+  border:1.5px solid #efbfd0!important;
+}
