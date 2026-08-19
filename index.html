@@ -7,13 +7,13 @@
   <meta name="application-name" content="여우방 통합 프로그램" />
   <meta name="apple-mobile-web-app-title" content="여우방 통합 프로그램" />
   <meta name="description" content="여우방 팔로우리스트와 맞팔확인을 한 번에 확인하는 프로그램" />
-  <title>여우방 통합 프로그램 V1</title>
+  <title>여우방 통합 프로그램 V2</title>
 
   <link rel="canonical" href="https://dustns09060-eng.github.io/ys/" />
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=450" />
+  <link rel="stylesheet" href="style.css?v=700" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -362,13 +362,7 @@
           </div>
         </div>
 
-        <hr />
-        <div class="setting-block">
-          <h3>접속 비밀번호 변경</h3>
-          <div class="setting-row">
-            <input id="newAccessPassword" type="password" inputmode="numeric" placeholder="새 접속 비밀번호" />
-            <button id="changeAccessPasswordBtn" class="outline" type="button">접속 비밀번호 변경</button>
-          </div>
+        
         </div>
 
         <hr />
@@ -381,9 +375,32 @@
             <button id="lockFollowBtn" class="outline danger-outline" type="button">팔로우리스트 잠그기</button>
             <button id="unlockFollowBtn" class="outline success-outline" type="button">팔로우리스트 잠금 해제</button>
           </div>
-          <div class="setting-row">
-            <input id="newFollowPassword" type="password" inputmode="numeric" placeholder="새 팔로우리스트 비밀번호" />
-            <button id="changeFollowPasswordBtn" class="outline" type="button">팔로우리스트 비밀번호 변경</button>
+          
+        </div>
+
+        <hr />
+        <div class="setting-block">
+          <div class="section-title-row">
+            <div><h3>맞팔 잠금</h3></div>
+            <span id="matchLockState" class="lock-state unlocked">사용 가능</span>
+          </div>
+          <div class="admin-actions">
+            <button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 잠그기</button>
+            <button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 잠금 해제</button>
+          </div>
+          
+        </div>
+
+        <hr />
+
+        <div class="setting-block">
+          <div class="section-title-row">
+            <div><h3>팔로우리스트 잠금</h3></div>
+            <span id="followLockState" class="lock-state unlocked">사용 가능</span>
+          </div>
+          <div class="admin-actions">
+            <button id="lockFollowBtn" class="outline danger-outline" type="button">팔로우리스트 잠그기</button>
+            <button id="unlockFollowBtn" class="outline success-outline" type="button">팔로우리스트 잠금 해제</button>
           </div>
         </div>
 
@@ -397,10 +414,25 @@
             <button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 잠그기</button>
             <button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 잠금 해제</button>
           </div>
-          <div class="setting-row">
-            <input id="newMatchPassword" type="password" inputmode="numeric" placeholder="새 맞팔확인 비밀번호" />
-            <button id="changeMatchPasswordBtn" class="outline" type="button">맞팔 비밀번호 변경</button>
+        </div>
+
+        <hr />
+        <div class="setting-block password-sheet-guide">
+          <div class="section-title-row">
+            <div>
+              <h3>🔐 비밀번호 관리</h3>
+              <p class="subtext">비밀번호는 프로그램에서 변경하지 않고 구글 스프레드시트의 <b>설정</b> 시트에서만 관리합니다.</p>
+            </div>
           </div>
+          <div class="password-key-list">
+            <div><span>일반 접속</span><code>접속비밀번호</code></div>
+            <div><span>운영진</span><code>운영진비밀번호</code></div>
+            <div><span>팔로우리스트 잠금</span><code>팔로우리스트잠금비밀번호</code></div>
+            <div><span>맞팔확인 잠금</span><code>맞팔잠금비밀번호</code></div>
+            <div><span>앱 잠금</span><code>앱잠금비밀번호</code></div>
+          </div>
+          <button id="openSettingsSheetBtn" class="outline" type="button">설정 시트 열기</button>
+          <p class="state-text">설정 시트의 값만 바꾸면 다음 인증부터 새 비밀번호가 적용됩니다.</p>
         </div>
 
         <hr />
@@ -489,6 +521,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=600"></script>
+  <script src="app.js?v=700"></script>
 </body>
 </html>

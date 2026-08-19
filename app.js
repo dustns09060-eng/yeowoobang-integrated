@@ -18,11 +18,11 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V60-INTEGRATED";
+const APP_VERSION = "V70-FAST";
 
 let config = {
-  version: "V53 MATCH ONLY",
-  appName: "여우방 팔로우리스트+맞팔확인",
+  version: "V70 FAST",
+  appName: "여우방 통합 프로그램",
   apiUrl: "",
   sheetId: "",
   sheetName: "팔로우리스트",
@@ -341,20 +341,20 @@ function loadJsZipLibrary() {
 
 async function loadConfig() {
   try {
-    const response = await fetch(`config.json?t=${Date.now()}`, { cache: "no-store" });
+    const response = await fetch("config.json", { cache: "force-cache" });
     if (response.ok) config = { ...config, ...(await response.json()) };
   } catch (_) {}
 }
 
-async function apiGet(action) {
+async function apiGet(action, fresh = false) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
   const url = new URL(config.apiUrl);
   url.searchParams.set("action", action);
-  url.searchParams.set("_t", Date.now().toString());
+  if (fresh) url.searchParams.set("_t", Date.now().toString());
 
   const response = await fetch(url.toString(), {
     method: "GET",
-    cache: "no-store",
+    cache: fresh ? "no-store" : "default",
     redirect: "follow",
   });
   if (!response.ok) throw new Error(`API HTTP ${response.status}`);
@@ -461,18 +461,22 @@ function finishBootScreen() {
 
 async function bootstrapAuth() {
   showGate();
-  setGate("loading");
 
-  try {
-    publicConfig = await apiGet("publicConfig");
-    updateLockIndicators();
+  // 첫 화면은 Apps Script 응답을 기다리지 않고 바로 표시합니다.
+  setGate("role");
 
-    setGate("role");
-  } catch (error) {
-    setGate("error", `설정을 불러오지 못했습니다. ${error.message}`);
-  }
+  // 잠금/버전 정보는 백그라운드에서 갱신합니다.
+  apiGet("publicConfig")
+    .then((data) => {
+      publicConfig = data;
+      securityVersion = data?.securityVersion || securityVersion;
+      updateLockIndicators();
+      if (publicConfig?.appLocked && gateMode === "access") setGate("blocked");
+    })
+    .catch(() => {
+      // 인증 시 서버에서 다시 확인하므로 첫 화면 자체는 막지 않습니다.
+    });
 }
-
 function chooseGeneralAccess() {
   if (publicConfig?.appLocked) {
     setGate("blocked");
@@ -501,7 +505,10 @@ async function submitGatePassword() {
     $("gateSubmitBtn").disabled = true;
 
     if (gateMode === "access") {
-      await apiPost("verifyAccessPassword", { password });
+      const auth = await apiPost("verifyAccessPassword", { password });
+      if (auth.publicConfig) publicConfig = auth.publicConfig;
+      securityVersion = publicConfig?.securityVersion || securityVersion;
+      updateLockIndicators();
       accessGranted = true;
       adminLoggedIn = false;
       adminPasswordValue = "";
@@ -514,7 +521,10 @@ async function submitGatePassword() {
     }
 
     if (gateMode === "admin") {
-      await apiPost("adminLogin", { password });
+      const auth = await apiPost("adminLogin", { password });
+      if (auth.publicConfig) publicConfig = auth.publicConfig;
+      securityVersion = publicConfig?.securityVersion || securityVersion;
+      updateLockIndicators();
       adminLoggedIn = true;
       adminPasswordValue = password;
       accessGranted = true;
@@ -539,20 +549,18 @@ async function submitGatePassword() {
 }
 
 async function loadAfterAuth() {
-  restoreFollowListCache();
+  const restored = restoreFollowListCache();
 
-  const essentialTasks = [
-    loadRoomList(false),
-    refreshPublicConfig(false),
-  ];
+  // 캐시가 있으면 즉시 화면을 열고, 최신 명단은 뒤에서 조용히 갱신합니다.
+  if (restored) {
+    setTimeout(() => loadRoomList(false).catch(() => {}), 350);
+  } else {
+    await loadRoomList(false).catch(() => {});
+  }
 
-  scheduleNoticeLoad(2000);
-
-  await Promise.allSettled(essentialTasks);
-  securityVersion = publicConfig?.securityVersion || "";
+  scheduleNoticeLoad(1200);
   checkVersionUpdate();
 }
-
 async function refreshPublicConfig(recheck = true) {
   const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
   publicConfig = await apiGet("publicConfig");
@@ -740,7 +748,7 @@ async function loadRoomList(show = false) {
   let lastError = "";
 
   try {
-    const data = await apiGet("followList");
+    const data = await apiGet("followList", show);
     roomAuditSource = (data.members || []).map((item) => ({
       no: String(item.no || "").trim(),
       name: String(item.name || "").trim(),
@@ -820,7 +828,7 @@ async function loadMatchRoomList(show = false, force = false) {
   }
 
   try {
-    const data = await apiGet("matchList");
+    const data = await apiGet("matchList", force || show);
 
     matchRoomList = (data.members || [])
       .map((item, index) => ({
@@ -1638,13 +1646,6 @@ async function deleteNotice(noticeId) {
   if (data) renderNotices(data.notices || []);
 }
 
-async function changePassword(action, inputId, message) {
-  const value = $(inputId).value.trim();
-  if (!value) return toast("새 비밀번호를 입력해 주세요.");
-
-  const data = await runAdminAction(action, { newPassword: value }, message);
-  if (data) $(inputId).value = "";
-}
 
 
 
@@ -1718,10 +1719,22 @@ $("adminLoginBtn").onclick = adminLogin;
 $("adminPassword").onkeydown = (event) => { if (event.key === "Enter") adminLogin(); };
 $("adminLogoutBtn").onclick = adminLogout;
 $("openSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
+if ($("openSettingsSheetBtn")) {
+  $("openSettingsSheetBtn").onclick = () => {
+    const url = new URL(sheetUrl());
+    window.open(url.toString(), "_blank");
+  };
+}
 $("adminRefreshBtn").onclick = async () => {
-  await Promise.allSettled([refreshPublicConfig(false), loadRoomList(true), loadMatchRoomList(true, true), loadNotices(false), loadAdminLogs()]);
+  await Promise.allSettled([
+    refreshPublicConfig(false),
+    loadRoomList(true),
+    loadNotices(false),
+    loadAdminLogs(),
+    loadInviteAdmin()
+  ]);
   renderRosterAudit();
-  toast("전체 새로고침 완료");
+  toast("관리 데이터 새로고침 완료");
 };
 
 $("lockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: true }, "앱을 잠갔습니다.");
@@ -1731,9 +1744,6 @@ $("unlockFollowBtn").onclick = () => runAdminAction("setFollowLock", { locked: f
 $("lockMatchBtn").onclick = () => runAdminAction("setMatchLock", { locked: true }, "맞팔확인을 잠갔습니다.");
 $("unlockMatchBtn").onclick = () => runAdminAction("setMatchLock", { locked: false }, "맞팔확인 잠금을 해제했습니다.");
 
-$("changeAccessPasswordBtn").onclick = () => changePassword("changeAccessPassword", "newAccessPassword", "접속 비밀번호를 변경했습니다.");
-$("changeFollowPasswordBtn").onclick = () => changePassword("changeFollowPassword", "newFollowPassword", "팔로우리스트 비밀번호를 변경했습니다.");
-$("changeMatchPasswordBtn").onclick = () => changePassword("changeMatchPassword", "newMatchPassword", "맞팔확인 비밀번호를 변경했습니다.");
 
 $("saveNoticeBtn").onclick = saveNotice;
 $("closeNoticeBtn").onclick = () => $("noticeCard").classList.add("hidden");
@@ -1769,11 +1779,11 @@ $("installBtn").onclick = async () => {
 
 window.addEventListener("DOMContentLoaded", async () => {
   showGate();
-  setGate("loading", "여우방을 불러오는 중입니다.");
+  setGate("role");
   renderResumeCard();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=430").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=700").catch(() => {});
   }
 
   try {
