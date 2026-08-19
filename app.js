@@ -18,10 +18,10 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V70-FAST";
+const APP_VERSION = "V60-FULLFOLLOW";
 
 let config = {
-  version: "V70 FAST",
+  version: "V60 FULL FOLLOW + INVITE",
   appName: "여우방 통합 프로그램",
   apiUrl: "",
   sheetId: "",
@@ -341,20 +341,20 @@ function loadJsZipLibrary() {
 
 async function loadConfig() {
   try {
-    const response = await fetch("config.json", { cache: "force-cache" });
+    const response = await fetch(`config.json?t=${Date.now()}`, { cache: "no-store" });
     if (response.ok) config = { ...config, ...(await response.json()) };
   } catch (_) {}
 }
 
-async function apiGet(action, fresh = false) {
+async function apiGet(action) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
   const url = new URL(config.apiUrl);
   url.searchParams.set("action", action);
-  if (fresh) url.searchParams.set("_t", Date.now().toString());
+  url.searchParams.set("_t", Date.now().toString());
 
   const response = await fetch(url.toString(), {
     method: "GET",
-    cache: fresh ? "no-store" : "default",
+    cache: "no-store",
     redirect: "follow",
   });
   if (!response.ok) throw new Error(`API HTTP ${response.status}`);
@@ -461,22 +461,18 @@ function finishBootScreen() {
 
 async function bootstrapAuth() {
   showGate();
+  setGate("loading");
 
-  // 첫 화면은 Apps Script 응답을 기다리지 않고 바로 표시합니다.
-  setGate("role");
+  try {
+    publicConfig = await apiGet("publicConfig");
+    updateLockIndicators();
 
-  // 잠금/버전 정보는 백그라운드에서 갱신합니다.
-  apiGet("publicConfig")
-    .then((data) => {
-      publicConfig = data;
-      securityVersion = data?.securityVersion || securityVersion;
-      updateLockIndicators();
-      if (publicConfig?.appLocked && gateMode === "access") setGate("blocked");
-    })
-    .catch(() => {
-      // 인증 시 서버에서 다시 확인하므로 첫 화면 자체는 막지 않습니다.
-    });
+    setGate("role");
+  } catch (error) {
+    setGate("error", `설정을 불러오지 못했습니다. ${error.message}`);
+  }
 }
+
 function chooseGeneralAccess() {
   if (publicConfig?.appLocked) {
     setGate("blocked");
@@ -505,10 +501,7 @@ async function submitGatePassword() {
     $("gateSubmitBtn").disabled = true;
 
     if (gateMode === "access") {
-      const auth = await apiPost("verifyAccessPassword", { password });
-      if (auth.publicConfig) publicConfig = auth.publicConfig;
-      securityVersion = publicConfig?.securityVersion || securityVersion;
-      updateLockIndicators();
+      await apiPost("verifyAccessPassword", { password });
       accessGranted = true;
       adminLoggedIn = false;
       adminPasswordValue = "";
@@ -521,10 +514,7 @@ async function submitGatePassword() {
     }
 
     if (gateMode === "admin") {
-      const auth = await apiPost("adminLogin", { password });
-      if (auth.publicConfig) publicConfig = auth.publicConfig;
-      securityVersion = publicConfig?.securityVersion || securityVersion;
-      updateLockIndicators();
+      await apiPost("adminLogin", { password });
       adminLoggedIn = true;
       adminPasswordValue = password;
       accessGranted = true;
@@ -549,18 +539,20 @@ async function submitGatePassword() {
 }
 
 async function loadAfterAuth() {
-  const restored = restoreFollowListCache();
+  restoreFollowListCache();
 
-  // 캐시가 있으면 즉시 화면을 열고, 최신 명단은 뒤에서 조용히 갱신합니다.
-  if (restored) {
-    setTimeout(() => loadRoomList(false).catch(() => {}), 350);
-  } else {
-    await loadRoomList(false).catch(() => {});
-  }
+  const essentialTasks = [
+    loadRoomList(false),
+    refreshPublicConfig(false),
+  ];
 
-  scheduleNoticeLoad(1200);
+  scheduleNoticeLoad(2000);
+
+  await Promise.allSettled(essentialTasks);
+  securityVersion = publicConfig?.securityVersion || "";
   checkVersionUpdate();
 }
+
 async function refreshPublicConfig(recheck = true) {
   const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
   publicConfig = await apiGet("publicConfig");
@@ -748,7 +740,7 @@ async function loadRoomList(show = false) {
   let lastError = "";
 
   try {
-    const data = await apiGet("followList", show);
+    const data = await apiGet("followList");
     roomAuditSource = (data.members || []).map((item) => ({
       no: String(item.no || "").trim(),
       name: String(item.name || "").trim(),
@@ -828,7 +820,7 @@ async function loadMatchRoomList(show = false, force = false) {
   }
 
   try {
-    const data = await apiGet("matchList", force || show);
+    const data = await apiGet("matchList");
 
     matchRoomList = (data.members || [])
       .map((item, index) => ({
@@ -1033,8 +1025,7 @@ function renderFollowList() {
 
 
 async function registerInviteIntegrated() {
-  const btn = $("inviteRegisterBtn");
-  const message = $("inviteMessage");
+  const msg = $("inviteRegisterMsg");
   const payload = {
     inviteeName: $("inviteeName").value.trim(),
     inviteeInstagram: $("inviteeInstagram").value.trim(),
@@ -1042,60 +1033,56 @@ async function registerInviteIntegrated() {
     inviterInstagram: $("inviterInstagram").value.trim(),
   };
   if (!payload.inviteeName || !payload.inviteeInstagram || !payload.inviterName || !payload.inviterInstagram) {
-    message.textContent = "모든 정보를 입력해주세요.";
+    msg.textContent = "모든 정보를 입력해 주세요.";
     return;
   }
-  btn.disabled = true;
-  message.textContent = "등록 요청 중...";
+  msg.textContent = "등록 요청 중...";
   try {
     const data = await apiPost("registerInvite", payload);
-    message.textContent = data.message || "초대 등록 요청이 완료되었습니다. 관리자 승인 후 자동 반영됩니다.";
+    msg.textContent = data.message || "초대 등록 요청이 완료되었습니다.";
     ["inviteeName","inviteeInstagram","inviterName","inviterInstagram"].forEach(id => $(id).value = "");
-  } catch (err) {
-    message.textContent = err.message || "등록하지 못했습니다.";
-  } finally {
-    btn.disabled = false;
+  } catch (error) {
+    msg.textContent = error.message || "등록하지 못했습니다.";
   }
 }
 
-function inviteStatusLabel(status) {
+function inviteStatusText(status) {
   return status === "APPROVED" ? "승인" : status === "REJECTED" ? "거절" : "대기";
 }
 
 async function loadInviteAdmin() {
-  if (!adminLoggedIn) return;
+  if (!adminLoggedIn || !$("inviteAdminList")) return;
   const box = $("inviteAdminList");
-  if (!box) return;
-  box.innerHTML = '<p class="state-text">초대 요청을 불러오는 중...</p>';
+  box.innerHTML = '<p class="state-text">불러오는 중...</p>';
   try {
     const data = await apiPost("getInviteAdmin", { adminPassword: adminPasswordValue });
     const items = data.items || [];
-    $("invitePendingCount").textContent = items.filter(x=>x.status==="PENDING").length;
-    $("inviteApprovedCount").textContent = items.filter(x=>x.status==="APPROVED").length;
-    $("inviteRejectedCount").textContent = items.filter(x=>x.status==="REJECTED").length;
+    $("invitePendingCount").textContent = items.filter(x => x.status === "PENDING").length;
+    $("inviteApprovedCount").textContent = items.filter(x => x.status === "APPROVED").length;
+    $("inviteRejectedCount").textContent = items.filter(x => x.status === "REJECTED").length;
     box.innerHTML = items.length ? items.map(x => `
       <div class="invite-admin-item">
         <strong>${escapeHtml(x.inviteeName)} · ${escapeHtml(x.inviteeInstagram)}</strong>
         <div class="route">초대자 → <b>${escapeHtml(x.inviterName)}</b> · ${escapeHtml(x.inviterInstagram)}</div>
-        <div class="meta">${escapeHtml(x.createdAt || "")} · ${inviteStatusLabel(x.status)}</div>
+        <div class="meta">${escapeHtml(x.createdAt || "")} · ${inviteStatusText(x.status)}</div>
         ${x.status === "PENDING" ? `<div class="invite-admin-actions">
           <button class="outline success-outline" data-invite-approve="${escapeHtml(x.id)}">승인</button>
           <button class="outline danger-outline" data-invite-reject="${escapeHtml(x.id)}">거절</button>
         </div>` : ""}
-      </div>`).join("") : '<p class="state-text">등록된 초대 요청이 없습니다.</p>';
-  } catch (err) {
-    box.innerHTML = `<p class="error-text">${escapeHtml(err.message || "불러오지 못했습니다.")}</p>`;
+      </div>`).join("") : '<p class="state-text">초대 요청이 없습니다.</p>';
+  } catch (error) {
+    box.innerHTML = `<p class="error-text">${escapeHtml(error.message || "불러오지 못했습니다.")}</p>`;
   }
 }
 
-async function updateInviteIntegrated(id, status) {
+async function changeInviteStatus(id, status) {
   try {
     await apiPost("updateInviteStatus", { adminPassword: adminPasswordValue, id, status });
-    toast(status === "APPROVED" ? "승인 및 자동 반영 완료" : "거절 처리 완료");
+    toast(status === "APPROVED" ? "초대 승인 및 자동 반영 완료" : "초대 거절 완료");
     await loadInviteAdmin();
-    await loadRoomList(true).catch(()=>{});
-  } catch (err) {
-    toast(err.message || "처리하지 못했습니다.");
+    await loadRoomList(true).catch(() => {});
+  } catch (error) {
+    toast(error.message || "처리하지 못했습니다.");
   }
 }
 
@@ -1107,7 +1094,7 @@ function showView(id) {
     applyFollowLock();
   }
 
-  if (id === "adminView" && adminLoggedIn) { loadInviteAdmin().catch(()=>{}); }
+  if (id === "adminView" && adminLoggedIn) loadInviteAdmin().catch(() => {});
 
   if (id === "matchView") {
     applyMatchLock();
@@ -1652,11 +1639,12 @@ async function deleteNotice(noticeId) {
 
 if ($("inviteRegisterBtn")) $("inviteRegisterBtn").onclick = registerInviteIntegrated;
 if ($("refreshInviteAdminBtn")) $("refreshInviteAdminBtn").onclick = loadInviteAdmin;
+if ($("openSettingsSheetBtn")) $("openSettingsSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
 document.addEventListener("click", (event) => {
   const approve = event.target.closest("[data-invite-approve]");
   const reject = event.target.closest("[data-invite-reject]");
-  if (approve) updateInviteIntegrated(approve.dataset.inviteApprove, "APPROVED");
-  if (reject) updateInviteIntegrated(reject.dataset.inviteReject, "REJECTED");
+  if (approve) changeInviteStatus(approve.dataset.inviteApprove, "APPROVED");
+  if (reject) changeInviteStatus(reject.dataset.inviteReject, "REJECTED");
 });
 
 document.querySelectorAll(".nav-btn").forEach((button) => {
@@ -1719,22 +1707,10 @@ $("adminLoginBtn").onclick = adminLogin;
 $("adminPassword").onkeydown = (event) => { if (event.key === "Enter") adminLogin(); };
 $("adminLogoutBtn").onclick = adminLogout;
 $("openSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
-if ($("openSettingsSheetBtn")) {
-  $("openSettingsSheetBtn").onclick = () => {
-    const url = new URL(sheetUrl());
-    window.open(url.toString(), "_blank");
-  };
-}
 $("adminRefreshBtn").onclick = async () => {
-  await Promise.allSettled([
-    refreshPublicConfig(false),
-    loadRoomList(true),
-    loadNotices(false),
-    loadAdminLogs(),
-    loadInviteAdmin()
-  ]);
+  await Promise.allSettled([refreshPublicConfig(false), loadRoomList(true), loadMatchRoomList(true, true), loadNotices(false), loadAdminLogs(), loadInviteAdmin()]);
   renderRosterAudit();
-  toast("관리 데이터 새로고침 완료");
+  toast("전체 새로고침 완료");
 };
 
 $("lockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: true }, "앱을 잠갔습니다.");
@@ -1779,11 +1755,11 @@ $("installBtn").onclick = async () => {
 
 window.addEventListener("DOMContentLoaded", async () => {
   showGate();
-  setGate("role");
+  setGate("loading", "여우방을 불러오는 중입니다.");
   renderResumeCard();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=700").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=600").catch(() => {});
   }
 
   try {
