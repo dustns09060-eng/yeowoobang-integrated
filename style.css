@@ -1006,3 +1006,47 @@ input:focus,textarea:focus,.search-wrap:focus-within{
   letter-spacing:.12em;
   border:1.5px solid #efbfd0!important;
 }
+
+/* V66 폭스바겐 내부 통합 */
+.fox-embedded-card{padding-bottom:14px}
+.fox-frame-wrap{
+  position:relative;
+  margin-top:14px;
+  border:1px solid #f0dce4;
+  border-radius:18px;
+  overflow:hidden;
+  background:#fff;
+  min-height:72vh;
+}
+.fox-frame{
+  display:block;
+  width:100%;
+  height:72vh;
+  border:0;
+  background:#fff;
+}
+.fox-frame-loading{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff8fb;
+  color:#c14d73;
+  font-weight:800;
+  z-index:2;
+}
+.fox-frame-loading.hidden{display:none}
+@media(max-width:760px){
+  .fox-embedded-card{
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .fox-frame-wrap{
+    min-height:74vh;
+    border-radius:14px;
+  }
+  .fox-frame{
+    height:74vh;
+  }
+}

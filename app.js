@@ -18,7 +18,7 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V65.0-PINK-UI";
+const APP_VERSION = "V66.0-INTERNAL-FOX";
 
 let config = {
   version: "V4.2 FASTBOOT",
@@ -540,6 +540,7 @@ async function submitGatePassword() {
       if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
       updateFoxMode();
+  setupFoxFrame();
       adminPasswordValue = password;
       accessGranted = true;
       matchGranted = true;
@@ -1049,7 +1050,7 @@ function renderFollowList() {
 
 let inviteAdminLoggedIn=false,inviteAdminPasswordValue="",inviteAdminItemsCache=[],inviteAdminFilter="ALL",inviteMeVerified=false,inviteVerifiedInstagram="",inviteVerifiedName="";
 function setInviteMode(mode){const m=$("inviteMemberMode"),a=$("inviteAdminMode"),mt=$("inviteMemberTab"),at=$("inviteAdminTab");if(mode==="admin"){mt.classList.remove("active");at.classList.add("active");m.classList.add("hidden");a.classList.remove("hidden")}else{at.classList.remove("active");mt.classList.add("active");a.classList.add("hidden");m.classList.remove("hidden")}}
-async function checkInviteMe(){const name=$("inviteeName").value.trim(),instagram=$("inviteeInstagram").value.trim(),msg=$("inviteRegisterMsg");if(!name||!instagram){msg.textContent="내 닉네임과 인스타 아이디를 입력해주세요.";return}msg.textContent="신규회원 정보 확인 중...";try{const d=await apiPost("inviteMemberLookup",{name,instagram});inviteMeVerified=true;inviteVerifiedName=name;inviteVerifiedInstagram=instagram;if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").disabled=false;msg.textContent="신규회원 정보 입력 완료";renderInviteMyStatus(d.items||[])}catch(e){inviteMeVerified=false;inviteVerifiedName="";inviteVerifiedInstagram="";if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").disabled=true;msg.textContent=e.message||"정보를 확인하지 못했습니다.";renderInviteMyStatus([])}}
+async function checkInviteMe(){const name=$("inviteeName").value.trim(),instagram=$("inviteeInstagram").value.trim(),msg=$("inviteRegisterMsg");if(!name||!instagram){msg.textContent="내 닉네임과 인스타 아이디를 입력해주세요.";return}msg.textContent="내 정보 확인 중...";try{const d=await apiPost("inviteMemberLookup",{name,instagram});inviteMeVerified=!!d.member;if(!inviteMeVerified)throw new Error("회원명단에서 닉네임과 인스타 아이디가 일치하지 않습니다.");inviteVerifiedName=name;inviteVerifiedInstagram=instagram;if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").disabled=false;msg.textContent="회원정보 확인 완료";renderInviteMyStatus(d.items||[])}catch(e){inviteMeVerified=false;inviteVerifiedName="";inviteVerifiedInstagram="";if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").disabled=true;msg.textContent=e.message||"회원정보를 확인하지 못했습니다.";renderInviteMyStatus([])}}
 async function startFollowFromOne(){if(!inviteMeVerified||!inviteVerifiedInstagram){toast("먼저 내 정보를 확인해주세요.");return}const b=$("inviteStartFollowBtn");if(b)b.disabled=true;try{await apiPost("markFollowStarted",{name:inviteVerifiedName,instagram:inviteVerifiedInstagram});toast("팔로우리스트 1번 시작이 기록됐어요.");showView("followView");setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),100)}catch(e){toast(e.message||"시작 기록에 실패했습니다.")}finally{if(b)b.disabled=false}}
 function renderInviteMyStatus(items){const a=items||[];$("inviteMyRequestCount").textContent=a.length;$("inviteMyApprovedCount").textContent=a.filter(x=>x.status==="APPROVED").length;$("inviteMyPendingCount").textContent=a.filter(x=>x.status==="PENDING").length;$("inviteMyList").innerHTML=a.length?a.map(x=>`<div class="invite-my-row"><span>${escapeHtml(x.inviterName||"")}</span><span>${escapeHtml(x.inviterInstagram||"")}</span><span>${escapeHtml((x.createdAt||"").slice(0,10))}</span><span>${x.status==="APPROVED"?"승인":x.status==="REJECTED"?"거절":"대기"}</span></div>`).join(""):'<p class="state-text">등록 기록이 없습니다.</p>'}
 async function registerInviteIntegrated(){const msg=$("inviteRegisterMsg"),p={inviteeName:$("inviteeName").value.trim(),inviteeInstagram:$("inviteeInstagram").value.trim(),inviterName:$("inviterName").value.trim(),inviterInstagram:$("inviterInstagram").value.trim()};if(!p.inviteeName||!p.inviteeInstagram||!p.inviterName||!p.inviterInstagram){msg.textContent="모든 정보를 입력해주세요.";return}if(!inviteMeVerified){await checkInviteMe();if(!inviteMeVerified)return}msg.textContent="초대 등록 요청 중...";try{const d=await apiPost("registerInvite",p);msg.textContent=d.message||"초대 등록 요청이 완료되었습니다.";$("inviterName").value="";$("inviterInstagram").value="";await checkInviteMe()}catch(e){msg.textContent=e.message||"등록하지 못했습니다."}}
@@ -1063,6 +1064,9 @@ async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await ap
 async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map(x=>`<div class="invite-summary-row"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0}</span></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>'}
 async function changeInviteStatus(id,status){try{await apiPost("updateInviteStatus",{inviteAdminPassword:inviteAdminPasswordValue,id,status});toast(status==="APPROVED"?"초대 승인 및 자동 반영 완료":"초대 거절 완료");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary(),loadRoomList(true)])}catch(e){toast(e.message||"처리하지 못했습니다.")}}
 
+
+
+
 const FOX_PUBLIC_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec";
 const FOX_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec?admin=1";
 
@@ -1070,28 +1074,43 @@ function updateFoxMode() {
   const title = $("foxModeTitle");
   const desc = $("foxModeDesc");
   const badge = $("foxModeBadge");
-  const link = $("foxModeLink");
+  const frame = $("foxFrame");
+  const loading = $("foxFrameLoading");
   const notice = $("foxAdminNotice");
-  if (!title || !desc || !badge || !link) return;
+  if (!title || !desc || !badge || !frame) return;
+
+  const targetUrl = adminLoggedIn ? FOX_ADMIN_URL : FOX_PUBLIC_URL;
 
   if (adminLoggedIn) {
     title.textContent = "🚗 여우방 폭스바겐 운영진";
-    desc.textContent = "폭스바겐 협찬 등록 · 수정 · 삭제 · 참여 현황을 관리합니다.";
+    desc.textContent = "협찬 등록 · 수정 · 삭제 · 참여 현황을 통합 프로그램 안에서 관리합니다.";
     badge.textContent = "운영진용";
     badge.classList.add("admin");
-    link.href = FOX_ADMIN_URL;
-    link.textContent = "폭스바겐 운영진 입장하기";
     if (notice) notice.classList.remove("hidden");
   } else {
     title.textContent = "🚗 여우방 폭스바겐";
-    desc.textContent = "기존 폭스바겐 선착순 프로그램을 이용합니다.";
+    desc.textContent = "선착순 협찬 참여 기능을 통합 프로그램 안에서 이용합니다.";
     badge.textContent = "회원용";
     badge.classList.remove("admin");
-    link.href = FOX_PUBLIC_URL;
-    link.textContent = "폭스바겐 입장하기";
     if (notice) notice.classList.add("hidden");
   }
+
+  if (frame.dataset.currentUrl !== targetUrl) {
+    if (loading) loading.classList.remove("hidden");
+    frame.src = targetUrl;
+    frame.dataset.currentUrl = targetUrl;
+  }
 }
+
+function setupFoxFrame() {
+  const frame = $("foxFrame");
+  const loading = $("foxFrameLoading");
+  if (!frame) return;
+  frame.addEventListener("load", () => {
+    if (loading) loading.classList.add("hidden");
+  });
+}
+
 
 function showView(id) {
   if (id === "foxView") updateFoxMode();
@@ -1760,7 +1779,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=650").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=660").catch(() => {});
   }
 
   // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.

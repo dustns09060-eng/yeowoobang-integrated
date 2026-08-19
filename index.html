@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=650" />
+  <link rel="stylesheet" href="style.css?v=660" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -256,10 +256,10 @@
     <div class="invite-mode-tabs"><button id="inviteMemberTab" class="invite-mode-tab active" type="button">회원 화면</button><button id="inviteAdminTab" class="invite-mode-tab" type="button">관리자</button></div>
   </div>
   <div id="inviteMemberMode">
-    <section class="card invite-card"><h3>내 정보</h3><div class="invite-form-grid"><label class="invite-field"><span>내 닉네임</span><input id="inviteeName" placeholder="예: 여우방"></label><label class="invite-field"><span>내 인스타 아이디</span><input id="inviteeInstagram" placeholder="예: @yeowoobang"></label></div><button id="inviteCheckMeBtn" class="primary invite-submit" type="button">내 정보 확인</button><div class="invite-help-box">새로 입장한 회원의 닉네임과 인스타 아이디를 입력해주세요. 기존 회원명단에 없어도 등록할 수 있어요.</div>
+    <section class="card invite-card"><h3>내 정보</h3><div class="invite-form-grid"><label class="invite-field"><span>내 닉네임</span><input id="inviteeName" placeholder="예: 여우방"></label><label class="invite-field"><span>내 인스타 아이디</span><input id="inviteeInstagram" placeholder="예: @yeowoobang"></label></div><button id="inviteCheckMeBtn" class="primary invite-submit" type="button">내 정보 확인</button><div class="invite-help-box">회원명단에 등록된 닉네임과 인스타 아이디가 서로 일치해야 등록할 수 있어요.</div>
       <div class="invite-start-box">
         <div><strong>입장 후 7일 이내 팔로우리스트 1번부터 시작해주세요.</strong>
-        <p>신규회원 정보를 입력한 뒤 초대자 등록 요청을 완료하면 시작 여부와 시작일을 기록할 수 있습니다.</p></div>
+        <p>내 정보 확인 후 버튼을 누르면 시작 여부와 시작일이 자동 기록됩니다.</p></div>
         <button id="inviteStartFollowBtn" class="outline" type="button" disabled>팔로우리스트 1번부터 시작</button>
       </div></section>
     <section class="card invite-card"><h3>나를 초대한 사람</h3><div class="invite-form-grid"><label class="invite-field"><span>초대한 사람 닉네임</span><input id="inviterName" placeholder="초대한 분 닉네임"></label><label class="invite-field"><span>초대한 사람 인스타 아이디</span><input id="inviterInstagram" placeholder="예: @instagram_id"></label></div><button id="inviteRegisterBtn" class="primary invite-submit" type="button">초대자 등록 요청</button><p id="inviteRegisterMsg" class="state-text"></p><div class="invite-help-box">등록 후 관리자 승인이 완료되면 초대한 사람의 초대 실적에 1명이 반영됩니다. 같은 인스타 계정은 한 번만 등록할 수 있어요.</div></section>
@@ -275,24 +275,34 @@
   </div>
   <div id="inviteAdminLoginBox" class="invite-admin-login hidden"><div class="invite-admin-login-card"><h3>관리자 인증</h3><p class="subtext">초대관리 비밀번호를 입력해주세요.</p><input id="inviteAdminPassword" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="초대관리 비밀번호"><div class="invite-admin-login-actions"><button id="inviteAdminLoginBtn" class="primary" type="button">확인</button><button id="inviteAdminCancelBtn" class="outline" type="button">취소</button></div><p id="inviteAdminLoginMsg" class="state-text"></p></div></div>
 </section>
+
 <section id="foxView" class="view">
-      <section class="card fox-mode-card">
-        <div class="section-title-row">
-          <div>
-            <h2 id="foxModeTitle">🚗 여우방 폭스바겐</h2>
-            <p id="foxModeDesc" class="subtext">기존 폭스바겐 선착순 프로그램을 이용합니다.</p>
-          </div>
-          <span id="foxModeBadge" class="fox-mode-badge">회원용</span>
-        </div>
+  <section class="card fox-embedded-card">
+    <div class="section-title-row">
+      <div>
+        <h2 id="foxModeTitle">🚗 여우방 폭스바겐</h2>
+        <p id="foxModeDesc" class="subtext">통합 프로그램 안에서 바로 이용합니다.</p>
+      </div>
+      <span id="foxModeBadge" class="fox-mode-badge">회원용</span>
+    </div>
 
-        <a id="foxModeLink" class="primary integrated-link-button"
-           href="https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec" target="_blank" rel="noopener">폭스바겐 입장하기</a>
+    <div class="fox-frame-wrap">
+      <div id="foxFrameLoading" class="fox-frame-loading">폭스바겐을 불러오는 중...</div>
+      <iframe
+        id="foxFrame"
+        class="fox-frame"
+        title="여우방 폭스바겐"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allow="clipboard-read; clipboard-write"
+      ></iframe>
+    </div>
 
-        <div id="foxAdminNotice" class="fox-admin-notice hidden">
-          통합 프로그램 운영진 모드에서는 <b>폭스바겐 관리자 화면</b>으로 연결됩니다.
-          폭스바겐 관리자 인증은 기존 폭스바겐 방식 그대로 별도로 유지됩니다.
-        </div>
-      </section>
+    <div id="foxAdminNotice" class="fox-admin-notice hidden">
+      운영진 모드에서는 폭스바겐 운영진 화면을 통합 프로그램 안에서 바로 불러옵니다.
+    </div>
+  </section>
+</section>
     </section>
 
     <section id="noticeView" class="view">
@@ -462,6 +472,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=650"></script>
+  <script src="app.js?v=660"></script>
 </body>
 </html>
