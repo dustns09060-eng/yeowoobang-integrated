@@ -1,19 +1,56 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>여우방 통합 프로그램</title><link rel="stylesheet" href="styles.css"><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script></head><body>
 <div class="wrap"><div class="top"><div class="brand">🦊 여우방 <b>통합 프로그램</b></div><a class="btn light" href="admin.html">관리자</a></div>
-<section id="home" class="page on"><div class="card"><div class="section">한곳에서 편하게 💗</div><div class="grid"><button class="btn light big" onclick="go('list')">👥 맞팔 명단</button><button class="btn light big" onclick="go('check')">🔎 맞팔 확인</button><button class="btn light big" onclick="go('fox')">🚗 폭스바겐</button><button class="btn light big" onclick="go('notice')">📢 공지</button></div></div><div id="homeCampaign" class="card">불러오는 중...</div></section>
+<section id="home" class="page on"><div class="card"><div class="section">한곳에서 편하게 💗</div><div class="grid"><button class="btn light big" onclick="go('list')">👥 맞팔 명단</button><button class="btn light big" onclick="go('check')">🔎 맞팔 확인</button><button class="btn light big" onclick="go('invite')">💌 초대등록</button><button class="btn light big" onclick="go('fox')">🚗 폭스바겐</button><button class="btn light big" onclick="go('notice')">📢 공지</button></div></div><div id="homeCampaign" class="card">불러오는 중...</div></section>
 <section id="list" class="page"><div class="card"><div class="section">👥 팔로우리스트</div><input id="q" placeholder="번호 / 닉네임 / 아이디 검색" oninput="renderList()"><div class="tabs" id="groups"></div><div class="small" id="listCount"></div><div id="listBox"></div></div></section>
 <section id="check" class="page"><div class="card"><div class="section">🔎 맞팔 확인</div><div class="small">Instagram에서 받은 ZIP 파일을 기기 안에서 분석합니다. ZIP 자체는 서버에 업로드하지 않습니다.</div><input type="file" id="zip" accept=".zip"><button class="btn orange big" onclick="analyze()">확인하기</button></div><div class="card"><div class="tabs"><button class="btn light tab" onclick="showMatch('bad')">❌ 나를 안팔로우</button><button class="btn light tab" onclick="showMatch('good')">✅ 맞팔</button><button class="btn light tab" onclick="showMatch('outside')">📌 명단 밖</button></div><div id="match" class="notice">ZIP 파일을 선택해주세요.</div></div></section>
+
+<section id="invite" class="page">
+  <div class="card">
+    <div class="section">💌 초대 등록</div>
+    <div class="small">초대를 받고 들어온 회원이 직접 작성해주세요.</div>
+    <div class="grid">
+      <input id="inviteeNick" placeholder="내 닉네임 예: 여우방">
+      <input id="inviteeIg" placeholder="내 인스타 아이디 예: @yeowoobang">
+      <input id="inviterNick" placeholder="나를 초대한 사람 닉네임">
+      <input id="inviterIg" placeholder="나를 초대한 사람 @아이디">
+    </div>
+    <button class="btn main big" onclick="registerInvite()">초대 등록 요청</button>
+    <div id="inviteMsg" class="small"></div>
+  </div>
+  <div class="card">
+    <div class="section">💌 초대왕 혜택</div>
+    <div class="item"><b>🌱 10명 이상</b><div class="small">팔로우리스트 앞번호 이동 + 무기한 품앗이 프리패스 1회권</div></div>
+    <div class="item"><b>🌱 20명 이상</b><div class="small">💎 다이아몬드 + 폭스바겐 우선 탑승권 1회 + 프리패스 3회권</div></div>
+    <div class="item"><b>🌱 40명 이상</b><div class="small">💎 쌍 다이아몬드 💎 + 폭스바겐 우선 탑승권 3회 + 프리패스 10회권</div></div>
+    <div class="notice">초대받은 분이 무단 퇴장 시 기존 부여된 초대별은 무효화됩니다.</div>
+    <div class="small" style="margin-top:10px">문의: 보살 1:1 채팅 또는 @yeolmu.___.v DM</div>
+  </div>
+</section>
 <section id="fox" class="page"><div id="campaign" class="card">불러오는 중...</div></section>
 <section id="rides" class="page"><div class="card"><div class="section">🎫 내 참여내역</div><input id="rideIg" placeholder="@인스타아이디"><button class="btn main" onclick="loadRides()">확인</button><div id="rideList"></div></div></section>
 <section id="notice" class="page"><div class="card"><div class="section">📢 공지</div><div id="notices"></div></div></section>
 <section id="profile" class="page"><div class="card"><div class="section">👤 내 정보</div><div class="grid"><input id="nick" placeholder="닉네임"><input id="ig" placeholder="@인스타아이디"><input id="followers" type="number" placeholder="팔로워 수"><input id="reels" type="number" placeholder="릴스 조회수"></div><select id="pub"><option value="true">공개 계정</option><option value="false">비공개 계정</option></select><div class="row"><button class="btn light" onclick="loadMember()">불러오기</button><button class="btn main" onclick="saveMember()">저장</button></div></div></section></div>
-<nav class="nav"><button class="on" onclick="go('home',this)">🏠<br>홈</button><button onclick="go('list',this)">👥<br>명단</button><button onclick="go('check',this)">🔎<br>맞팔</button><button onclick="go('fox',this)">🚗<br>폭스바겐</button><button onclick="go('rides',this)">🎫<br>내참여</button><button onclick="go('notice',this)">📢<br>공지</button><button onclick="go('profile',this)">👤<br>내정보</button></nav>
+<nav class="nav"><button class="on" onclick="go('home',this)">🏠<br>홈</button><button onclick="go('list',this)">👥<br>명단</button><button onclick="go('check',this)">🔎<br>맞팔</button><button onclick="go('invite',this)">💌<br>초대</button><button onclick="go('fox',this)">🚗<br>폭스바겐</button><button onclick="go('rides',this)">🎫<br>내참여</button><button onclick="go('notice',this)">📢<br>공지</button><button onclick="go('profile',this)">👤<br>내정보</button></nav>
 <script src="config.js"></script><script src="api.js"></script><script>
 const $=x=>document.getElementById(x);let members=[],group='전체',campaign=null,offset=0,timer=null,match={bad:[],good:[],outside:[]};
-function go(id,b){document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('on'));if(b)b.classList.add('on');if(id==='fox')loadCampaign();if(id==='notice')loadNotices()}
+const MEMBER_CACHE_KEY='yw_members_v3';
+function readMemberCache(){try{const v=JSON.parse(localStorage.getItem(MEMBER_CACHE_KEY)||'null');return v&&Array.isArray(v.items)?v.items:[]}catch(e){return[]}}
+function saveMemberCache(items){try{localStorage.setItem(MEMBER_CACHE_KEY,JSON.stringify({time:Date.now(),items}))}catch(e){}}
+
+function go(id,b){document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('on'));if(b)b.classList.add('on');if(id==='fox')loadCampaign();else{clearInterval(timer);timer=null}if(id==='notice')loadNotices()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function clean(v){return String(v||'').replace(/^@/,'').toLowerCase().trim()}
-async function init(){try{const [b,f]=await Promise.all([jsonp('bootstrap'),jsonp('followList')]);offset=b.serverTime-Date.now();campaign=b.campaign;members=f.items||[];renderCampaign('homeCampaign');renderGroups();renderList();renderNotices(b.notices||[]);const saved=localStorage.getItem('yw_ig');if(saved){$('ig').value=saved;$('rideIg').value=saved;loadMember()}}catch(e){$('homeCampaign').textContent=e.message}}
+async function init(){
+  const cached=readMemberCache();
+  if(cached.length){members=cached;renderGroups();renderList()}
+  try{
+    const b=await jsonp('bootstrap');
+    offset=b.serverTime-Date.now();campaign=b.campaign;renderCampaign('homeCampaign');renderNotices(b.notices||[]);
+  }catch(e){$('homeCampaign').innerHTML='<div class="notice">'+esc(e.message)+'</div>'}
+  jsonp('followList').then(f=>{members=f.items||[];saveMemberCache(members);renderGroups();renderList()}).catch(()=>{});
+  const saved=localStorage.getItem('yw_ig');
+  if(saved){$('ig').value=saved;$('rideIg').value=saved;loadMember().catch(()=>{})}
+}
 function renderGroups(){const max=members.length?Math.ceil(Math.max(...members.map(x=>x.no))/30):0;$('groups').innerHTML=`<button class="btn light tab" onclick="setGroup('전체')">전체</button>`+Array.from({length:max},(_,i)=>`<button class="btn light tab" onclick="setGroup(${i+1})">${i+1}조</button>`).join('')}
 function setGroup(g){group=g;renderList()}
 function filtered(){const q=$('q').value.toLowerCase();return members.filter(x=>(group==='전체'||Math.floor((x.no-1)/30)+1===group)&&(!q||String(x.no).includes(q)||x.nickname.toLowerCase().includes(q)||x.instagram.toLowerCase().includes(q)))}
@@ -28,7 +65,20 @@ async function loadMember(){if(!$('ig').value)return;const m=await jsonp('member
 async function loadRides(){const a=await jsonp('myRides',{instagram:$('rideIg').value});$('rideList').innerHTML=a.length?a.map(x=>`<div class="item"><b>${esc(x.title)}</b><div>${x.type} · ${x.number}번</div><div class="small">${x.time}</div></div>`).join(''):'<div class="notice">참여내역이 없습니다.</div>'}
 async function loadNotices(){renderNotices(await jsonp('notices'))}
 function renderNotices(a){$('notices').innerHTML=a.length?a.map(x=>`<div class="item">${x.important?'📌 ':''}<b>${esc(x.title)}</b><div>${esc(x.content)}</div><div class="small">${x.time}</div></div>`).join(''):'공지 없음'}
+async function registerInvite(){
+  const msg=$('inviteMsg');
+  const payload={inviteeName:$('inviteeNick').value.trim(),inviteeInstagram:$('inviteeIg').value.trim(),inviterName:$('inviterNick').value.trim(),inviterInstagram:$('inviterIg').value.trim()};
+  if(!payload.inviteeName||!payload.inviteeInstagram||!payload.inviterName||!payload.inviterInstagram){msg.textContent='모든 정보를 입력해주세요.';return}
+  msg.textContent='등록 중...';
+  try{
+    const r=await postViaForm('registerInvite',payload);
+    if(!r.ok)throw new Error(r.message||'등록 실패');
+    msg.textContent=r.message||'등록 요청이 완료되었습니다.';
+    ['inviteeNick','inviteeIg','inviterNick','inviterIg'].forEach(id=>$(id).value='');
+  }catch(e){msg.textContent=e.message}
+}
 async function analyze(){const file=$('zip').files[0];if(!file)return alert('ZIP 파일을 선택해주세요.');const zip=await JSZip.loadAsync(file),followers=[];for(const n in zip.files){if(!zip.files[n].dir&&/followers.*\.(json|html|htm)$/i.test(n)){const t=await zip.files[n].async('text');let m;for(const re of [/"value"\s*:\s*"([^"]+)"/g,/instagram\.com\/([A-Za-z0-9._]+)/g])while((m=re.exec(t)))followers.push(clean(m[1]))}}const set=new Set(followers);match.bad=members.filter(x=>!set.has(clean(x.instagram)));match.good=members.filter(x=>set.has(clean(x.instagram)));const ids=new Set(members.map(x=>clean(x.instagram)));match.outside=[...new Set(followers)].filter(x=>!ids.has(x));showMatch('bad')}
 function showMatch(t){const a=match[t];$('match').textContent=(t==='outside'?a.map((x,i)=>`${i+1}. @${x}`):a.map((x,i)=>`${i+1}. ${x.no}. ${x.nickname} ${x.instagram}`)).join('\n')||'0명'}
-init();setInterval(()=>{if(campaign&&['OPEN','COUNTDOWN'].includes(campaign.status))loadCampaign()},2500);
+init();
+setInterval(()=>{const fox=$('fox');if(fox&&fox.classList.contains('on')&&campaign&&['OPEN','COUNTDOWN'].includes(campaign.status))loadCampaign()},5000);
 </script></body></html>
