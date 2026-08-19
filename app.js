@@ -18,7 +18,7 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V60-FULLFOLLOW";
+const APP_VERSION = "V64.1-INVITE-SPLIT";
 
 let config = {
   version: "V60 FULL FOLLOW + INVITE",
@@ -1024,68 +1024,20 @@ function renderFollowList() {
 }
 
 
-async function registerInviteIntegrated() {
-  const msg = $("inviteRegisterMsg");
-  const payload = {
-    inviteeName: $("inviteeName").value.trim(),
-    inviteeInstagram: $("inviteeInstagram").value.trim(),
-    inviterName: $("inviterName").value.trim(),
-    inviterInstagram: $("inviterInstagram").value.trim(),
-  };
-  if (!payload.inviteeName || !payload.inviteeInstagram || !payload.inviterName || !payload.inviterInstagram) {
-    msg.textContent = "모든 정보를 입력해 주세요.";
-    return;
-  }
-  msg.textContent = "등록 요청 중...";
-  try {
-    const data = await apiPost("registerInvite", payload);
-    msg.textContent = data.message || "초대 등록 요청이 완료되었습니다.";
-    ["inviteeName","inviteeInstagram","inviterName","inviterInstagram"].forEach(id => $(id).value = "");
-  } catch (error) {
-    msg.textContent = error.message || "등록하지 못했습니다.";
-  }
-}
-
-function inviteStatusText(status) {
-  return status === "APPROVED" ? "승인" : status === "REJECTED" ? "거절" : "대기";
-}
-
-async function loadInviteAdmin() {
-  if (!adminLoggedIn || !$("inviteAdminList")) return;
-  const box = $("inviteAdminList");
-  box.innerHTML = '<p class="state-text">불러오는 중...</p>';
-  try {
-    const data = await apiPost("getInviteAdmin", { adminPassword: adminPasswordValue });
-    const items = data.items || [];
-    $("invitePendingCount").textContent = items.filter(x => x.status === "PENDING").length;
-    $("inviteApprovedCount").textContent = items.filter(x => x.status === "APPROVED").length;
-    $("inviteRejectedCount").textContent = items.filter(x => x.status === "REJECTED").length;
-    box.innerHTML = items.length ? items.map(x => `
-      <div class="invite-admin-item">
-        <strong>${escapeHtml(x.inviteeName)} · ${escapeHtml(x.inviteeInstagram)}</strong>
-        <div class="route">초대자 → <b>${escapeHtml(x.inviterName)}</b> · ${escapeHtml(x.inviterInstagram)}</div>
-        <div class="meta">${escapeHtml(x.createdAt || "")} · ${inviteStatusText(x.status)}</div>
-        ${x.status === "PENDING" ? `<div class="invite-admin-actions">
-          <button class="outline success-outline" data-invite-approve="${escapeHtml(x.id)}">승인</button>
-          <button class="outline danger-outline" data-invite-reject="${escapeHtml(x.id)}">거절</button>
-        </div>` : ""}
-      </div>`).join("") : '<p class="state-text">초대 요청이 없습니다.</p>';
-  } catch (error) {
-    box.innerHTML = `<p class="error-text">${escapeHtml(error.message || "불러오지 못했습니다.")}</p>`;
-  }
-}
-
-async function changeInviteStatus(id, status) {
-  try {
-    await apiPost("updateInviteStatus", { adminPassword: adminPasswordValue, id, status });
-    toast(status === "APPROVED" ? "초대 승인 및 자동 반영 완료" : "초대 거절 완료");
-    await loadInviteAdmin();
-    await loadRoomList(true).catch(() => {});
-  } catch (error) {
-    toast(error.message || "처리하지 못했습니다.");
-  }
-}
-
+let inviteAdminLoggedIn=false,inviteAdminPasswordValue="",inviteAdminItemsCache=[],inviteAdminFilter="ALL",inviteMeVerified=false;
+function setInviteMode(mode){const m=$("inviteMemberMode"),a=$("inviteAdminMode"),mt=$("inviteMemberTab"),at=$("inviteAdminTab");if(mode==="admin"){mt.classList.remove("active");at.classList.add("active");m.classList.add("hidden");a.classList.remove("hidden")}else{at.classList.remove("active");mt.classList.add("active");a.classList.add("hidden");m.classList.remove("hidden")}}
+async function checkInviteMe(){const name=$("inviteeName").value.trim(),instagram=$("inviteeInstagram").value.trim(),msg=$("inviteRegisterMsg");if(!name||!instagram){msg.textContent="내 닉네임과 인스타 아이디를 입력해주세요.";return}msg.textContent="내 정보 확인 중...";try{const d=await apiPost("inviteMemberLookup",{name,instagram});inviteMeVerified=!!d.member;if(!inviteMeVerified)throw new Error("회원명단에서 닉네임과 인스타 아이디가 일치하지 않습니다.");msg.textContent="회원정보 확인 완료";renderInviteMyStatus(d.items||[])}catch(e){inviteMeVerified=false;msg.textContent=e.message||"회원정보를 확인하지 못했습니다.";renderInviteMyStatus([])}}
+function renderInviteMyStatus(items){const a=items||[];$("inviteMyRequestCount").textContent=a.length;$("inviteMyApprovedCount").textContent=a.filter(x=>x.status==="APPROVED").length;$("inviteMyPendingCount").textContent=a.filter(x=>x.status==="PENDING").length;$("inviteMyList").innerHTML=a.length?a.map(x=>`<div class="invite-my-row"><span>${escapeHtml(x.inviterName||"")}</span><span>${escapeHtml(x.inviterInstagram||"")}</span><span>${escapeHtml((x.createdAt||"").slice(0,10))}</span><span>${x.status==="APPROVED"?"승인":x.status==="REJECTED"?"거절":"대기"}</span></div>`).join(""):'<p class="state-text">등록 기록이 없습니다.</p>'}
+async function registerInviteIntegrated(){const msg=$("inviteRegisterMsg"),p={inviteeName:$("inviteeName").value.trim(),inviteeInstagram:$("inviteeInstagram").value.trim(),inviterName:$("inviterName").value.trim(),inviterInstagram:$("inviterInstagram").value.trim()};if(!p.inviteeName||!p.inviteeInstagram||!p.inviterName||!p.inviterInstagram){msg.textContent="모든 정보를 입력해주세요.";return}if(!inviteMeVerified){await checkInviteMe();if(!inviteMeVerified)return}msg.textContent="초대 등록 요청 중...";try{const d=await apiPost("registerInvite",p);msg.textContent=d.message||"초대 등록 요청이 완료되었습니다.";$("inviterName").value="";$("inviterInstagram").value="";await checkInviteMe()}catch(e){msg.textContent=e.message||"등록하지 못했습니다."}}
+function openInviteAdminLogin(){$("inviteAdminLoginBox").classList.remove("hidden");$("inviteAdminPassword").value="";$("inviteAdminLoginMsg").textContent=""}
+function closeInviteAdminLogin(){$("inviteAdminLoginBox").classList.add("hidden")}
+async function loginInviteAdmin(){const password=$("inviteAdminPassword").value;if(!password){$("inviteAdminLoginMsg").textContent="비밀번호를 입력해주세요.";return}try{await apiPost("inviteAdminLogin",{password});inviteAdminLoggedIn=true;inviteAdminPasswordValue=password;closeInviteAdminLogin();setInviteMode("admin");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}catch(e){$("inviteAdminLoginMsg").textContent=e.message||"비밀번호가 올바르지 않습니다."}}
+function logoutInviteAdmin(){inviteAdminLoggedIn=false;inviteAdminPasswordValue="";setInviteMode("member")}
+function inviteStatusText(s){return s==="APPROVED"?"승인 완료":s==="REJECTED"?"거절":"승인 대기"}
+function renderInviteAdminList(){const q=($("inviteAdminSearch")?.value||"").trim().toLowerCase();let a=inviteAdminItemsCache.slice();if(inviteAdminFilter!=="ALL")a=a.filter(x=>x.status===inviteAdminFilter);if(q)a=a.filter(x=>[x.inviteeName,x.inviteeInstagram,x.inviterName,x.inviterInstagram].join(" ").toLowerCase().includes(q));$("inviteAdminList").innerHTML=a.length?a.map(x=>`<div class="invite-admin-item"><strong>${escapeHtml(x.inviteeName)} · ${escapeHtml(x.inviteeInstagram)}</strong><div class="route">초대한 사람 → <b>${escapeHtml(x.inviterName)}</b> · ${escapeHtml(x.inviterInstagram)}</div><div class="meta">${escapeHtml(x.createdAt||"")} · ${inviteStatusText(x.status)}</div>${x.status==="PENDING"?`<div class="invite-admin-actions"><button class="outline success-outline" data-invite-approve="${escapeHtml(x.id)}">승인</button><button class="outline danger-outline" data-invite-reject="${escapeHtml(x.id)}">거절</button></div>`:""}</div>`).join(""):'<p class="state-text">표시할 기록이 없습니다.</p>'}
+async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteAdmin",{inviteAdminPassword:inviteAdminPasswordValue});inviteAdminItemsCache=d.items||[];$("invitePendingCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="PENDING").length;$("inviteApprovedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="APPROVED").length;$("inviteRejectedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="REJECTED").length;renderInviteAdminList()}
+async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map(x=>`<div class="invite-summary-row"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0}</span></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>'}
+async function changeInviteStatus(id,status){try{await apiPost("updateInviteStatus",{inviteAdminPassword:inviteAdminPasswordValue,id,status});toast(status==="APPROVED"?"초대 승인 및 자동 반영 완료":"초대 거절 완료");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary(),loadRoomList(true)])}catch(e){toast(e.message||"처리하지 못했습니다.")}}
 function showView(id) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === id));
@@ -1093,8 +1045,6 @@ function showView(id) {
   if (id === "followView") {
     applyFollowLock();
   }
-
-  if (id === "adminView" && adminLoggedIn) loadInviteAdmin().catch(() => {});
 
   if (id === "matchView") {
     applyMatchLock();
@@ -1637,17 +1587,8 @@ async function deleteNotice(noticeId) {
 
 
 
-if ($("inviteRegisterBtn")) $("inviteRegisterBtn").onclick = registerInviteIntegrated;
-if ($("refreshInviteAdminBtn")) $("refreshInviteAdminBtn").onclick = loadInviteAdmin;
 if ($("openSettingsSheetBtn")) $("openSettingsSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
-document.addEventListener("click", (event) => {
-  const approve = event.target.closest("[data-invite-approve]");
-  const reject = event.target.closest("[data-invite-reject]");
-  if (approve) changeInviteStatus(approve.dataset.inviteApprove, "APPROVED");
-  if (reject) changeInviteStatus(reject.dataset.inviteReject, "REJECTED");
-});
-
-document.querySelectorAll(".nav-btn").forEach((button) => {
+if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED")});\ndocument.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
 
@@ -1759,7 +1700,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderResumeCard();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=600").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=641").catch(() => {});
   }
 
   try {
