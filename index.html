@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=660" />
+  <link rel="stylesheet" href="style.css?v=661" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -270,7 +270,7 @@
     <section class="card invite-admin-topbar"><div><h3>관리자 화면</h3><p class="subtext">초대 승인과 회원별 누적 현황을 관리합니다.</p></div><button id="inviteAdminLogoutBtn" class="outline" type="button">관리자 나가기</button></section>
     <section class="card invite-card"><div class="section-title-row"><div><h3>초대 승인 관리</h3></div><button id="refreshInviteAdminBtn" class="outline small" type="button">새로고침</button></div><div class="invite-admin-policy"><strong>입장 7일 관리</strong>
       <span>승인일을 입장일로 계산하며, 7일이 지났는데 팔로우리스트 1번 시작 기록이 없으면 <b>내보내기 대상</b>으로 표시됩니다.</span></div>
-      <div class="invite-status-tabs"><button class="invite-status-tab active" data-invite-filter="ALL" type="button">전체</button><button class="invite-status-tab" data-invite-filter="PENDING" type="button">승인 대기</button><button class="invite-status-tab" data-invite-filter="APPROVED" type="button">승인 완료</button><button class="invite-status-tab" data-invite-filter="REJECTED" type="button">거절</button></div><input id="inviteAdminSearch" class="invite-admin-search" placeholder="닉네임 / 인스타 아이디 검색"><div class="invite-admin-summary"><article><span>대기</span><strong id="invitePendingCount">0</strong></article><article><span>승인</span><strong id="inviteApprovedCount">0</strong></article><article><span>거절</span><strong id="inviteRejectedCount">0</strong></article></div><div id="inviteAdminList" class="invite-admin-list"><p class="state-text">관리자 인증 후 초대 요청을 확인할 수 있습니다.</p></div></section>
+      <div class="invite-status-tabs"><button class="invite-status-tab active" data-invite-filter="ALL" type="button">전체</button><button class="invite-status-tab" data-invite-filter="PENDING" type="button">승인 대기</button><button class="invite-status-tab" data-invite-filter="APPROVED" type="button">승인 완료</button><button class="invite-status-tab" data-invite-filter="REJECTED" type="button">거절</button><button class="invite-status-tab" data-invite-filter="CANCELLED" type="button">승인 취소</button></div><input id="inviteAdminSearch" class="invite-admin-search" placeholder="닉네임 / 인스타 아이디 검색"><div class="invite-admin-summary"><article><span>대기</span><strong id="invitePendingCount">0</strong></article><article><span>승인</span><strong id="inviteApprovedCount">0</strong></article><article><span>거절</span><strong id="inviteRejectedCount">0</strong></article><article><span>승인 취소</span><strong id="inviteCancelledCount">0</strong></article></div><div id="inviteAdminList" class="invite-admin-list"><p class="state-text">관리자 인증 후 초대 요청을 확인할 수 있습니다.</p></div></section>
     <section class="card invite-card"><div class="section-title-row"><div><h3>회원별 누적 현황</h3></div><button id="refreshInviteSummaryBtn" class="outline small" type="button">새로고침</button></div><div class="invite-summary-table"><div class="invite-summary-head"><span>번호 · 닉네임</span><span>초대</span><span>이전</span><span>누적</span></div><div id="inviteSummaryList" class="invite-summary-body"><p class="state-text">누적 현황을 불러오는 중...</p></div></div></section>
   </div>
   <div id="inviteAdminLoginBox" class="invite-admin-login hidden"><div class="invite-admin-login-card"><h3>관리자 인증</h3><p class="subtext">초대관리 비밀번호를 입력해주세요.</p><input id="inviteAdminPassword" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="초대관리 비밀번호"><div class="invite-admin-login-actions"><button id="inviteAdminLoginBtn" class="primary" type="button">확인</button><button id="inviteAdminCancelBtn" class="outline" type="button">취소</button></div><p id="inviteAdminLoginMsg" class="state-text"></p></div></div>
@@ -472,6 +472,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=660"></script>
+  <script src="app.js?v=661"></script>
 </body>
 </html>
