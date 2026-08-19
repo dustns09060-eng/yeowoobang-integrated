@@ -830,3 +830,11 @@ body.gate-open{overflow:hidden}
 .fox-mode-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:999px;background:#f2f2f2;color:#666;font-size:12px;font-weight:900;white-space:nowrap}
 .fox-mode-badge.admin{background:#111;color:#fff}
 .fox-admin-notice{margin-top:13px;padding:13px 14px;border-radius:14px;background:#fff7ed;color:#8a4a12;font-size:13px;line-height:1.55}
+
+.invite-start-box{margin-top:12px;padding:14px;border:1px solid #e7e7e7;border-radius:15px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.invite-start-box strong{display:block;font-size:14px}.invite-start-box p{margin:5px 0 0;color:#777;font-size:12px;line-height:1.5}.invite-start-box button{width:auto;white-space:nowrap}
+.invite-admin-policy{padding:12px 13px;background:#f7f7f7;border-radius:13px;font-size:12px;line-height:1.55}.invite-admin-policy strong{display:block;margin-bottom:3px;font-size:13px}
+.invite-expel-summary{display:flex;align-items:center;gap:8px;margin:8px 0 14px;padding:11px 13px;border-radius:13px;background:#fff2f2;color:#a33535}.invite-expel-summary strong{font-size:20px}.invite-expel-summary small{margin-left:auto;font-weight:900}
+.invite-admin-item.expel{border-color:#f1b7b7;background:#fffafa}.invite-admin-item .joinMeta{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
+.invite-pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:#f3f3f3;font-size:11px;font-weight:800}.invite-pill.good{background:#eaf8ef;color:#147a43}.invite-pill.warn{background:#fff2f2;color:#b13232}
+@media(max-width:700px){.invite-start-box{align-items:stretch;flex-direction:column}.invite-start-box button{width:100%}}
