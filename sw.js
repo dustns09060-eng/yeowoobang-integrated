@@ -1,11 +1,11 @@
-const CACHE = "yeowoobang-v642";
+const CACHE = "yeowoobang-v643";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=642",
-  "./app.js?v=642",
-  "./config.json?v=642",
+  "./style.css?v=643",
+  "./app.js?v=643",
+  "./config.json?v=643",
   "./manifest.json",
   "./app-logo-v20.png",
   "./favicon-v20.png",

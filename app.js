@@ -18,7 +18,7 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V64.2-FASTBOOT";
+const APP_VERSION = "V64.3-FOXADMIN";
 
 let config = {
   version: "V4.2 FASTBOOT",
@@ -539,6 +539,7 @@ async function submitGatePassword() {
       const adminAuth = await apiPost("adminLogin", { password });
       if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
+      updateFoxMode();
       adminPasswordValue = password;
       accessGranted = true;
       matchGranted = true;
@@ -1060,7 +1061,39 @@ function renderInviteAdminList(){const q=($("inviteAdminSearch")?.value||"").tri
 async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteAdmin",{inviteAdminPassword:inviteAdminPasswordValue});inviteAdminItemsCache=d.items||[];$("invitePendingCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="PENDING").length;$("inviteApprovedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="APPROVED").length;$("inviteRejectedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="REJECTED").length;renderInviteAdminList()}
 async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map(x=>`<div class="invite-summary-row"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0}</span></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>'}
 async function changeInviteStatus(id,status){try{await apiPost("updateInviteStatus",{inviteAdminPassword:inviteAdminPasswordValue,id,status});toast(status==="APPROVED"?"초대 승인 및 자동 반영 완료":"초대 거절 완료");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary(),loadRoomList(true)])}catch(e){toast(e.message||"처리하지 못했습니다.")}}
+
+const FOX_PUBLIC_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec";
+const FOX_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec?admin=1";
+
+function updateFoxMode() {
+  const title = $("foxModeTitle");
+  const desc = $("foxModeDesc");
+  const badge = $("foxModeBadge");
+  const link = $("foxModeLink");
+  const notice = $("foxAdminNotice");
+  if (!title || !desc || !badge || !link) return;
+
+  if (adminLoggedIn) {
+    title.textContent = "🚗 여우방 폭스바겐 운영진";
+    desc.textContent = "폭스바겐 협찬 등록 · 수정 · 삭제 · 참여 현황을 관리합니다.";
+    badge.textContent = "운영진용";
+    badge.classList.add("admin");
+    link.href = FOX_ADMIN_URL;
+    link.textContent = "폭스바겐 운영진 입장하기";
+    if (notice) notice.classList.remove("hidden");
+  } else {
+    title.textContent = "🚗 여우방 폭스바겐";
+    desc.textContent = "기존 폭스바겐 선착순 프로그램을 이용합니다.";
+    badge.textContent = "회원용";
+    badge.classList.remove("admin");
+    link.href = FOX_PUBLIC_URL;
+    link.textContent = "폭스바겐 입장하기";
+    if (notice) notice.classList.add("hidden");
+  }
+}
+
 function showView(id) {
+  if (id === "foxView") updateFoxMode();
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === id));
 
@@ -1560,6 +1593,7 @@ function showAdminPanel() {
 function adminLogout() {
   adminLoggedIn = false;
   adminPasswordValue = "";
+  updateFoxMode();
   accessGranted = false;
   matchGranted = false;
   followGranted = false;
@@ -1721,10 +1755,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   showGate();
   setGate("role");
   renderResumeCard();
+  updateFoxMode();
   finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=642").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=643").catch(() => {});
   }
 
   // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.
