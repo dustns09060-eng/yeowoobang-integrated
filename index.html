@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=641" />
+  <link rel="stylesheet" href="style.css?v=642" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -33,7 +33,7 @@
   <meta name="twitter:image" content="https://dustns09060-eng.github.io/ys/preview-v35.png?v=430" />
 
   <style id="bootCriticalStyle">
-    #bootScreen{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;background:#f7f8fa;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#161616}
+    #bootScreen{display:none!important;position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;background:#f7f8fa;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#161616}
     #bootScreen .boot-card{width:min(390px,100%);background:#fff;border:1px solid #e6e8eb;border-radius:24px;padding:32px 24px;text-align:center;box-shadow:0 20px 60px rgba(20,28,40,.10)}
     #bootScreen .boot-logo{width:88px;height:88px;border-radius:50%;object-fit:cover;border:1px solid #f2ddcc}
     #bootScreen h1{margin:16px 0 8px;font-size:24px}
@@ -59,18 +59,7 @@
     </section>
   </div>
   <script>
-    window.__yeowoobangBootTimer = window.setTimeout(function () {
-      var boot = document.getElementById('bootScreen');
-      var message = document.getElementById('bootMessage');
-      if (boot) boot.classList.add('boot-slow');
-      if (message) message.textContent = '불러오기가 지연되고 있어요. 잠시 기다리거나 다시 불러와 주세요.';
-    }, 8000);
-    window.addEventListener('error', function () {
-      var boot = document.getElementById('bootScreen');
-      var message = document.getElementById('bootMessage');
-      if (boot) boot.classList.add('boot-slow');
-      if (message) message.textContent = '앱을 불러오지 못했어요. 다시 불러오기를 눌러 주세요.';
-    });
+    window.__yeowoobangBootTimer = null;
   </script>
   <div id="appGate" class="gate-overlay">
     <section class="gate-card access-card">
@@ -455,6 +444,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=641"></script>
+  <script src="app.js?v=642"></script>
 </body>
 </html>

@@ -18,13 +18,13 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V64.1-INVITE-SPLIT";
+const APP_VERSION = "V64.2-FASTBOOT";
 
 let config = {
-  version: "V60 FULL FOLLOW + INVITE",
+  version: "V4.2 FASTBOOT",
   appName: "여우방 통합 프로그램",
-  apiUrl: "",
-  sheetId: "",
+  apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
+  sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
   sheetName: "팔로우리스트",
   fallbackCsv: "room-list.csv",
 };
@@ -339,31 +339,43 @@ function loadJsZipLibrary() {
   return jsZipLoadPromise;
 }
 
-async function loadConfig() {
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`config.json?t=${Date.now()}`, { cache: "no-store" });
-    if (response.ok) config = { ...config, ...(await response.json()) };
-  } catch (_) {}
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function apiGet(action) {
+async function loadConfig() {
+  try {
+    const response = await fetchWithTimeout("config.json?v=642", { cache: "no-store" }, 2500);
+    if (response.ok) config = { ...config, ...(await response.json()) };
+  } catch (_) {
+    // app.js에 내장된 API 주소로 계속 진행합니다.
+  }
+}
+async function apiGet(action, timeoutMs = 6000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
   const url = new URL(config.apiUrl);
   url.searchParams.set("action", action);
   url.searchParams.set("_t", Date.now().toString());
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     method: "GET",
     cache: "no-store",
     redirect: "follow",
-  });
+  }, timeoutMs);
+
   if (!response.ok) throw new Error(`API HTTP ${response.status}`);
   const data = await response.json();
-  if (!data.ok) throw new Error(data.error || "API 요청 실패");
+  if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
   return data;
 }
-
-async function apiPost(action, payload = {}) {
+async function apiPost(action, payload = {}, timeoutMs = 9000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
   const params = new URLSearchParams();
@@ -374,17 +386,17 @@ async function apiPost(action, payload = {}) {
     }
   });
 
-  const response = await fetch(config.apiUrl, {
+  const response = await fetchWithTimeout(config.apiUrl, {
     method: "POST",
     body: params,
     redirect: "follow",
-  });
+  }, timeoutMs);
+
   if (!response.ok) throw new Error(`API HTTP ${response.status}`);
   const data = await response.json();
-  if (!data.ok) throw new Error(data.error || "API 요청 실패");
+  if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
   return data;
 }
-
 function setGate(mode, message = "") {
   gateMode = mode;
   const title = $("gateTitle");
@@ -461,19 +473,28 @@ function finishBootScreen() {
 
 async function bootstrapAuth() {
   showGate();
-  setGate("loading");
+  setGate("role");
 
-  try {
-    publicConfig = await apiGet("publicConfig");
-    updateLockIndicators();
-
-    setGate("role");
-  } catch (error) {
-    setGate("error", `설정을 불러오지 못했습니다. ${error.message}`);
-  }
+  // 연결 상태는 백그라운드에서 확인합니다.
+  // 서버가 느려도 앱 시작 화면은 막지 않습니다.
+  apiGet("publicConfig", 5000)
+    .then((data) => {
+      publicConfig = data;
+      updateLockIndicators();
+    })
+    .catch(() => {
+      // 로그인 버튼을 누를 때 서버에서 다시 검증합니다.
+      publicConfig = publicConfig || {
+        appLocked: false,
+        followLocked: false,
+        matchLocked: false,
+        notice: "",
+        securityVersion: ""
+      };
+    });
 }
-
 function chooseGeneralAccess() {
+  // 앱 잠금 여부는 비밀번호 확인 요청 시 서버에서 최종 검증합니다.
   if (publicConfig?.appLocked) {
     setGate("blocked");
     return;
@@ -501,7 +522,8 @@ async function submitGatePassword() {
     $("gateSubmitBtn").disabled = true;
 
     if (gateMode === "access") {
-      await apiPost("verifyAccessPassword", { password });
+      const authResult = await apiPost("verifyAccessPassword", { password });
+      if (authResult.publicConfig) publicConfig = authResult.publicConfig;
       accessGranted = true;
       adminLoggedIn = false;
       adminPasswordValue = "";
@@ -514,7 +536,8 @@ async function submitGatePassword() {
     }
 
     if (gateMode === "admin") {
-      await apiPost("adminLogin", { password });
+      const adminAuth = await apiPost("adminLogin", { password });
+      if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
       adminPasswordValue = password;
       accessGranted = true;
@@ -539,20 +562,19 @@ async function submitGatePassword() {
 }
 
 async function loadAfterAuth() {
-  restoreFollowListCache();
+  const restored = restoreFollowListCache();
 
-  const essentialTasks = [
-    loadRoomList(false),
-    refreshPublicConfig(false),
-  ];
+  // 먼저 화면을 바로 열고 최신 데이터는 뒤에서 갱신합니다.
+  if (!restored) {
+    loadRoomList(false).catch(() => {});
+  } else {
+    setTimeout(() => loadRoomList(false).catch(() => {}), 400);
+  }
 
-  scheduleNoticeLoad(2000);
-
-  await Promise.allSettled(essentialTasks);
-  securityVersion = publicConfig?.securityVersion || "";
+  setTimeout(() => refreshPublicConfig(false).catch(() => {}), 700);
+  scheduleNoticeLoad(1800);
   checkVersionUpdate();
 }
-
 async function refreshPublicConfig(recheck = true) {
   const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
   publicConfig = await apiGet("publicConfig");
@@ -1588,7 +1610,8 @@ async function deleteNotice(noticeId) {
 
 
 if ($("openSettingsSheetBtn")) $("openSettingsSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
-if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED")});\ndocument.querySelectorAll(".nav-btn").forEach((button) => {
+if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED")});
+document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
 
@@ -1696,21 +1719,18 @@ $("installBtn").onclick = async () => {
 
 window.addEventListener("DOMContentLoaded", async () => {
   showGate();
-  setGate("loading", "여우방을 불러오는 중입니다.");
+  setGate("role");
   renderResumeCard();
+  finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=641").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=642").catch(() => {});
   }
 
-  try {
-    await loadConfig();
-    await bootstrapAuth();
-  } catch (error) {
-    setGate("error", `앱을 불러오지 못했습니다. ${error?.message || "다시 시도해 주세요."}`);
-  } finally {
-    finishBootScreen();
-  }
+  // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.
+  loadConfig()
+    .then(() => bootstrapAuth())
+    .catch(() => bootstrapAuth());
 
   setInterval(async () => {
     if (!document.hidden && accessGranted) {
