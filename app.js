@@ -18,7 +18,7 @@ let followGranted = false;
 let gateMode = "loading";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V66.0-INTERNAL-FOX";
+const APP_VERSION = "V66.2-FOX-ACTIVE";
 
 let config = {
   version: "V4.2 FASTBOOT",
@@ -540,7 +540,6 @@ async function submitGatePassword() {
       if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
       updateFoxMode();
-  setupFoxFrame();
       adminPasswordValue = password;
       accessGranted = true;
       matchGranted = true;
@@ -1075,43 +1074,28 @@ function updateFoxMode() {
   const title = $("foxModeTitle");
   const desc = $("foxModeDesc");
   const badge = $("foxModeBadge");
-  const frame = $("foxFrame");
-  const loading = $("foxFrameLoading");
+  const link = $("foxModeLink");
   const notice = $("foxAdminNotice");
-  if (!title || !desc || !badge || !frame) return;
-
-  const targetUrl = adminLoggedIn ? FOX_ADMIN_URL : FOX_PUBLIC_URL;
+  if (!title || !desc || !badge || !link) return;
 
   if (adminLoggedIn) {
     title.textContent = "🚗 여우방 폭스바겐 운영진";
-    desc.textContent = "협찬 등록 · 수정 · 삭제 · 참여 현황을 통합 프로그램 안에서 관리합니다.";
+    desc.textContent = "폭스바겐 협찬 등록 · 수정 · 삭제 · 참여 현황을 관리합니다.";
     badge.textContent = "운영진용";
     badge.classList.add("admin");
+    link.href = FOX_ADMIN_URL;
+    link.textContent = "폭스바겐 운영진 입장하기";
     if (notice) notice.classList.remove("hidden");
   } else {
     title.textContent = "🚗 여우방 폭스바겐";
-    desc.textContent = "선착순 협찬 참여 기능을 통합 프로그램 안에서 이용합니다.";
+    desc.textContent = "기존 폭스바겐 선착순 프로그램을 이용합니다.";
     badge.textContent = "회원용";
     badge.classList.remove("admin");
+    link.href = FOX_PUBLIC_URL;
+    link.textContent = "폭스바겐 입장하기";
     if (notice) notice.classList.add("hidden");
   }
-
-  if (frame.dataset.currentUrl !== targetUrl) {
-    if (loading) loading.classList.remove("hidden");
-    frame.src = targetUrl;
-    frame.dataset.currentUrl = targetUrl;
-  }
 }
-
-function setupFoxFrame() {
-  const frame = $("foxFrame");
-  const loading = $("foxFrameLoading");
-  if (!frame) return;
-  frame.addEventListener("load", () => {
-    if (loading) loading.classList.add("hidden");
-  });
-}
-
 
 function showView(id) {
   if (id === "foxView") updateFoxMode();

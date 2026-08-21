@@ -6,7 +6,7 @@ const SHEETS = Object.freeze({
   SETTINGS: '설정',
   NOTICES: '공지',
   LOG: '관리자로그',
-  INVITE_SUMMARY: '초대별관리',
+  INVITE_SUMMARY: '초대별',
   INVITE_LOG: '초대등록기록',
 });
 
@@ -23,6 +23,7 @@ const KEYS = Object.freeze({
   UPDATED_AT: '마지막수정',
   VERSION: '버전',
   FORCE_UPDATE: '강제업데이트',
+  INVITE_ADMIN_PASSWORD: '초대관리비밀번호',
 });
 
 const DEFAULTS = Object.freeze({
@@ -38,6 +39,7 @@ const DEFAULTS = Object.freeze({
   마지막수정: '',
   버전: 'V35',
   강제업데이트: 'FALSE',
+  초대관리비밀번호: '0906',
 });
 
 const ALLOWED_SETTINGS = new Set([
@@ -74,7 +76,7 @@ function setupYeowoobang() {
   const notices = sheetOrCreate_(ss, SHEETS.NOTICES);
   const log = sheetOrCreate_(ss, SHEETS.LOG);
   const inviteSummary = sheetOrCreate_(ss, SHEETS.INVITE_SUMMARY);
-  const inviteLog = sheetOrCreate_(ss, SHEETS.INVITE_LOG);
+  const inviteLog = inviteLogSheet_(ss);
 
   ensureListHeader_(follow);
   ensureListHeader_(match);
@@ -94,7 +96,7 @@ function setupYeowoobang() {
   fillMissingNoticeIds_(notices);
   ensureHeaders_(log, ['작성시간', '작업', '내용']);
   ensureHeaders_(inviteSummary, ['번호','닉네임','초대','이전','누적']);
-  ensureHeaders_(inviteLog, ['등록ID','등록시간','신규회원닉네임','신규회원아이디','초대자닉네임','초대자아이디','상태','승인시간']);
+  ensureHeaders_(inviteLog, ['등록ID','등록시간','신규회원닉네임','신규회원아이디','초대자닉네임','초대자아이디','상태','승인시간','팔로우리스트시작일','팔로우리스트추가여부','승인취소시간','취소사유']);
   setSetting_(settings, KEYS.UPDATED_AT, now_());
 
   clearAllCaches_();
@@ -136,13 +138,17 @@ function doPost(e) {
     if (action === 'verifyMatchPassword') return json_(verify_(KEYS.MATCH_PASSWORD, body.password));
     if (action === 'verifyAppLockPassword') return json_(verify_(KEYS.APP_LOCK_PASSWORD, body.password));
     if (action === 'adminLogin') return json_(verify_(KEYS.ADMIN_PASSWORD, body.password));
+    if (action === 'inviteAdminLogin') return json_(verifyInviteAdmin_(body.password));
     if (action === 'registerInvite') return json_(registerInvite_(body));
+    if (action === 'inviteMemberLookup') return json_(inviteMemberLookup_(body));
+    if (action === 'markFollowStarted') return json_(markFollowStarted_(body));
+    if (action === 'getInviteAdmin') { requireInviteAdmin_(body.inviteAdminPassword); return json_({ ok: true, items: inviteAdminItems_() }); }
+    if (action === 'getInviteSummary') { requireInviteAdmin_(body.inviteAdminPassword); return json_({ ok: true, items: inviteSummaryItems_() }); }
+    if (action === 'updateInviteStatus') { requireInviteAdmin_(body.inviteAdminPassword); return json_(updateInviteStatus_(body.id, body.status, body.reason)); }
 
     requireAdmin_(body.adminPassword);
 
     if (action === 'getAdminLogs') return json_({ ok: true, logs: adminLogs_() });
-    if (action === 'getInviteAdmin') return json_({ ok: true, items: inviteAdminItems_() });
-    if (action === 'updateInviteStatus') return json_(updateInviteStatus_(body.id, body.status));
     if (action === 'setAppLock') return json_(updateSettings_({ [KEYS.APP_LOCK]: boolString_(body.locked) }, '앱잠금 변경'));
     if (action === 'setFollowLock') return json_(updateSettings_({ [KEYS.FOLLOW_LOCK]: boolString_(body.locked) }, '팔로우리스트잠금 변경'));
     if (action === 'setMatchLock') return json_(updateSettings_({ [KEYS.MATCH_LOCK]: boolString_(body.locked) }, '맞팔잠금 변경'));
@@ -349,67 +355,214 @@ function registerInvite_(body) {
     throw new Error('초대자 정보가 팔로우리스트와 일치하지 않습니다.');
   }
 
-  const log = sheet_(SHEETS.INVITE_LOG);
+  const log = inviteLogSheet_();
   const rows = log.getLastRow() >= 2 ? log.getRange(2,1,log.getLastRow()-1,8).getValues() : [];
   if (rows.some(r => normInviteId_(r[3]) === inviteeInstagram && String(r[6]) !== 'REJECTED')) {
     throw new Error('이미 초대 등록 요청을 한 인스타 아이디입니다.');
   }
 
   log.appendRow([Utilities.getUuid(), new Date(), inviteeName, inviteeInstagram, inviterName, inviterInstagram, 'PENDING', '']);
-  return { ok:true, message:'초대 등록 요청이 완료되었습니다. 운영진 승인 후 자동 반영됩니다.' };
+
+  // 신청 단계에서는 팔로우리스트에 추가하지 않습니다.
+  // 운영진이 승인한 시점에만 팔로우리스트 추가 + 초대 실적 반영이 이루어집니다.
+  return {
+    ok:true,
+    message:'초대 등록 요청이 완료되었습니다. 운영진 승인 후 팔로우리스트와 초대 실적에 반영됩니다.'
+  };
+}
+
+function inviteMemberLookup_(body) {
+  const name = cleanInvite_(body.name);
+  const instagram = normInviteId_(body.instagram);
+  if (!name || !instagram) throw new Error('닉네임과 인스타 아이디를 입력해 주세요.');
+  const sh = inviteLogSheet_();
+  const items = [];
+  if (sh && sh.getLastRow() >= 2) {
+    const rows = sh.getRange(2,1,sh.getLastRow()-1,Math.max(9,sh.getLastColumn())).getValues();
+    rows.forEach(r => {
+      if (normInviteId_(r[3]) === instagram && cleanInvite_(r[2]) === name) items.push({
+        inviterName:String(r[4]||''), inviterInstagram:String(r[5]||''),
+        createdAt:formatInviteDate_(r[1]), status:String(r[6]||'PENDING'),
+        approvedAt:formatInviteDate_(r[7]),
+        followStartedAt:formatInviteDate_(r[8]),
+        followStarted:!!r[8],
+        canStart:String(r[6]||'PENDING').toUpperCase() === 'APPROVED'
+      });
+    });
+  }
+  return { ok:true, member:true, items:items.reverse() };
+}
+
+function markFollowStarted_(body) {
+  const name = cleanInvite_(body.name);
+  const instagram = normInviteId_(body.instagram);
+  if (!name || !instagram) throw new Error('먼저 신규회원 정보를 입력해 주세요.');
+
+  // 현재 시트명이 '초대등록기한'이어도 자동으로 찾아서 사용합니다.
+  const sh = inviteLogSheet_();
+  if (sh.getLastRow() < 2) throw new Error('먼저 초대자 등록 요청을 완료해 주세요.');
+
+  const width = Math.max(9, sh.getLastColumn());
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues();
+  let target = 0;
+
+  // 운영진 승인이 완료된 신규회원만 팔로우리스트 시작이 가능합니다.
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const sameMember = cleanInvite_(rows[i][2]) === name && normInviteId_(rows[i][3]) === instagram;
+    const approved = String(rows[i][6] || 'PENDING').toUpperCase() === 'APPROVED';
+    if (sameMember && approved) {
+      target = i + 2;
+      break;
+    }
+  }
+
+  if (!target) throw new Error('운영진 승인 후 팔로우리스트를 시작할 수 있습니다.');
+
+  let startedAt = sh.getRange(target, 9).getValue();
+  if (!startedAt) {
+    startedAt = new Date();
+    sh.getRange(target, 9).setValue(startedAt);
+  }
+
+  return {
+    ok: true,
+    followStarted: true,
+    followStartedAt: formatInviteDate_(startedAt),
+    message: '팔로우리스트 1번부터 시작으로 기록되었습니다.'
+  };
 }
 
 function inviteAdminItems_() {
-  const sh = sheet_(SHEETS.INVITE_LOG);
+  const sh = inviteLogSheet_();
   if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2,1,sh.getLastRow()-1,8).getValues().map(r => ({
-    id:String(r[0]||''),
-    createdAt:formatInviteDate_(r[1]),
-    inviteeName:String(r[2]||''),
-    inviteeInstagram:String(r[3]||''),
-    inviterName:String(r[4]||''),
-    inviterInstagram:String(r[5]||''),
-    status:String(r[6]||'PENDING'),
-    approvedAt:formatInviteDate_(r[7])
-  })).reverse();
+  const now = new Date();
+  return sh.getRange(2,1,sh.getLastRow()-1,Math.max(12,sh.getLastColumn())).getValues().map(r => {
+    const status = String(r[6]||'PENDING').toUpperCase();
+    const approvedAt = r[7] ? new Date(r[7]) : null;
+    const daysSinceApproval = approvedAt ? Math.max(0, Math.floor((now - approvedAt) / 86400000)) : 0;
+    return {
+      id:String(r[0]||''),
+      createdAt:formatInviteDate_(r[1]),
+      inviteeName:String(r[2]||''),
+      inviteeInstagram:String(r[3]||''),
+      inviterName:String(r[4]||''),
+      inviterInstagram:String(r[5]||''),
+      status:status,
+      approvedAt:formatInviteDate_(r[7]),
+      followStartedAt:formatInviteDate_(r[8]),
+      followStarted:!!r[8],
+      followAdded:String(r[9]||'').toUpperCase()==='TRUE',
+      cancelledAt:formatInviteDate_(r[10]),
+      cancelReason:String(r[11]||''),
+      daysSinceJoin:daysSinceApproval,
+      canCancel:status==='APPROVED' && !!approvedAt && (now - approvedAt) <= 7*86400000,
+      cancelDeadline:approvedAt ? formatInviteDate_(new Date(approvedAt.getTime()+7*86400000)) : '',
+      expelTarget:status==='APPROVED' && !!approvedAt && daysSinceApproval>=7
+    };
+  }).reverse();
 }
 
-function updateInviteStatus_(id, status) {
+function updateInviteStatus_(id, status, reason) {
   status = String(status || '').toUpperCase();
-  if (!['APPROVED','REJECTED'].includes(status)) throw new Error('올바르지 않은 상태입니다.');
+  if (status === 'CANCELED' || status === 'DELETE' || status === 'REVOKED') status = 'CANCELLED';
+  if (!['APPROVED','REJECTED','CANCELLED'].includes(status)) throw new Error('올바르지 않은 상태입니다.');
 
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    const log = sheet_(SHEETS.INVITE_LOG);
+    const log = inviteLogSheet_();
     if (log.getLastRow() < 2) throw new Error('초대 요청이 없습니다.');
     const ids = log.getRange(2,1,log.getLastRow()-1,1).getValues();
     let row = 0;
     for (let i=0;i<ids.length;i++) if (String(ids[i][0]) === String(id)) { row=i+2; break; }
     if (!row) throw new Error('초대 요청을 찾을 수 없습니다.');
 
-    const v = log.getRange(row,1,1,8).getValues()[0];
-    if (String(v[6]) !== 'PENDING') throw new Error('이미 처리된 요청입니다.');
-
+    const v = log.getRange(row,1,1,Math.max(12,log.getLastColumn())).getValues()[0];
+    const currentStatus = String(v[6]||'PENDING').toUpperCase();
     const inviteeName = cleanInvite_(v[2]);
     const inviteeInstagram = normInviteId_(v[3]);
     const inviterName = cleanInvite_(v[4]);
 
-    if (status === 'APPROVED') {
-      const follow = sheet_(SHEETS.FOLLOW);
-      if (!findFollowByInstagram_(follow, inviteeInstagram)) appendFollowMember_(follow, inviteeName, inviteeInstagram);
-      ensureInviteSummaryMember_(inviterName);
-      incrementInviteSummary_(inviterName, inviteeName);
-      clearListCaches_();
-      log.getRange(row,8).setValue(new Date());
+    if (status === 'APPROVED' || status === 'REJECTED') {
+      if (currentStatus !== 'PENDING') throw new Error('이미 처리된 요청입니다.');
+
+      if (status === 'APPROVED') {
+        const follow = sheet_(SHEETS.FOLLOW);
+        let added = false;
+        if (!findFollowByInstagram_(follow, inviteeInstagram)) {
+          appendFollowMember_(follow, inviteeName, inviteeInstagram);
+          added = true;
+        }
+        ensureInviteSummaryMember_(inviterName);
+        incrementInviteSummary_(inviterName, inviteeName);
+        clearListCaches_();
+        log.getRange(row,8).setValue(new Date());
+        log.getRange(row,10).setValue(added ? 'TRUE' : 'FALSE');
+        log.getRange(row,11,1,2).clearContent();
+      }
+
+      log.getRange(row,7).setValue(status);
+      log_('초대 ' + (status === 'APPROVED' ? '승인' : '거절'), inviteeName + ' ← ' + inviterName);
+      SpreadsheetApp.flush();
+      return { ok:true, status:status };
     }
 
-    log.getRange(row,7).setValue(status);
-    log_('초대 ' + (status === 'APPROVED' ? '승인' : '거절'), inviteeName + ' ← ' + inviterName);
-    return { ok:true };
+    // 승인 취소: 승인 후 7일 이내에만 가능하며 승인 때 반영된 내용을 모두 되돌립니다.
+    if (currentStatus !== 'APPROVED') throw new Error('승인 완료된 요청만 승인 취소할 수 있습니다.');
+    const approvedAt = v[7] ? new Date(v[7]) : null;
+    if (!approvedAt || isNaN(approvedAt.getTime())) throw new Error('승인 시간을 확인할 수 없습니다.');
+    if ((new Date() - approvedAt) > 7*86400000) throw new Error('승인 후 7일이 지나 승인 취소할 수 없습니다.');
+
+    const follow = sheet_(SHEETS.FOLLOW);
+    removeFollowMember_(follow, inviteeInstagram);
+    decrementInviteSummary_(inviterName, inviteeName);
+    clearListCaches_();
+
+    log.getRange(row,7).setValue('CANCELLED');
+    log.getRange(row,9).clearContent();
+    log.getRange(row,11).setValue(new Date());
+    log.getRange(row,12).setValue(cleanInvite_(reason || '7일 이내 퇴장'));
+    log_('초대 승인취소', inviteeName + ' ← ' + inviterName + ' / ' + cleanInvite_(reason || '7일 이내 퇴장'));
+    SpreadsheetApp.flush();
+    return { ok:true, status:'CANCELLED', message:'승인 취소가 완료되었습니다. 팔로우리스트와 초대 실적도 함께 되돌렸습니다.' };
   } finally {
     lock.releaseLock();
   }
+}
+
+function removeFollowMember_(sh, instagram) {
+  if (!sh || sh.getLastRow() < 2) return false;
+  const target = normInviteId_(instagram);
+  const rows = sh.getRange(2,3,sh.getLastRow()-1,1).getValues();
+  for (let i=0;i<rows.length;i++) {
+    if (normInviteId_(rows[i][0]) === target) {
+      // A열 번호는 유지하고 회원 정보(B/C열)만 비웁니다.
+      sh.getRange(i+2,2,1,2).clearContent();
+      return true;
+    }
+  }
+  return false;
+}
+
+function decrementInviteSummary_(inviterName, inviteeName) {
+  const sh = sheet_(SHEETS.INVITE_SUMMARY);
+  const row = findInviteSummaryRow_(sh, inviterName);
+  if (!row) throw new Error('초대별 시트에서 초대자를 찾을 수 없습니다.');
+
+  const current = Number(sh.getRange(row,3).getValue()||0);
+  const previous = Number(sh.getRange(row,4).getValue()||0);
+  const next = Math.max(0, current-1);
+  sh.getRange(row,3).setValue(next);
+  sh.getRange(row,5).setValue(next+previous);
+
+  const start = 7;
+  const last = Math.max(start, sh.getLastColumn());
+  const width = Math.max(1, last-start+1);
+  const vals = sh.getRange(row,start,1,width).getValues()[0];
+  const target = cleanInvite_(inviteeName);
+  const filtered = vals.filter(v => cleanInvite_(v) && cleanInvite_(v) !== target);
+  const out = filtered.concat(Array(width-filtered.length).fill(''));
+  sh.getRange(row,start,1,width).setValues([out]);
 }
 
 function findFollowMember_(sh, name, instagram) {
@@ -425,9 +578,42 @@ function findFollowByInstagram_(sh, instagram) {
   return rows.find(r => normInviteId_(r[2]) === target) || null;
 }
 function appendFollowMember_(sh, name, instagram) {
-  let maxNo = 0;
-  if (sh.getLastRow() >= 2) sh.getRange(2,1,sh.getLastRow()-1,1).getValues().forEach(r => maxNo=Math.max(maxNo,Number(r[0])||0));
-  sh.appendRow([maxNo+1, cleanInvite_(name), normInviteId_(instagram)]);
+  if (!sh) throw new Error('팔로우리스트 시트를 찾을 수 없습니다.');
+
+  const cleanName = cleanInvite_(name);
+  const cleanInstagram = normInviteId_(instagram);
+  if (!cleanName || !cleanInstagram) throw new Error('신규회원 정보가 올바르지 않습니다.');
+
+  // A열 번호가 미리 3000번까지 채워져 있어도 appendRow()를 쓰지 않습니다.
+  // B/C열에서 실제 회원 정보가 비어 있는 첫 행을 찾아 그 자리에 넣습니다.
+  const lastRow = Math.max(2, sh.getLastRow());
+  const rows = sh.getRange(2, 1, lastRow - 1, 3).getValues();
+
+  let targetRow = 0;
+  let lastMemberNo = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const no = Number(rows[i][0]) || 0;
+    const memberName = cleanInvite_(rows[i][1]);
+    const memberInstagram = normInviteId_(rows[i][2]);
+
+    if (memberName || memberInstagram) {
+      if (no > lastMemberNo) lastMemberNo = no;
+      continue;
+    }
+
+    if (!targetRow) targetRow = i + 2;
+  }
+
+  if (!targetRow) targetRow = lastRow + 1;
+
+  // 해당 행 A열에 기존 번호가 있으면 그대로 사용하고,
+  // 번호가 비어 있을 때만 마지막 실제 회원 번호 + 1을 기록합니다.
+  const existingNo = Number(sh.getRange(targetRow, 1).getValue()) || 0;
+  const nextNo = existingNo || (lastMemberNo + 1);
+  sh.getRange(targetRow, 1, 1, 3).setValues([[nextNo, cleanName, cleanInstagram]]);
+  SpreadsheetApp.flush();
+  return targetRow;
 }
 function ensureInviteSummaryMember_(nickname) {
   const sh = sheet_(SHEETS.INVITE_SUMMARY);
@@ -452,13 +638,14 @@ function findInviteSummaryRow_(sh,nickname) {
 function incrementInviteSummary_(inviterName, inviteeName) {
   const sh=sheet_(SHEETS.INVITE_SUMMARY);
   const row=findInviteSummaryRow_(sh,inviterName);
-  if(!row) throw new Error('초대별관리에서 초대자를 찾을 수 없습니다.');
+  if(!row) throw new Error('초대별 시트에서 초대자를 찾을 수 없습니다.');
   const current=Number(sh.getRange(row,3).getValue()||0);
   const previous=Number(sh.getRange(row,4).getValue()||0);
   sh.getRange(row,3).setValue(current+1);
   sh.getRange(row,5).setValue(current+1+previous);
 
-  const start=6,last=Math.max(start,sh.getLastColumn()),width=Math.max(1,last-start+1);
+  // F열은 기존 시트의 구분용 빈 칸으로 유지하고, 초대받은 회원 닉네임은 G열부터 기록합니다.
+  const start=7,last=Math.max(start,sh.getLastColumn()),width=Math.max(1,last-start+1);
   const vals=sh.getRange(row,start,1,width).getValues()[0];
   if (!vals.some(v=>cleanInvite_(v)===cleanInvite_(inviteeName))) {
     const empty=vals.findIndex(v=>!String(v||'').trim());
@@ -477,6 +664,14 @@ function formatInviteDate_(value) {
   const d=value instanceof Date?value:new Date(value);
   return Utilities.formatDate(d,'Asia/Seoul','yyyy-MM-dd HH:mm:ss');
 }
+
+function inviteSummaryItems_() {
+  const sh=sheet_(SHEETS.INVITE_SUMMARY);
+  if(!sh||sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(r=>({no:r[0],nickname:String(r[1]||''),invite:Number(r[2]||0),previous:Number(r[3]||0),total:Number(r[4]||0)}));
+}
+function verifyInviteAdmin_(password) { return verify_(KEYS.INVITE_ADMIN_PASSWORD,password); }
+function requireInviteAdmin_(password) { if(!verifyInviteAdmin_(password).ok) throw new Error('초대관리 비밀번호가 올바르지 않습니다.'); }
 
 function requireAdmin_(password) {
   if (!verify_(KEYS.ADMIN_PASSWORD, password).ok) {
@@ -746,6 +941,31 @@ function onEdit(e) {
   } catch (err) {
     console.error(err);
   }
+}
+
+// 초대 등록 시트는 기존 파일에서 '초대등록기한'으로 만들어진 경우가 있어
+// 두 이름을 모두 지원합니다. 기존 시트가 있으면 새 시트를 만들지 않습니다.
+function inviteLogSheet_(ss) {
+  ss = ss || spreadsheet_();
+  const names = [SHEETS.INVITE_LOG, '초대등록기한'];
+  let sh = null;
+
+  for (let i = 0; i < names.length; i++) {
+    sh = ss.getSheetByName(names[i]);
+    if (sh) break;
+  }
+
+  if (!sh) sh = ss.insertSheet(SHEETS.INVITE_LOG);
+
+  // 기존 영문 헤더가 있어도 위치 기준으로 동작하므로 덮어쓰지 않습니다.
+  // 비어 있는 헤더만 채우고, 9번째 시작일 열이 없으면 추가합니다.
+  ensureHeaders_(sh, [
+    '등록ID','등록시간','신규회원닉네임','신규회원아이디',
+    '초대자닉네임','초대자아이디','상태','승인시간','팔로우리스트시작일',
+    '팔로우리스트추가여부','승인취소시간','취소사유'
+  ]);
+
+  return sh;
 }
 
 function spreadsheet_() {
