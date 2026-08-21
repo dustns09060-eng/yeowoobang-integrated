@@ -527,6 +527,7 @@ async function submitGatePassword() {
       accessGranted = true;
       adminLoggedIn = false;
       adminPasswordValue = "";
+      try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
       setAdminNavigation(false);
       hideGate();
       await loadAfterAuth();
@@ -539,8 +540,9 @@ async function submitGatePassword() {
       const adminAuth = await apiPost("adminLogin", { password });
       if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
-      updateFoxMode();
       adminPasswordValue = password;
+      try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
+      updateFoxMode();
       accessGranted = true;
       matchGranted = true;
       followGranted = true;
@@ -1070,6 +1072,15 @@ async function cancelInviteApproval(id,name){if(!confirm(`${name||"해당 회원
 const FOX_PUBLIC_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec";
 const FOX_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec?admin=1";
 
+function isOperatorMode_() {
+  // 운영진 로그인 상태를 한 가지 변수에만 의존하지 않도록 보강합니다.
+  // 일부 로그인 경로에서는 하단 운영진 메뉴가 먼저 활성화될 수 있습니다.
+  const adminNavVisible = !!$("adminNavBtn") && !$("adminNavBtn").classList.contains("hidden");
+  let savedRole = "";
+  try { savedRole = sessionStorage.getItem("yeowoobangRole") || ""; } catch (_) {}
+  return Boolean(adminLoggedIn || adminPasswordValue || adminNavVisible || savedRole === "admin");
+}
+
 function updateFoxMode() {
   const title = $("foxModeTitle");
   const desc = $("foxModeDesc");
@@ -1078,7 +1089,7 @@ function updateFoxMode() {
   const notice = $("foxAdminNotice");
   if (!title || !desc || !badge || !link) return;
 
-  if (adminLoggedIn) {
+  if (isOperatorMode_()) {
     title.textContent = "🚗 여우방 폭스바겐 운영진";
     desc.textContent = "폭스바겐 협찬 등록 · 수정 · 삭제 · 참여 현황을 관리합니다.";
     badge.textContent = "운영진용";
@@ -1575,6 +1586,8 @@ async function adminLogin() {
     await apiPost("adminLogin", { password });
     adminLoggedIn = true;
     adminPasswordValue = password;
+    try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
+    updateFoxMode();
     $("adminLoginMsg").textContent = "";
     showAdminPanel();
     renderRosterAudit();
@@ -1598,6 +1611,7 @@ function showAdminPanel() {
 function adminLogout() {
   adminLoggedIn = false;
   adminPasswordValue = "";
+  try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
   updateFoxMode();
   accessGranted = false;
   matchGranted = false;
