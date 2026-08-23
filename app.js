@@ -20,7 +20,7 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V69-FINAL";
+const APP_VERSION = "V71-FINAL";
 
 let config = {
   version: "V4.2 FASTBOOT",
@@ -500,6 +500,7 @@ function setGate(mode, message = "") {
   const form = $("gateForm");
   const memberLoginForm = $("memberLoginForm");
   const memberRegisterForm = $("memberRegisterForm");
+  const memberForgotForm = $("memberForgotForm");
   const retryBtn = $("gateRetryBtn");
   const password = $("gatePassword");
 
@@ -508,6 +509,7 @@ function setGate(mode, message = "") {
   form.classList.add("hidden");
   memberLoginForm?.classList.add("hidden");
   memberRegisterForm?.classList.add("hidden");
+  memberForgotForm?.classList.add("hidden");
   retryBtn.classList.add("hidden");
   password.value = "";
 
@@ -523,6 +525,11 @@ function setGate(mode, message = "") {
     text.textContent = "";
     memberLoginForm?.classList.remove("hidden");
     setTimeout(() => $("memberLoginInstagram")?.focus(), 0);
+  } else if (mode === "memberForgot") {
+    title.textContent = "여우방";
+    text.textContent = "";
+    memberForgotForm?.classList.remove("hidden");
+    setTimeout(() => $("memberForgotNickname")?.focus(), 0);
   } else if (mode === "memberRegister") {
     title.textContent = "여우방";
     text.textContent = "";
@@ -647,19 +654,19 @@ function clearMemberSessionStorage() {
 
 function setMemberHeader(member) {
   const badge = $("memberBadge");
-  const logout = $("memberLogoutBtn");
-  if (!badge || !logout) return;
+  const menu = $("memberMenuBtn");
+  if (!badge || !menu) return;
 
   if (!member || adminLoggedIn) {
     badge.classList.add("hidden");
-    logout.classList.add("hidden");
+    menu.classList.add("hidden");
     return;
   }
 
   $("memberBadgeName").textContent = member.nickname || "회원";
   $("memberBadgeId").textContent = member.instagramId ? `@${member.instagramId}` : "";
   badge.classList.remove("hidden");
-  logout.classList.remove("hidden");
+  menu.classList.remove("hidden");
 }
 
 async function completeMemberLogin(result, showToast = true) {
@@ -733,6 +740,75 @@ async function registerMemberFromGate() {
   } finally {
     btn.disabled = false;
   }
+}
+
+
+function openMemberDrawer() {
+  if (!memberSession?.member) return;
+  $("drawerMemberName").textContent = `${memberSession.member.nickname || "회원"}님`;
+  $("drawerMemberInstagram").textContent = memberSession.member.instagramId ? `@${memberSession.member.instagramId}` : "";
+  $("memberDrawerBackdrop")?.classList.remove("hidden");
+  $("memberDrawer")?.classList.remove("hidden");
+  document.body.classList.add("drawer-open");
+}
+function closeMemberDrawer() {
+  $("memberDrawerBackdrop")?.classList.add("hidden");
+  $("memberDrawer")?.classList.add("hidden");
+  document.body.classList.remove("drawer-open");
+}
+function openAccountModal(id) { closeMemberDrawer(); $(id)?.classList.remove("hidden"); document.body.classList.add("account-modal-open"); }
+function closeAccountModal(id) { $(id)?.classList.add("hidden"); if (!document.querySelector('.account-modal:not(.hidden)')) document.body.classList.remove("account-modal-open"); }
+
+async function openMyPage() {
+  if (!memberSession?.token) return;
+  openAccountModal("myPageModal");
+  ["myPageNickname","myPageInsta","myPageJoinDate","myPageMemberId"].forEach(id => { if($(id)) $(id).textContent = "불러오는 중..."; });
+  try {
+    const data = await apiPost("getMyPage", {token:memberSession.token}, 15000);
+    const m=data.member||{}, f=data.follow||{}, mt=data.match||{};
+    $("myPageName").textContent=m.nickname||"회원";
+    $("myPageInstagram").textContent=m.instagramId?`@${m.instagramId}`:"";
+    $("myPageNickname").textContent=m.nickname||"-";
+    $("myPageInsta").textContent=m.instagramId?`@${m.instagramId}`:"-";
+    $("myPageJoinDate").textContent=m.joinDate||"등록 전";
+    $("myPageMemberId").textContent=m.memberId??"-";
+    $("myPageFollowText").textContent=`${Number(f.completed||0).toLocaleString()} / ${Number(f.total||0).toLocaleString()}명`;
+    $("myPageFollowPercent").textContent=`${Number(f.percent||0)}% · 오늘 ${Number(f.todayCount||0)}명`;
+    $("myPageFollowBar").style.width=`${Math.max(0,Math.min(100,Number(f.percent||0)))}%`;
+    $("myPageMatchText").textContent=mt.submitted?`${mt.status} 제출`:(mt.open?"아직 미제출":"기간 아님");
+    $("myPageMatchDate").textContent=mt.submittedAt?`최근 제출 ${mt.submittedAt}`:`${mt.title||"맞팔확인"}`;
+  } catch(e) { toast(e.message||"마이페이지를 불러오지 못했습니다."); }
+}
+
+async function changeMemberPasswordFromUi() {
+  const currentPassword=$("currentMemberPassword")?.value||"";
+  const newPassword=$("newMemberPassword")?.value||"";
+  const confirm=$("newMemberPasswordConfirm")?.value||"";
+  const msg=$("changePasswordMessage");
+  if(!currentPassword||!newPassword||!confirm){if(msg)msg.textContent="모든 항목을 입력해 주세요.";return;}
+  if(newPassword.length<6){if(msg)msg.textContent="새 비밀번호는 6자 이상으로 설정해 주세요.";return;}
+  if(newPassword!==confirm){if(msg)msg.textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
+  try{
+    const r=await apiPost("changeMemberPassword",{token:memberSession.token,currentPassword,newPassword},20000);
+    if(msg)msg.textContent=r.message||"비밀번호가 변경되었습니다.";
+    $("currentMemberPassword").value=$("newMemberPassword").value=$("newMemberPasswordConfirm").value="";
+    toast("비밀번호가 변경되었습니다.");
+  }catch(e){if(msg)msg.textContent=e.message||"비밀번호 변경에 실패했습니다.";}
+}
+
+async function resetMemberPasswordFromGate(){
+  const nickname=String($("memberForgotNickname")?.value||"").trim();
+  const instagramId=normalize($("memberForgotInstagram")?.value||"");
+  const memberId=String($("memberForgotId")?.value||"").trim();
+  const newPassword=$("memberForgotPassword")?.value||"";
+  const confirm=$("memberForgotPasswordConfirm")?.value||"";
+  if(!nickname||!instagramId||!memberId||!newPassword||!confirm){$("gateError").textContent="모든 항목을 입력해 주세요.";return;}
+  if(newPassword.length<6){$("gateError").textContent="새 비밀번호는 6자 이상으로 설정해 주세요.";return;}
+  if(newPassword!==confirm){$("gateError").textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
+  const btn=$("memberForgotBtn");
+  try{btn.disabled=true;$("gateError").textContent="";const r=await apiPost("resetMemberPassword",{nickname,instagramId,memberId,newPassword},20000);toast(r.message||"새 비밀번호가 설정되었습니다.");setGate("memberLogin");$("memberLoginInstagram").value=instagramId;}
+  catch(e){$("gateError").textContent=e.message||"비밀번호 재설정에 실패했습니다.";}
+  finally{btn.disabled=false;}
 }
 
 function logoutMember() {
@@ -901,10 +977,56 @@ async function unlockFollow() {
   }
 }
 
+function isMatchPeriodOpen() {
+  const status = window.__matchVoteStatus || {};
+  return adminLoggedIn
+    ? Boolean(publicConfig?.matchVoteOpen)
+    : Boolean(status.open ?? publicConfig?.matchVoteOpen);
+}
+
 function applyMatchLock() {
-  // V69: 맞팔 분석은 로그인 회원에게 제공하고, 기간제 투표만 운영진이 열고 닫습니다.
+  // V70: 맞팔 투표와 ZIP 맞팔분석은 동일한 맞팔확인 기간에 함께 열리고 닫힙니다.
   $("matchContent")?.classList.remove("hidden");
   updateMatchVoteUi();
+  updateMatchAnalysisUi();
+}
+
+function updateMatchAnalysisUi() {
+  const open = isMatchPeriodOpen();
+  const signedIn = Boolean(memberSession?.token) || adminLoggedIn;
+  const enabled = open && signedIn;
+
+  const badge = $("matchAnalysisBadge");
+  if (badge) {
+    badge.textContent = open ? "진행중" : "기간 아님";
+    badge.className = `lock-state ${open ? "unlocked" : "locked"}`;
+  }
+
+  const message = $("matchAnalysisMessage");
+  if (message) {
+    if (!signedIn) message.textContent = "회원 로그인 후 맞팔분석을 이용할 수 있습니다.";
+    else if (!open) message.textContent = "지금은 맞팔분석 기간이 아닙니다. (관리자가 기간을 지정하면 열립니다)";
+    else message.textContent = "단톡방 명단을 불러온 뒤 인스타그램 ZIP 파일을 선택해 주세요.";
+  }
+
+  const reload = $("reloadRoomBtn");
+  const zip = $("zipFile");
+  const analyzeButton = $("analyzeBtn");
+  if (reload) reload.disabled = !enabled;
+  if (zip) zip.disabled = !enabled;
+  if (analyzeButton) analyzeButton.disabled = !enabled;
+  document.querySelector('label[for="zipFile"]')?.classList.toggle("disabled", !enabled);
+
+  if (!open) {
+    if ($("roomState")) $("roomState").textContent = "기간 아님";
+    if ($("status")) $("status").textContent = "맞팔확인 기간이 시작되면 분석 기능이 자동으로 열립니다.";
+  } else if (!signedIn) {
+    if ($("roomState")) $("roomState").textContent = "로그인 필요";
+    if ($("status")) $("status").textContent = "회원 로그인 후 맞팔분석을 이용해 주세요.";
+  } else if (!matchRoomList.length) {
+    if ($("roomState")) $("roomState").textContent = "대기";
+    if ($("status")) $("status").textContent = "단톡방 명단을 불러온 뒤 ZIP 파일을 선택해 주세요.";
+  }
 }
 
 async function loadMatchVoteStatus() {
@@ -928,6 +1050,7 @@ function updateMatchVoteUi() {
   if(!memberSession?.token) msg.textContent="회원 로그인 후 투표할 수 있습니다.";
   else if(st.submission?.status) msg.textContent=`제출 완료 · ${st.submission.status}`;
   else msg.textContent=open?"완료 또는 지연을 선택해주세요.":"지금은 맞팔확인 기간이 아닙니다. (관리자가 기간을 지정하면 열립니다)";
+  updateMatchAnalysisUi();
 }
 
 async function submitMatchVote(status){
@@ -1088,6 +1211,14 @@ async function loadRoomList(show = false) {
 
 
 async function loadMatchRoomList(show = false, force = false) {
+  if (!isMatchPeriodOpen()) {
+    updateMatchAnalysisUi();
+    throw new Error("지금은 맞팔분석 기간이 아닙니다.");
+  }
+  if (!memberSession?.token && !adminLoggedIn) {
+    updateMatchAnalysisUi();
+    throw new Error("회원 로그인이 필요합니다.");
+  }
   if (!force && matchRoomList.length) {
     if ($("roomState")) {
       $("roomState").textContent = `${matchRoomList.length}명 준비 완료`;
@@ -1374,8 +1505,8 @@ function showView(id) {
 
   if (id === "matchView") {
     applyMatchLock();
-    const locked = Boolean(publicConfig?.matchLocked) && !matchGranted && !adminLoggedIn;
-    if (!locked && !matchRoomList.length) {
+    const canAnalyze = isMatchPeriodOpen() && (Boolean(memberSession?.token) || adminLoggedIn);
+    if (canAnalyze && !matchRoomList.length) {
       loadMatchRoomList(false).catch(() => {});
     }
   }
@@ -1469,9 +1600,14 @@ function classify(followers, following, baseList = matchRoomList) {
 }
 
 async function analyze() {
-  if (publicConfig?.matchLocked && !matchGranted && !adminLoggedIn) {
-    applyMatchLock();
-    toast("맞팔확인 비밀번호를 먼저 입력해 주세요.");
+  if (!isMatchPeriodOpen()) {
+    updateMatchAnalysisUi();
+    toast("지금은 맞팔분석 기간이 아닙니다.");
+    return;
+  }
+  if (!memberSession?.token && !adminLoggedIn) {
+    updateMatchAnalysisUi();
+    toast("회원 로그인이 필요합니다.");
     return;
   }
 
@@ -1493,8 +1629,8 @@ async function analyze() {
     $("status").textContent = `오류: ${error.message}`;
     toast("분석 실패");
   } finally {
-    button.disabled = false;
     button.innerHTML = '맞팔 분석 시작 <span>→</span>';
+    updateMatchAnalysisUi();
   }
 }
 
@@ -1927,10 +2063,13 @@ $("generalAccessBtn").onclick = chooseGeneralAccess;
 $("adminAccessBtn").onclick = chooseAdminAccess;
 $("memberLoginBtn").onclick = loginMemberFromGate;
 $("openMemberRegisterBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberRegister"); };
+$("openMemberForgotBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberForgot"); };
+$("backFromForgotBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
+$("memberForgotBtn").onclick = resetMemberPasswordFromGate;
 $("memberLoginBackBtn").onclick = backToRoleSelect;
 $("backToMemberLoginBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
 $("memberRegisterBtn").onclick = registerMemberFromGate;
-$("memberLogoutBtn").onclick = logoutMember;
+$("memberMenuBtn").onclick = openMemberDrawer;
 $("memberLoginPassword").onkeydown = (event) => { if (event.key === "Enter") loginMemberFromGate(); };
 $("memberRegisterPasswordConfirm").onkeydown = (event) => { if (event.key === "Enter") registerMemberFromGate(); };
 $("gateBackBtn").onclick = backToRoleSelect;
@@ -1969,7 +2108,7 @@ $("followPassword").onkeydown = (event) => { if (event.key === "Enter") unlockFo
 
 $("matchVoteDoneBtn")?.addEventListener("click",()=>submitMatchVote("완료"));
 $("matchVoteDelayBtn")?.addEventListener("click",()=>submitMatchVote("지연"));
-$("matchPassword").onkeydown = (event) => { if (event.key === "Enter") unlockMatch(); };
+$("matchPassword")?.addEventListener("keydown", (event) => { if (event.key === "Enter" && typeof unlockMatch === "function") unlockMatch(); });
 
 $("zipFile").onchange = () => {
   $("fileName").textContent = $("zipFile").files[0]?.name || "인스타그램 ZIP 파일 선택";
@@ -2068,3 +2207,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }, 120000);
 });
+
+
+$("memberDrawerBackdrop")?.addEventListener("click", closeMemberDrawer);
+$("memberDrawerCloseBtn")?.addEventListener("click", closeMemberDrawer);
+$("openMyPageBtn")?.addEventListener("click", openMyPage);
+$("openPasswordChangeBtn")?.addEventListener("click",()=>openAccountModal("passwordChangeModal"));
+$("myPagePasswordBtn")?.addEventListener("click",()=>{closeAccountModal("myPageModal");openAccountModal("passwordChangeModal");});
+$("changeMemberPasswordBtn")?.addEventListener("click",changeMemberPasswordFromUi);
+$("drawerNoticeBtn")?.addEventListener("click",()=>{closeMemberDrawer();showView("noticeView");});
+$("openFaqBtn")?.addEventListener("click",()=>openAccountModal("faqModal"));
+$("openInquiryBtn")?.addEventListener("click",()=>openAccountModal("inquiryModal"));
+$("drawerLogoutBtn")?.addEventListener("click",()=>{closeMemberDrawer();logoutMember();});
+$("inquiryInstagramBtn")?.addEventListener("click",()=>window.open("https://www.instagram.com/tlso_94/","_blank","noopener"));
+document.querySelectorAll("[data-close-account-modal]").forEach(btn=>btn.addEventListener("click",()=>closeAccountModal(btn.dataset.closeAccountModal)));
+document.querySelectorAll(".account-modal").forEach(modal=>modal.addEventListener("click",e=>{if(e.target===modal)closeAccountModal(modal.id)}));

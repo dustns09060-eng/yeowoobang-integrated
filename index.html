@@ -10,10 +10,10 @@
   <title>여우방 통합 프로그램</title>
 
   <link rel="canonical" href="https://dustns09060-eng.github.io/ys/" />
-  <link rel="manifest" href="manifest.json?v=430" />
+  <link rel="manifest" href="manifest.json?v=710" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=690" />
+  <link rel="stylesheet" href="style.css?v=710" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -87,7 +87,22 @@
         <input id="memberLoginPassword" type="password" autocomplete="current-password" placeholder="비밀번호" />
         <button id="memberLoginBtn" class="primary" type="button">로그인</button>
         <button id="openMemberRegisterBtn" class="outline member-secondary" type="button">처음 이용하시나요? 계정 등록</button>
+        <button id="openMemberForgotBtn" class="text-btn" type="button">비밀번호를 잊으셨나요?</button>
         <button id="memberLoginBackBtn" class="text-btn" type="button">뒤로</button>
+      </div>
+
+      <div id="memberForgotForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>비밀번호 찾기</strong>
+          <span>여우방 회원정보와 정확히 일치해야 새 비밀번호를 설정할 수 있어요.</span>
+        </div>
+        <input id="memberForgotNickname" type="text" autocomplete="nickname" placeholder="여우방 닉네임" />
+        <input id="memberForgotInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디" />
+        <input id="memberForgotId" type="number" inputmode="numeric" placeholder="MemberID (팔로우리스트 번호)" />
+        <input id="memberForgotPassword" type="password" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)" />
+        <input id="memberForgotPasswordConfirm" type="password" autocomplete="new-password" placeholder="새 비밀번호 확인" />
+        <button id="memberForgotBtn" class="primary" type="button">새 비밀번호 설정</button>
+        <button id="backFromForgotBtn" class="text-btn" type="button">로그인으로 돌아가기</button>
       </div>
 
       <div id="memberRegisterForm" class="gate-form member-auth-form hidden">
@@ -138,7 +153,7 @@
       </div>
       <button id="themeToggleBtn" class="install theme-toggle" type="button" aria-label="화면 모드 변경">🌙</button>
       <button id="installBtn" class="install" type="button">앱설치</button>
-      <button id="memberLogoutBtn" class="member-logout hidden" type="button">로그아웃</button>
+      <button id="memberMenuBtn" class="member-logout hidden" type="button">내 메뉴</button>
     </div>
   </header>
 
@@ -228,7 +243,15 @@
       </section>
 
       <div id="matchContent">
-        <section class="card start-card">
+        <section class="card start-card match-analysis-card">
+          <div class="section-title-row">
+            <div>
+              <h2>맞팔 분석</h2>
+              <p class="subtext">맞팔확인 기간 동안 인스타그램 ZIP 파일로 맞팔 상태를 분석할 수 있습니다.</p>
+            </div>
+            <span id="matchAnalysisBadge" class="lock-state locked">기간 아님</span>
+          </div>
+          <p id="matchAnalysisMessage" class="state-text">기간 상태를 확인하는 중입니다.</p>
           <div class="room-row">
             <div class="room-info"><span>단톡방 명단</span><strong id="roomState">대기</strong></div>
             <button id="reloadRoomBtn" class="icon-btn" type="button" aria-label="명단 새로고침" title="명단 새로고침">↻</button>
@@ -404,7 +427,7 @@
 
         <hr />
         <div class="setting-block">
-          <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원이 완료/지연 투표를 제출할 수 있습니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
+          <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 완료/지연 투표와 ZIP 맞팔분석이 함께 활성화됩니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
           <div class="admin-actions"><button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 기간 종료</button><button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 기간 시작</button></div>
         </div>
 
@@ -469,7 +492,7 @@
 
   <footer>
     <span>© 2026 YEOWOOBANG</span>
-    <span>Version 69.0</span>
+    <span>Version 71.0</span>
   </footer>
 
   <nav class="bottom-nav integrated-bottom-nav" aria-label="주요 메뉴">
@@ -481,7 +504,72 @@
     <button id="adminNavBtn" class="nav-btn hidden" data-view="adminView" type="button"><span class="nav-icon">⚙</span><span>운영진</span></button>
   </nav>
 
+
+  <div id="memberDrawerBackdrop" class="member-drawer-backdrop hidden"></div>
+  <aside id="memberDrawer" class="member-drawer hidden" aria-label="내 메뉴">
+    <div class="member-drawer-head">
+      <div class="drawer-profile"><img src="app-logo-v20.png?v=430" alt="여우방"/><div><strong id="drawerMemberName">회원님</strong><span id="drawerMemberInstagram"></span></div></div>
+      <button id="memberDrawerCloseBtn" class="drawer-close" type="button">×</button>
+    </div>
+    <nav class="member-drawer-menu">
+      <button id="openMyPageBtn" type="button">👤 <span>마이페이지</span></button>
+      <button id="openPasswordChangeBtn" type="button">🔒 <span>비밀번호 변경</span></button>
+      <button id="drawerNoticeBtn" type="button">📢 <span>공지사항</span></button>
+      <button id="openFaqBtn" type="button">❓ <span>자주 묻는 질문</span></button>
+      <button id="openInquiryBtn" type="button">💬 <span>문의하기</span></button>
+      <button id="drawerLogoutBtn" class="drawer-logout" type="button">↪ <span>로그아웃</span></button>
+    </nav>
+    <small class="drawer-version">Version 71.0</small>
+  </aside>
+
+  <div id="myPageModal" class="account-modal hidden">
+    <section class="account-modal-card">
+      <div class="account-modal-head"><button data-close-account-modal="myPageModal" type="button">←</button><h2>마이페이지</h2><span></span></div>
+      <div class="mypage-profile"><img src="app-logo-v20.png?v=430" alt="여우방"/><div><strong id="myPageName">회원</strong><span id="myPageInstagram"></span></div></div>
+      <div class="mypage-info-grid">
+        <div><span>닉네임</span><strong id="myPageNickname">-</strong></div>
+        <div><span>인스타 아이디</span><strong id="myPageInsta">-</strong></div>
+        <div><span>가입일</span><strong id="myPageJoinDate">-</strong></div>
+        <div><span>MemberID</span><strong id="myPageMemberId">-</strong></div>
+      </div>
+      <div class="mypage-progress-card"><div><strong>팔로우리스트 진행률</strong><span id="myPageFollowText">0 / 0명</span></div><div class="mini-progress"><i id="myPageFollowBar"></i></div><small id="myPageFollowPercent">0%</small></div>
+      <div class="mypage-progress-card"><div><strong>맞팔확인 제출 현황</strong><span id="myPageMatchText">미제출</span></div><small id="myPageMatchDate"></small></div>
+      <button id="myPagePasswordBtn" class="primary" type="button">비밀번호 변경</button>
+    </section>
+  </div>
+
+  <div id="passwordChangeModal" class="account-modal hidden">
+    <section class="account-modal-card">
+      <div class="account-modal-head"><button data-close-account-modal="passwordChangeModal" type="button">←</button><h2>비밀번호 변경</h2><span></span></div>
+      <div class="account-form-stack">
+        <input id="currentMemberPassword" type="password" autocomplete="current-password" placeholder="현재 비밀번호" />
+        <input id="newMemberPassword" type="password" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)" />
+        <input id="newMemberPasswordConfirm" type="password" autocomplete="new-password" placeholder="새 비밀번호 확인" />
+        <div class="account-help-box"><strong>🔐 비밀번호 안내</strong><p>6자 이상 입력해 주세요. 다른 서비스에서 사용하는 비밀번호와 다르게 설정하는 것을 권장해요.</p></div>
+        <button id="changeMemberPasswordBtn" class="primary" type="button">변경하기</button>
+        <p id="changePasswordMessage" class="state-text"></p>
+      </div>
+    </section>
+  </div>
+
+  <div id="faqModal" class="account-modal hidden">
+    <section class="account-modal-card">
+      <div class="account-modal-head"><button data-close-account-modal="faqModal" type="button">←</button><h2>자주 묻는 질문</h2><span></span></div>
+      <details open><summary>계정 등록이 안 돼요.</summary><p>팔로우리스트에 등록된 닉네임과 인스타 아이디가 정확히 일치해야 합니다.</p></details>
+      <details><summary>맞팔분석 버튼이 눌리지 않아요.</summary><p>운영진이 맞팔확인 기간을 열었을 때만 투표와 ZIP 분석을 이용할 수 있습니다.</p></details>
+      <details><summary>휴대폰을 바꿔도 이어보기가 유지되나요?</summary><p>같은 계정으로 로그인하면 서버에 저장된 이어보기 위치를 불러옵니다.</p></details>
+    </section>
+  </div>
+
+  <div id="inquiryModal" class="account-modal hidden">
+    <section class="account-modal-card">
+      <div class="account-modal-head"><button data-close-account-modal="inquiryModal" type="button">←</button><h2>문의하기</h2><span></span></div>
+      <div class="account-help-box"><strong>💬 여우방 운영진 문의</strong><p>계정·회원정보·프로그램 이용 문제는 운영진에게 문의해 주세요. 문의 시 닉네임과 인스타 아이디를 함께 알려주시면 확인이 빨라요.</p></div>
+      <button id="inquiryInstagramBtn" class="primary" type="button">인스타그램에서 문의하기</button>
+    </section>
+  </div>
+
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=690"></script>
+  <script src="app.js?v=710"></script>
 </body>
 </html>
