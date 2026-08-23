@@ -408,6 +408,28 @@
         </div>
 
         <hr />
+        <div class="setting-block v73-ops">
+          <div class="section-title-row"><div><h3>🧰 운영 안정화</h3><p class="subtext">자동 백업 · 변경이력 · 맞팔 미제출 · 폭스바겐 제재</p></div><span id="adminRoleBadge" class="lock-state unlocked">방장</span></div>
+          <div class="stats-grid compact admin-stats">
+            <article><span>버전</span><strong id="v73Version">V73</strong></article>
+            <article><span>최근 백업</span><strong id="v73LastBackup" style="font-size:12px">확인중</strong></article>
+          </div>
+          <div class="admin-actions">
+            <button id="createBackupV73Btn" class="outline" type="button">💾 지금 백업</button>
+            <button id="loadMatchReportV73Btn" class="outline" type="button">🔄 맞팔 제출현황</button>
+          </div>
+          <div id="matchReportV73" class="v73-report hidden">
+            <div class="v73-report-tabs">
+              <button class="outline" data-v73-report="done">완료 <b id="v73DoneCount">0</b></button>
+              <button class="outline" data-v73-report="delay">지연 <b id="v73DelayCount">0</b></button>
+              <button class="outline danger-outline" data-v73-report="missing">미제출 <b id="v73MissingCount">0</b></button>
+            </div>
+            <button id="copyMatchReportV73Btn" class="outline small" type="button">현재 명단 복사</button>
+            <div id="matchReportV73List" class="admin-member-list"></div>
+          </div>
+        </div>
+
+        <hr />
         <div class="setting-block">
           <div class="section-title-row">
             <div><h3>앱 잠금</h3></div>

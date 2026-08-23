@@ -1114,3 +1114,7 @@ body.drawer-open,body.account-modal-open{overflow:hidden}
 .v72-member-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.v72-member-row .meta{font-size:12px;opacity:.72}.v72-member-actions{display:flex;gap:6px;flex-shrink:0}.v72-member-actions button{padding:7px 9px;border-radius:10px}
 .v72-activity-row strong{display:block;margin-bottom:3px}.v72-activity-row small{opacity:.68}
 html[data-theme="dark"] .v72-dashboard,html[data-theme="dark"] .v72-member-row,html[data-theme="dark"] .v72-activity-row{background:#181b21;border-color:#333842}
+
+/* V73 운영 안정화 */
+.v73-report{margin-top:12px;padding:12px;border:1px solid var(--line,#eee);border-radius:16px;background:var(--card,#fff)}
+.v73-report-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.v73-report-tabs button{flex:1;min-width:82px}.v73-report .admin-member-list{max-height:260px;overflow:auto;margin-top:10px}.v73-fox-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.v73-fox-actions button{padding:7px 9px;font-size:12px}

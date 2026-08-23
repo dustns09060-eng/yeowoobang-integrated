@@ -2191,7 +2191,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=720").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=730").catch(() => {});
   }
 
   // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.
@@ -2251,7 +2251,7 @@ async function searchAdminMembersV72(){
   if(!q){box.innerHTML='<p class="state-text">검색어를 입력해주세요.</p>';return;}
   box.innerHTML='<p class="state-text">검색 중...</p>';
   try{const d=await apiPost('getAdminMembers',{adminPassword:adminPasswordValue,query:q},12000);const items=d.items||[];
-    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}</div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
+    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''} · 폭스 ${escapeHtml(x.foxStatus||'정상')}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}<div class="v73-fox-actions"><button class="outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','정상')">폭스 정상</button><button class="outline danger-outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','제재')">제재</button><button class="outline danger-outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','영구금지')">영구금지</button></div></div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
     box.querySelectorAll('[data-v72-member]').forEach(b=>b.onclick=async()=>{if(!confirm(`이 계정을 ${b.dataset.v72Status} 상태로 변경할까요?`))return;try{await apiPost('setMemberAccountStatus',{adminPassword:adminPasswordValue,memberId:b.dataset.v72Member,status:b.dataset.v72Status},12000);toast('계정 상태를 변경했습니다.');await searchAdminMembersV72();await loadAdminDashboardV72();}catch(e){toast(e.message||'변경 실패');}});
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검색 실패')}</p>`;}
 }
@@ -2260,4 +2260,47 @@ $('adminMemberSearchBtn')?.addEventListener('click',searchAdminMembersV72);
 $('adminMemberSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')searchAdminMembersV72();});
 
 // 서비스워커 새 버전 감지 시 사용자에게 안내
-if('serviceWorker' in navigator){navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('yw:v72:reloaded'))return;sessionStorage.setItem('yw:v72:reloaded','1');toast('새 버전이 적용되었습니다.');});}
+if('serviceWorker' in navigator){navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('yw:v73:reloaded'))return;sessionStorage.setItem('yw:v73:reloaded','1');toast('새 버전이 적용되었습니다.');});}
+
+/* =========================================================
+ * V73 운영 안정화
+ * ======================================================= */
+let v73MatchReport={done:[],delay:[],missing:[]};
+let v73ReportType='missing';
+async function loadV73OpsStatus(){
+  if(!adminLoggedIn)return;
+  try{const d=await apiPost('getV73OpsStatus',{adminPassword:adminPasswordValue},12000);
+    if($('adminRoleBadge'))$('adminRoleBadge').textContent=d.role||'방장';
+    if($('v73Version'))$('v73Version').textContent=d.version||'V73';
+    if($('v73LastBackup'))$('v73LastBackup').textContent=d.lastBackup||'없음';
+  }catch(_){ }
+}
+async function createBackupV73Ui(){
+  if(!adminLoggedIn)return toast('운영진 로그인이 필요합니다.');
+  const b=$('createBackupV73Btn'); if(b)b.disabled=true;
+  try{const d=await apiPost('createBackupV73',{adminPassword:adminPasswordValue},30000);toast(`백업 완료 · ${d.name||''}`);await loadV73OpsStatus();}
+  catch(e){toast(e.message||'백업 실패');}finally{if(b)b.disabled=false;}
+}
+async function loadMatchReportV73(){
+  if(!adminLoggedIn)return;
+  const box=$('matchReportV73'); if(box)box.classList.remove('hidden');
+  try{const d=await apiPost('getMatchSubmissionReportV73',{adminPassword:adminPasswordValue},15000);v73MatchReport=d;
+    $('v73DoneCount').textContent=d.counts?.done||0;$('v73DelayCount').textContent=d.counts?.delay||0;$('v73MissingCount').textContent=d.counts?.missing||0;renderMatchReportV73();
+  }catch(e){$('matchReportV73List').innerHTML=`<p class="error-text">${escapeHtml(e.message||'불러오기 실패')}</p>`;}
+}
+function renderMatchReportV73(){
+  const items=v73MatchReport[v73ReportType]||[], list=$('matchReportV73List');
+  list.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)}</div></div></div>`).join(''):'<p class="state-text">해당 회원이 없습니다.</p>';
+}
+async function copyMatchReportV73(){
+  const items=v73MatchReport[v73ReportType]||[]; if(!items.length)return toast('복사할 명단이 없습니다.');
+  await navigator.clipboard.writeText(items.map(x=>`${x.nickname}\t@${x.instagramId}`).join('\n'));toast(`${items.length}명 복사했습니다.`);
+}
+async function setFoxPenaltyV73(memberId,status){
+  if(!confirm(`폭스바겐 상태를 '${status}'로 변경할까요?`))return;
+  try{await apiPost('setVolkswagenPenaltyV73',{adminPassword:adminPasswordValue,memberId,status},12000);toast('폭스바겐 상태를 변경했습니다.');await searchAdminMembersV72();}catch(e){toast(e.message||'변경 실패');}
+}
+$('createBackupV73Btn')?.addEventListener('click',createBackupV73Ui);
+$('loadMatchReportV73Btn')?.addEventListener('click',loadMatchReportV73);
+$('copyMatchReportV73Btn')?.addEventListener('click',copyMatchReportV73);
+document.querySelectorAll('[data-v73-report]').forEach(b=>b.addEventListener('click',()=>{v73ReportType=b.dataset.v73Report;renderMatchReportV73();}));
