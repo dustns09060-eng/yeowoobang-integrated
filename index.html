@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=700" />
+  <link rel="stylesheet" href="style.css?v=690" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -136,6 +136,7 @@
         <strong id="memberBadgeName"></strong>
         <span id="memberBadgeId"></span>
       </div>
+      <button id="themeToggleBtn" class="install theme-toggle" type="button" aria-label="화면 모드 변경">🌙</button>
       <button id="installBtn" class="install" type="button">앱설치</button>
       <button id="memberLogoutBtn" class="member-logout hidden" type="button">로그아웃</button>
     </div>
@@ -220,15 +221,10 @@
     </section>
 
     <section id="matchView" class="view">
-      <section id="matchLockCard" class="card lock-card hidden">
-        <div class="lock-icon">🔒</div>
-        <h2>맞팔확인 잠금 중</h2>
-        <p>맞팔확인 비밀번호를 입력해 주세요.</p>
-        <div class="inline-auth">
-          <input id="matchPassword" type="password" inputmode="numeric" placeholder="맞팔확인 비밀번호" />
-          <button id="matchUnlockBtn" class="primary small-primary" type="button">잠금 해제</button>
-        </div>
-        <p id="matchUnlockMsg" class="error-text"></p>
+      <section id="matchVoteCard" class="card match-vote-card">
+        <div class="section-title-row"><div><h2>맞팔 확인 투표</h2><p id="matchVoteTitle" class="subtext">맞팔확인 기간 동안 본인의 진행 상태를 선택해주세요.</p></div><span id="matchVoteBadge" class="lock-state locked">기간 아님</span></div>
+        <div class="match-vote-actions"><button id="matchVoteDoneBtn" class="vote-done" type="button">완료</button><button id="matchVoteDelayBtn" class="vote-delay" type="button">지연</button></div>
+        <p id="matchVoteMessage" class="state-text">상태를 확인하는 중입니다.</p>
       </section>
 
       <div id="matchContent">
@@ -408,18 +404,8 @@
 
         <hr />
         <div class="setting-block">
-          <div class="section-title-row">
-            <div><h3>맞팔 잠금</h3></div>
-            <span id="matchLockState" class="lock-state unlocked">사용 가능</span>
-          </div>
-          <div class="admin-actions">
-            <button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 잠그기</button>
-            <button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 잠금 해제</button>
-          </div>
-          <div class="setting-row">
-            <input id="newMatchPassword" type="password" inputmode="numeric" placeholder="새 맞팔확인 비밀번호" />
-            <button id="changeMatchPasswordBtn" class="outline" type="button">맞팔 비밀번호 변경</button>
-          </div>
+          <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원이 완료/지연 투표를 제출할 수 있습니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
+          <div class="admin-actions"><button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 기간 종료</button><button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 기간 시작</button></div>
         </div>
 
 
@@ -483,7 +469,7 @@
 
   <footer>
     <span>© 2026 YEOWOOBANG</span>
-    <span>Version 46.0</span>
+    <span>Version 69.0</span>
   </footer>
 
   <nav class="bottom-nav integrated-bottom-nav" aria-label="주요 메뉴">
@@ -496,6 +482,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=700"></script>
+  <script src="app.js?v=690"></script>
 </body>
 </html>
