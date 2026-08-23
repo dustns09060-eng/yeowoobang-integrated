@@ -1107,3 +1107,10 @@ input:focus,textarea:focus,.search-wrap:focus-within{
 body.drawer-open,body.account-modal-open{overflow:hidden}
 :root[data-theme="dark"] .member-drawer,:root[data-theme="dark"] .account-modal-card{background:#1b1e24;border-color:#343841}:root[data-theme="dark"] .member-drawer-menu button:hover,:root[data-theme="dark"] .member-drawer-menu .drawer-logout{background:#2a2025}:root[data-theme="dark"] .mypage-profile{background:linear-gradient(135deg,#242027,#1b1e24)}:root[data-theme="dark"] .account-help-box{background:#28221b;border-color:#4a3a2c}:root[data-theme="dark"] .mini-progress{background:#30343d}
 @media(min-width:700px){.account-modal{align-items:center;padding:20px}.account-modal-card{border-radius:24px;max-height:88vh}}
+/* V72 운영 대시보드 / 활동기록 */
+.v72-dashboard{margin:18px 0;padding:16px;border-radius:18px;background:var(--card-soft,#fff7fa);border:1px solid var(--line,#f0dce4)}
+.admin-member-list,.v72-activity-list{display:grid;gap:8px;margin-top:10px;max-height:360px;overflow:auto}
+.v72-member-row,.v72-activity-row{padding:12px;border:1px solid var(--line,#eee);border-radius:14px;background:var(--card,#fff)}
+.v72-member-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.v72-member-row .meta{font-size:12px;opacity:.72}.v72-member-actions{display:flex;gap:6px;flex-shrink:0}.v72-member-actions button{padding:7px 9px;border-radius:10px}
+.v72-activity-row strong{display:block;margin-bottom:3px}.v72-activity-row small{opacity:.68}
+html[data-theme="dark"] .v72-dashboard,html[data-theme="dark"] .v72-member-row,html[data-theme="dark"] .v72-activity-row{background:#181b21;border-color:#333842}

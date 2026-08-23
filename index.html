@@ -10,10 +10,10 @@
   <title>여우방 통합 프로그램</title>
 
   <link rel="canonical" href="https://dustns09060-eng.github.io/ys/" />
-  <link rel="manifest" href="manifest.json?v=710" />
+  <link rel="manifest" href="manifest.json?v=720" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=710" />
+  <link rel="stylesheet" href="style.css?v=720" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -388,6 +388,25 @@
           <article><span>API 상태</span><strong id="adminApiState">대기</strong></article>
         </div>
 
+        <div class="v72-dashboard">
+          <h3>📊 운영 현황</h3>
+          <div class="stats-grid compact admin-stats">
+            <article><span>오늘 로그인</span><strong id="dashLoggedToday">0명</strong></article>
+            <article><span>맞팔 완료</span><strong id="dashMatchDone">0명</strong></article>
+            <article><span>지연</span><strong id="dashMatchDelay">0명</strong></article>
+            <article><span>미제출</span><strong id="dashMatchMissing">0명</strong></article>
+            <article><span>초대 승인대기</span><strong id="dashInvitePending">0명</strong></article>
+            <article><span>계정 등록</span><strong id="dashAccounts">0명</strong></article>
+          </div>
+        </div>
+
+        <hr />
+        <div class="setting-block">
+          <div class="section-title-row"><div><h3>🛡️ 회원 계정관리</h3><p class="subtext">닉네임·인스타 아이디·MemberID로 검색하고 계정을 정지/복구합니다.</p></div></div>
+          <div class="setting-row"><input id="adminMemberSearch" placeholder="회원 검색" /><button id="adminMemberSearchBtn" class="outline" type="button">검색</button></div>
+          <div id="adminMemberList" class="admin-member-list"><p class="state-text">검색어를 입력해주세요.</p></div>
+        </div>
+
         <hr />
         <div class="setting-block">
           <div class="section-title-row">
@@ -492,7 +511,7 @@
 
   <footer>
     <span>© 2026 YEOWOOBANG</span>
-    <span>Version 71.0</span>
+    <span>Version 72.0</span>
   </footer>
 
   <nav class="bottom-nav integrated-bottom-nav" aria-label="주요 메뉴">
@@ -517,10 +536,20 @@
       <button id="drawerNoticeBtn" type="button">📢 <span>공지사항</span></button>
       <button id="openFaqBtn" type="button">❓ <span>자주 묻는 질문</span></button>
       <button id="openInquiryBtn" type="button">💬 <span>문의하기</span></button>
+      <button id="openActivityBtn" type="button">📊 내 활동기록</button>
       <button id="drawerLogoutBtn" class="drawer-logout" type="button">↪ <span>로그아웃</span></button>
     </nav>
     <small class="drawer-version">Version 71.0</small>
   </aside>
+
+
+  <div id="activityModal" class="account-modal hidden">
+    <div class="account-modal-card">
+      <div class="account-modal-head"><button data-close-account-modal="activityModal" type="button">←</button><h2>내 활동기록</h2><span></span></div>
+      <div id="activityList" class="v72-activity-list"><p class="state-text">기록을 불러오는 중입니다.</p></div>
+      <h3>최근 맞팔분석</h3><div id="analysisHistoryList" class="v72-activity-list"><p class="state-text">분석 기록이 없습니다.</p></div>
+    </div>
+  </div>
 
   <div id="myPageModal" class="account-modal hidden">
     <section class="account-modal-card">
@@ -570,6 +599,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=710"></script>
+  <script src="app.js?v=720"></script>
 </body>
 </html>

@@ -872,6 +872,7 @@ async function submitGatePassword() {
       await loadAfterAuth();
       showView("adminView");
       showAdminPanel();
+    loadAdminDashboardV72();
       loadAdminLogs();
       toast("운영진으로 접속했습니다.");
     }
@@ -1624,6 +1625,9 @@ async function analyze() {
     $("summarySection").classList.remove("hidden");
     $("resultsSection").classList.remove("hidden");
     $("status").textContent = `분석 완료 · 맞팔확인용 명단 ${matchRoomList.length}명 기준`;
+    if(memberSession?.token){
+      apiPost("saveMatchAnalysis",{token:memberSession.token,counts:{total:result.all.length,mutual:result.mutual.length,onlyMe:result.onlyMe.length,fansOnly:result.fansOnly.length,neither:result.neither.length}},12000).catch(()=>{});
+    }
     toast("분석 완료");
   } catch (error) {
     $("status").textContent = `오류: ${error.message}`;
@@ -2187,7 +2191,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=660").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=720").catch(() => {});
   }
 
   // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.
@@ -2222,3 +2226,38 @@ $("drawerLogoutBtn")?.addEventListener("click",()=>{closeMemberDrawer();logoutMe
 $("inquiryInstagramBtn")?.addEventListener("click",()=>window.open("https://www.instagram.com/tlso_94/","_blank","noopener"));
 document.querySelectorAll("[data-close-account-modal]").forEach(btn=>btn.addEventListener("click",()=>closeAccountModal(btn.dataset.closeAccountModal)));
 document.querySelectorAll(".account-modal").forEach(modal=>modal.addEventListener("click",e=>{if(e.target===modal)closeAccountModal(modal.id)}));
+
+
+/* V72 활동기록 / 운영진 대시보드 */
+async function openActivityHistory(){
+  if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
+  openAccountModal('activityModal');
+  const list=$('activityList'), hist=$('analysisHistoryList');
+  list.innerHTML='<p class="state-text">기록을 불러오는 중입니다.</p>';
+  try{
+    const [a,h]=await Promise.all([apiPost('getMyActivity',{token:memberSession.token},12000),apiPost('getMyAnalysisHistory',{token:memberSession.token},12000)]);
+    list.innerHTML=(a.items||[]).length?(a.items||[]).map(x=>`<div class="v72-activity-row"><strong>${escapeHtml(x.type||'활동')}</strong><div>${escapeHtml(x.content||'')}</div><small>${escapeHtml(x.at||'')}</small></div>`).join(''):'<p class="state-text">아직 활동기록이 없습니다.</p>';
+    hist.innerHTML=(h.items||[]).length?(h.items||[]).map(x=>`<div class="v72-activity-row"><strong>${escapeHtml(x.at||'')}</strong><div>맞팔 ${x.mutual} · 내가팔로우 ${x.onlyMe} · 나만팔로우 ${x.fansOnly} · 서로안함 ${x.neither}</div><small>전체 ${x.total}명</small></div>`).join(''):'<p class="state-text">아직 저장된 분석기록이 없습니다.</p>';
+  }catch(e){list.innerHTML=`<p class="error-text">${escapeHtml(e.message||'불러오지 못했습니다.')}</p>`;}
+}
+async function loadAdminDashboardV72(){
+  if(!adminLoggedIn)return;
+  try{const d=await apiPost('getAdminDashboard',{adminPassword:adminPasswordValue},12000);
+    $('dashLoggedToday').textContent=`${d.loggedToday||0}명`;$('dashMatchDone').textContent=`${d.matchDone||0}명`;$('dashMatchDelay').textContent=`${d.matchDelay||0}명`;$('dashMatchMissing').textContent=`${d.matchMissing||0}명`;$('dashInvitePending').textContent=`${d.invitePending||0}명`;$('dashAccounts').textContent=`${d.accounts||0}명`;
+  }catch(_){ }
+}
+async function searchAdminMembersV72(){
+  if(!adminLoggedIn)return; const q=$('adminMemberSearch')?.value.trim()||''; const box=$('adminMemberList');
+  if(!q){box.innerHTML='<p class="state-text">검색어를 입력해주세요.</p>';return;}
+  box.innerHTML='<p class="state-text">검색 중...</p>';
+  try{const d=await apiPost('getAdminMembers',{adminPassword:adminPasswordValue,query:q},12000);const items=d.items||[];
+    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}</div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
+    box.querySelectorAll('[data-v72-member]').forEach(b=>b.onclick=async()=>{if(!confirm(`이 계정을 ${b.dataset.v72Status} 상태로 변경할까요?`))return;try{await apiPost('setMemberAccountStatus',{adminPassword:adminPasswordValue,memberId:b.dataset.v72Member,status:b.dataset.v72Status},12000);toast('계정 상태를 변경했습니다.');await searchAdminMembersV72();await loadAdminDashboardV72();}catch(e){toast(e.message||'변경 실패');}});
+  }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검색 실패')}</p>`;}
+}
+$('openActivityBtn')?.addEventListener('click',()=>{closeMemberDrawer();openActivityHistory();});
+$('adminMemberSearchBtn')?.addEventListener('click',searchAdminMembersV72);
+$('adminMemberSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')searchAdminMembersV72();});
+
+// 서비스워커 새 버전 감지 시 사용자에게 안내
+if('serviceWorker' in navigator){navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('yw:v72:reloaded'))return;sessionStorage.setItem('yw:v72:reloaded','1');toast('새 버전이 적용되었습니다.');});}
