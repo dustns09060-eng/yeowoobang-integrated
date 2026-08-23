@@ -1052,3 +1052,26 @@ input:focus,textarea:focus,.search-wrap:focus-within{
 }
 
 @media(max-width:620px){.invite-admin-summary{grid-template-columns:repeat(2,1fr)}}
+
+
+/* =========================================================
+   V67 MEMBER LOGIN
+   ========================================================= */
+.member-auth-form{gap:11px!important;text-align:left}
+.member-auth-title{display:grid;gap:5px;margin:2px 2px 5px;text-align:center}
+.member-auth-title strong{font-size:19px;color:var(--text)}
+.member-auth-title span{font-size:12px;line-height:1.5;color:var(--muted);font-weight:750}
+.member-auth-form input{background:#fff}
+.member-secondary{width:100%;padding:14px;font-size:14px;color:#d85d7c}
+.header-actions{display:flex;align-items:center;gap:8px}
+.member-badge{display:grid;justify-items:end;line-height:1.12;max-width:150px}
+.member-badge strong{font-size:13px;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-badge span{font-size:11px;color:var(--muted);max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-logout{border:1px solid #ecd5de;background:#fff;color:#d85d7c;border-radius:12px;padding:10px 11px;font-weight:900;cursor:pointer}
+.member-auth-loading{opacity:.65;pointer-events:none}
+@media(max-width:600px){
+  .header-actions{gap:5px}
+  .member-badge{display:none!important}
+  .member-logout{padding:9px 8px;font-size:12px}
+  .member-auth-title strong{font-size:18px}
+}

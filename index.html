@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=430" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=661" />
+  <link rel="stylesheet" href="style.css?v=700" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -78,6 +78,31 @@
         </button>
       </div>
 
+      <div id="memberLoginForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>회원 로그인</strong>
+          <span>여우방 회원만 이용할 수 있어요.</span>
+        </div>
+        <input id="memberLoginInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디 (예: tlso_94)" />
+        <input id="memberLoginPassword" type="password" autocomplete="current-password" placeholder="비밀번호" />
+        <button id="memberLoginBtn" class="primary" type="button">로그인</button>
+        <button id="openMemberRegisterBtn" class="outline member-secondary" type="button">처음 이용하시나요? 계정 등록</button>
+        <button id="memberLoginBackBtn" class="text-btn" type="button">뒤로</button>
+      </div>
+
+      <div id="memberRegisterForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>처음 이용 계정 등록</strong>
+          <span>팔로우리스트의 닉네임과 인스타 아이디가 정확히 일치해야 해요.</span>
+        </div>
+        <input id="memberRegisterNickname" type="text" autocomplete="nickname" placeholder="여우방 닉네임" />
+        <input id="memberRegisterInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디" />
+        <input id="memberRegisterPassword" type="password" autocomplete="new-password" placeholder="비밀번호 (6자 이상)" />
+        <input id="memberRegisterPasswordConfirm" type="password" autocomplete="new-password" placeholder="비밀번호 확인" />
+        <button id="memberRegisterBtn" class="primary" type="button">계정 등록하고 시작하기</button>
+        <button id="backToMemberLoginBtn" class="text-btn" type="button">이미 계정이 있어요 · 로그인</button>
+      </div>
+
       <div id="gateForm" class="gate-form hidden">
         <input id="gatePassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="비밀번호 입력" />
         <button id="gateSubmitBtn" class="primary" type="button">입장하기</button>
@@ -106,7 +131,14 @@
         <p class="hidden">팔로우리스트+맞팔확인</p>
       </div>
     </div>
-    <button id="installBtn" class="install" type="button">앱설치</button>
+    <div class="header-actions">
+      <div id="memberBadge" class="member-badge hidden">
+        <strong id="memberBadgeName"></strong>
+        <span id="memberBadgeId"></span>
+      </div>
+      <button id="installBtn" class="install" type="button">앱설치</button>
+      <button id="memberLogoutBtn" class="member-logout hidden" type="button">로그아웃</button>
+    </div>
   </header>
 
   <main class="container">
@@ -464,6 +496,6 @@
   </nav>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=662"></script>
+  <script src="app.js?v=700"></script>
 </body>
 </html>

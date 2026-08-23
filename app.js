@@ -16,14 +16,16 @@ let appLockGranted = false;
 let matchGranted = false;
 let followGranted = false;
 let gateMode = "loading";
+let memberSession = null;
+const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V66.2-FOX-ACTIVE";
+const APP_VERSION = "V67-MEMBER-LOGIN";
 
 let config = {
   version: "V4.2 FASTBOOT",
   appName: "여우방 통합 프로그램",
-  apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
+  apiUrl: "https://script.google.com/macros/s/AKfycbxWgC8LmsbYvyAhTJ34wc_oiJVdBLQz5iFBaSAbX8yKn1HHxl2bBMn2tLYyCFtBjd09/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
   sheetName: "팔로우리스트",
   fallbackCsv: "room-list.csv",
@@ -403,12 +405,16 @@ function setGate(mode, message = "") {
   const text = $("gateMessage");
   const roles = $("gateRoleSelect");
   const form = $("gateForm");
+  const memberLoginForm = $("memberLoginForm");
+  const memberRegisterForm = $("memberRegisterForm");
   const retryBtn = $("gateRetryBtn");
   const password = $("gatePassword");
 
   $("gateError").textContent = "";
   roles.classList.add("hidden");
   form.classList.add("hidden");
+  memberLoginForm?.classList.add("hidden");
+  memberRegisterForm?.classList.add("hidden");
   retryBtn.classList.add("hidden");
   password.value = "";
 
@@ -419,6 +425,16 @@ function setGate(mode, message = "") {
     title.textContent = "여우방";
     text.textContent = "";
     roles.classList.remove("hidden");
+  } else if (mode === "memberLogin") {
+    title.textContent = "여우방";
+    text.textContent = "";
+    memberLoginForm?.classList.remove("hidden");
+    setTimeout(() => $("memberLoginInstagram")?.focus(), 0);
+  } else if (mode === "memberRegister") {
+    title.textContent = "여우방";
+    text.textContent = "";
+    memberRegisterForm?.classList.remove("hidden");
+    setTimeout(() => $("memberRegisterNickname")?.focus(), 0);
   } else if (mode === "access") {
     title.textContent = "이용하기";
     text.textContent = "";
@@ -473,38 +489,167 @@ function finishBootScreen() {
 
 async function bootstrapAuth() {
   showGate();
-  setGate("role");
+  setGate("loading", "로그인 정보를 확인하는 중입니다.");
 
-  // 연결 상태는 백그라운드에서 확인합니다.
-  // 서버가 느려도 앱 시작 화면은 막지 않습니다.
-  apiGet("publicConfig", 5000)
-    .then((data) => {
-      publicConfig = data;
-      updateLockIndicators();
-    })
-    .catch(() => {
-      // 로그인 버튼을 누를 때 서버에서 다시 검증합니다.
-      publicConfig = publicConfig || {
-        appLocked: false,
-        followLocked: false,
-        matchLocked: false,
-        notice: "",
-        securityVersion: ""
-      };
-    });
+  let configResult = null;
+  try {
+    configResult = await apiGet("publicConfig", 5000);
+    publicConfig = configResult;
+    updateLockIndicators();
+  } catch (_) {
+    publicConfig = publicConfig || {
+      appLocked: false,
+      followLocked: false,
+      matchLocked: false,
+      notice: "",
+      securityVersion: ""
+    };
+  }
+
+  const saved = readMemberSessionStorage();
+  if (saved?.token && !publicConfig?.appLocked) {
+    try {
+      const result = await apiPost("memberSession", { token: saved.token }, 9000);
+      await completeMemberLogin(result, false);
+      return;
+    } catch (_) {
+      clearMemberSessionStorage();
+    }
+  }
+
+  setGate("role");
 }
+
 function chooseGeneralAccess() {
-  // 앱 잠금 여부는 비밀번호 확인 요청 시 서버에서 최종 검증합니다.
   if (publicConfig?.appLocked) {
     setGate("blocked");
     return;
   }
-  setGate("access");
+  setGate("memberLogin");
 }
-
 
 function chooseAdminAccess() {
   setGate("admin");
+}
+
+function readMemberSessionStorage() {
+  try {
+    const raw = localStorage.getItem(MEMBER_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveMemberSessionStorage(data) {
+  try {
+    localStorage.setItem(MEMBER_SESSION_KEY, JSON.stringify(data));
+  } catch (_) {}
+}
+
+function clearMemberSessionStorage() {
+  try { localStorage.removeItem(MEMBER_SESSION_KEY); } catch (_) {}
+}
+
+function setMemberHeader(member) {
+  const badge = $("memberBadge");
+  const logout = $("memberLogoutBtn");
+  if (!badge || !logout) return;
+
+  if (!member || adminLoggedIn) {
+    badge.classList.add("hidden");
+    logout.classList.add("hidden");
+    return;
+  }
+
+  $("memberBadgeName").textContent = member.nickname || "회원";
+  $("memberBadgeId").textContent = member.instagramId ? `@${member.instagramId}` : "";
+  badge.classList.remove("hidden");
+  logout.classList.remove("hidden");
+}
+
+async function completeMemberLogin(result, showToast = true) {
+  if (!result?.token || !result?.member) throw new Error("로그인 정보를 확인할 수 없습니다.");
+
+  memberSession = { token: result.token, member: result.member };
+  saveMemberSessionStorage(memberSession);
+  accessGranted = true;
+  adminLoggedIn = false;
+  adminPasswordValue = "";
+  try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
+  setAdminNavigation(false);
+  setMemberHeader(result.member);
+  hideGate();
+  await loadAfterAuth();
+  showView("followView");
+  if (showToast) toast(`${result.member.nickname || "회원"}님, 반가워요 🦊`);
+}
+
+async function loginMemberFromGate() {
+  const instagramId = normalize($("memberLoginInstagram")?.value || "");
+  const password = $("memberLoginPassword")?.value || "";
+  if (!instagramId || !password) {
+    $("gateError").textContent = "인스타 아이디와 비밀번호를 입력해 주세요.";
+    return;
+  }
+
+  const btn = $("memberLoginBtn");
+  try {
+    btn.disabled = true;
+    $("gateError").textContent = "";
+    const result = await apiPost("memberLogin", { instagramId, password }, 15000);
+    $("memberLoginPassword").value = "";
+    await completeMemberLogin(result, true);
+  } catch (error) {
+    $("gateError").textContent = error.message || "로그인에 실패했습니다.";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function registerMemberFromGate() {
+  const nickname = String($("memberRegisterNickname")?.value || "").trim();
+  const instagramId = normalize($("memberRegisterInstagram")?.value || "");
+  const password = $("memberRegisterPassword")?.value || "";
+  const confirm = $("memberRegisterPasswordConfirm")?.value || "";
+
+  if (!nickname || !instagramId || !password || !confirm) {
+    $("gateError").textContent = "모든 항목을 입력해 주세요.";
+    return;
+  }
+  if (password.length < 6) {
+    $("gateError").textContent = "비밀번호는 6자 이상으로 설정해 주세요.";
+    return;
+  }
+  if (password !== confirm) {
+    $("gateError").textContent = "비밀번호 확인이 일치하지 않습니다.";
+    return;
+  }
+
+  const btn = $("memberRegisterBtn");
+  try {
+    btn.disabled = true;
+    $("gateError").textContent = "";
+    const result = await apiPost("registerMemberAccount", { nickname, instagramId, password }, 20000);
+    await completeMemberLogin(result, false);
+    toast("계정 등록이 완료되었습니다. 🦊");
+  } catch (error) {
+    $("gateError").textContent = error.message || "계정 등록에 실패했습니다.";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function logoutMember() {
+  memberSession = null;
+  clearMemberSessionStorage();
+  accessGranted = false;
+  matchGranted = false;
+  followGranted = false;
+  setMemberHeader(null);
+  showGate();
+  setGate("role");
+  toast("로그아웃했습니다.");
 }
 
 function backToRoleSelect() {
@@ -540,6 +685,9 @@ async function submitGatePassword() {
       const adminAuth = await apiPost("adminLogin", { password });
       if (adminAuth.publicConfig) publicConfig = adminAuth.publicConfig;
       adminLoggedIn = true;
+      memberSession = null;
+      clearMemberSessionStorage();
+      setMemberHeader(null);
       adminPasswordValue = password;
       try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
       updateFoxMode();
@@ -1670,6 +1818,14 @@ document.querySelectorAll(".nav-btn").forEach((button) => {
 
 $("generalAccessBtn").onclick = chooseGeneralAccess;
 $("adminAccessBtn").onclick = chooseAdminAccess;
+$("memberLoginBtn").onclick = loginMemberFromGate;
+$("openMemberRegisterBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberRegister"); };
+$("memberLoginBackBtn").onclick = backToRoleSelect;
+$("backToMemberLoginBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
+$("memberRegisterBtn").onclick = registerMemberFromGate;
+$("memberLogoutBtn").onclick = logoutMember;
+$("memberLoginPassword").onkeydown = (event) => { if (event.key === "Enter") loginMemberFromGate(); };
+$("memberRegisterPasswordConfirm").onkeydown = (event) => { if (event.key === "Enter") registerMemberFromGate(); };
 $("gateBackBtn").onclick = backToRoleSelect;
 $("gateSubmitBtn").onclick = submitGatePassword;
 $("gatePassword").onkeydown = (event) => { if (event.key === "Enter") submitGatePassword(); };
