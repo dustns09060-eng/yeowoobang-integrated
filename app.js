@@ -12,6 +12,7 @@ let adminLoggedIn = false;
 let adminPasswordValue = "";
 let adminModeToken = "";
 let adminMemberRole = "";
+let adminProfile = null;
 let publicConfig = null;
 let accessGranted = false;
 let appLockGranted = false;
@@ -22,10 +23,10 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V71-FINAL";
+const APP_VERSION = "V77-FINAL";
 
 let config = {
-  version: "V4.2 FASTBOOT",
+  version: "V77 FINAL",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbxWgC8LmsbYvyAhTJ34wc_oiJVdBLQz5iFBaSAbX8yKn1HHxl2bBMn2tLYyCFtBjd09/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
@@ -449,7 +450,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
 
 async function loadConfig() {
   try {
-    const response = await fetchWithTimeout("config.json?v=642", { cache: "no-store" }, 2500);
+    const response = await fetchWithTimeout("config.json?v=770", { cache: "no-store" }, 2500);
     if (response.ok) config = { ...config, ...(await response.json()) };
   } catch (_) {
     // app.js에 내장된 API 주소로 계속 진행합니다.
@@ -504,6 +505,7 @@ function setGate(mode, message = "") {
   const memberLoginForm = $("memberLoginForm");
   const memberRegisterForm = $("memberRegisterForm");
   const memberForgotForm = $("memberForgotForm");
+  const operatorLoginForm = $("operatorLoginForm");
   const retryBtn = $("gateRetryBtn");
   const password = $("gatePassword");
 
@@ -513,6 +515,7 @@ function setGate(mode, message = "") {
   memberLoginForm?.classList.add("hidden");
   memberRegisterForm?.classList.add("hidden");
   memberForgotForm?.classList.add("hidden");
+  operatorLoginForm?.classList.add("hidden");
   retryBtn.classList.add("hidden");
   password.value = "";
 
@@ -538,6 +541,11 @@ function setGate(mode, message = "") {
     text.textContent = "";
     memberRegisterForm?.classList.remove("hidden");
     setTimeout(() => $("memberRegisterNickname")?.focus(), 0);
+  } else if (mode === "operatorLogin") {
+    title.textContent = "운영진";
+    text.textContent = "";
+    operatorLoginForm?.classList.remove("hidden");
+    setTimeout(() => $("operatorInstagram")?.focus(), 0);
   } else if (mode === "access") {
     title.textContent = "이용하기";
     text.textContent = "";
@@ -585,12 +593,13 @@ function setAdminNavigation(enabled) {
 function updateAdminModeButton() {
   const btn = $("adminModeBtn");
   if (!btn) return;
-  const eligible = Boolean(memberSession?.member?.adminEligible);
-  btn.classList.toggle("hidden", !eligible);
-  if (!eligible) return;
+  const eligibleMember = Boolean(memberSession?.member?.adminEligible);
+  const visible = adminLoggedIn || eligibleMember;
+  btn.classList.toggle("hidden", !visible);
+  if (!visible) return;
   btn.textContent = adminLoggedIn ? "일반모드" : "⚙️ 운영진모드";
   btn.classList.toggle("active-admin-mode", adminLoggedIn);
-  btn.title = adminLoggedIn ? "일반 회원 화면으로 돌아가기" : "운영진모드로 전환";
+  btn.title = adminLoggedIn ? "운영진모드 종료" : "운영진모드로 전환";
 }
 
 function finishBootScreen() {
@@ -645,8 +654,7 @@ function chooseGeneralAccess() {
 }
 
 function chooseAdminAccess() {
-  toast("회원 로그인 후 운영진모드로 전환해 주세요.");
-  setGate("memberLogin");
+  setGate("operatorLogin");
 }
 
 function readMemberSessionStorage() {
@@ -680,10 +688,27 @@ function setMemberHeader(member) {
     return;
   }
 
-  $("memberBadgeName").textContent = adminLoggedIn ? `${member.nickname || "회원"} · ${adminMemberRole || member.adminRole || "운영진"}` : (member.nickname || "회원");
+  $("memberBadgeName").textContent = member.nickname || "회원";
   $("memberBadgeId").textContent = member.instagramId ? `@${member.instagramId}` : "";
   badge.classList.remove("hidden");
   menu.classList.toggle("hidden", adminLoggedIn);
+  updateAdminModeButton();
+}
+
+function setAdminHeader(profile) {
+  const badge = $("memberBadge");
+  const menu = $("memberMenuBtn");
+  if (!badge) return;
+  if (!profile) {
+    badge.classList.add("hidden");
+    menu?.classList.add("hidden");
+    updateAdminModeButton();
+    return;
+  }
+  $("memberBadgeName").textContent = `${profile.name || "운영진"} · ${profile.role || "운영진"}`;
+  $("memberBadgeId").textContent = profile.instagramId ? `@${profile.instagramId}` : "";
+  badge.classList.remove("hidden");
+  menu?.classList.add("hidden");
   updateAdminModeButton();
 }
 
@@ -697,12 +722,14 @@ async function completeMemberLogin(result, showToast = true) {
   adminPasswordValue = "";
   adminModeToken = "";
   adminMemberRole = "";
+  adminProfile = null;
   try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
   setAdminNavigation(false);
   setMemberHeader(result.member);
   hideGate();
   await loadAfterAuth();
   await loadMemberFollowProgress();
+  void loadNotificationsV76();
   showView("followView");
   if (showToast) toast(`${result.member.nickname || "회원"}님, 반가워요 🦊`);
 }
@@ -832,6 +859,7 @@ async function resetMemberPasswordFromGate(){
 }
 
 function logoutMember() {
+  adminProfile = null;
   memberSession = null;
   memberTodayFollowCount = null;
   memberFollowProgressLoaded = false;
@@ -840,6 +868,8 @@ function logoutMember() {
   matchGranted = false;
   followGranted = false;
   setMemberHeader(null);
+  $("notificationBtn")?.classList.add("hidden");
+  $("notificationBadge")?.classList.add("hidden");
   showGate();
   setGate("role");
   toast("로그아웃했습니다.");
@@ -850,13 +880,17 @@ function backToRoleSelect() {
 }
 
 function openAdminModeModal() {
-  if (!memberSession?.member?.adminEligible) {
-    toast("운영진으로 등록된 계정만 사용할 수 있습니다.");
-    return;
-  }
   if (adminLoggedIn) {
     exitAdminModeToMember();
     return;
+  }
+  if (memberSession?.member && !memberSession.member.adminEligible) {
+    toast("운영진으로 등록된 인스타 아이디가 아닙니다.");
+    return;
+  }
+  if ($("adminModeInstagram")) {
+    $("adminModeInstagram").value = memberSession?.member?.instagramId || "";
+    $("adminModeInstagram").readOnly = Boolean(memberSession?.member?.instagramId);
   }
   $("adminModePassword").value = "";
   $("adminModeMessage").textContent = "";
@@ -870,30 +904,56 @@ function closeAdminModeModal() {
   if (!document.querySelector('.account-modal:not(.hidden)')) document.body.classList.remove("account-modal-open");
 }
 
+async function activateAdminMode(r, password) {
+  adminLoggedIn = true;
+  adminPasswordValue = password;
+  adminModeToken = r.adminModeToken || "";
+  adminMemberRole = r.role || r.operator?.role || "운영진";
+  adminProfile = r.operator || { instagramId:"", name:"운영진", role:adminMemberRole };
+  try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
+  accessGranted = true; matchGranted = true; followGranted = true;
+  if (r.publicConfig) publicConfig = r.publicConfig;
+  setAdminNavigation(true);
+  setAdminHeader(adminProfile);
+  updateFoxMode();
+  applyFollowLock(); applyMatchLock();
+  hideGate();
+  await loadAfterAuth();
+  showView("adminView");
+  showAdminPanel();
+  renderRosterAudit();
+  await Promise.allSettled([loadAdminDashboardV72(),loadV73OpsStatus(),loadAdminLogs(),loadAdminTaskboxV76()]);
+  toast(`${adminProfile.name || "운영진"}님 · ${adminMemberRole} 운영진모드`);
+}
+
+async function loginOperatorFromGate() {
+  const instagramId = normalize($("operatorInstagram")?.value || "");
+  const password = $("operatorPassword")?.value || "";
+  if (!instagramId || !password) { $("gateError").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요."; return; }
+  const btn = $("operatorLoginBtn");
+  try {
+    btn.disabled = true; $("gateError").textContent = "";
+    const r = await apiPost("adminLogin", { instagramId, password }, 15000);
+    memberSession = null; clearMemberSessionStorage();
+    await activateAdminMode(r, password);
+    $("operatorPassword").value = "";
+  } catch (e) {
+    $("gateError").textContent = e.message || "운영진 로그인에 실패했습니다.";
+  } finally { btn.disabled = false; }
+}
+
 async function enterAdminModeFromMember() {
+  const instagramId = normalize($("adminModeInstagram")?.value || memberSession?.member?.instagramId || "");
   const password = $("adminModePassword")?.value || "";
-  if (!password) { $("adminModeMessage").textContent = "운영진 비밀번호를 입력해 주세요."; return; }
+  if (!instagramId || !password) { $("adminModeMessage").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요."; return; }
   const btn=$("adminModeConfirmBtn");
   try {
-    btn.disabled=true;
-    $("adminModeMessage").textContent="";
-    const r=await apiPost("enterAdminMode",{token:memberSession.token,password},15000);
-    adminLoggedIn=true;
-    adminPasswordValue=password;
-    adminModeToken=r.adminModeToken||"";
-    adminMemberRole=r.role||memberSession.member.adminRole||"운영진";
-    try { sessionStorage.setItem("yeowoobangRole","admin"); } catch(_){}
-    accessGranted=true; matchGranted=true; followGranted=true;
+    btn.disabled=true; $("adminModeMessage").textContent="";
+    const payload={instagramId,password};
+    if(memberSession?.token) payload.token=memberSession.token;
+    const r=await apiPost("enterAdminMode",payload,15000);
     closeAdminModeModal();
-    setAdminNavigation(true);
-    setMemberHeader(memberSession.member);
-    updateFoxMode();
-    applyFollowLock(); applyMatchLock();
-    showView("adminView");
-    showAdminPanel();
-    renderRosterAudit();
-    await Promise.allSettled([loadAdminDashboardV72(),loadV73OpsStatus(),loadAdminLogs()]);
-    toast(`${adminMemberRole} 운영진모드로 전환했습니다.`);
+    await activateAdminMode(r,password);
   } catch(e) {
     $("adminModeMessage").textContent=e.message||"운영진모드 전환에 실패했습니다.";
   } finally { btn.disabled=false; }
@@ -904,18 +964,28 @@ function exitAdminModeToMember() {
   adminPasswordValue="";
   adminModeToken="";
   adminMemberRole="";
-  try { sessionStorage.setItem("yeowoobangRole","member"); } catch(_){}
-  accessGranted=true;
-  matchGranted=false;
-  followGranted=false;
+  adminProfile=null;
   setAdminNavigation(false);
-  setMemberHeader(memberSession?.member||null);
   updateFoxMode();
   $("adminPanel")?.classList.add("hidden");
   $("adminLoginCard")?.classList.add("hidden");
-  applyFollowLock(); applyMatchLock();
-  showView("followView");
-  toast("일반모드로 돌아왔습니다.");
+
+  if (memberSession?.token) {
+    try { sessionStorage.setItem("yeowoobangRole","member"); } catch(_){}
+    accessGranted=true; matchGranted=false; followGranted=false;
+    setMemberHeader(memberSession.member);
+    applyFollowLock(); applyMatchLock();
+    showView("followView");
+    toast("일반모드로 돌아왔습니다.");
+    return;
+  }
+
+  try { sessionStorage.removeItem("yeowoobangRole"); } catch(_){}
+  accessGranted=false; matchGranted=false; followGranted=false;
+  setAdminHeader(null);
+  showGate();
+  setGate("role");
+  toast("운영진모드를 종료했습니다.");
 }
 
 async function submitGatePassword() {
@@ -2094,8 +2164,9 @@ function showAdminPanel() {
 
 function adminLogout() {
   if (memberSession?.token) { exitAdminModeToMember(); return; }
-  adminLoggedIn = false; adminPasswordValue = ""; adminModeToken = ""; adminMemberRole = "";
+  adminLoggedIn = false; adminPasswordValue = ""; adminModeToken = ""; adminMemberRole = ""; adminProfile = null;
   setAdminNavigation(false);
+  setAdminHeader(null);
   bootstrapAuth();
 }
 
@@ -2144,6 +2215,9 @@ document.querySelectorAll(".nav-btn").forEach((button) => {
 
 $("generalAccessBtn").onclick = chooseGeneralAccess;
 $("adminAccessBtn").onclick = chooseAdminAccess;
+if ($("operatorLoginBtn")) $("operatorLoginBtn").onclick = loginOperatorFromGate;
+if ($("operatorLoginBackBtn")) $("operatorLoginBackBtn").onclick = backToRoleSelect;
+if ($("operatorPassword")) $("operatorPassword").onkeydown = (event) => { if (event.key === "Enter") loginOperatorFromGate(); };
 $("memberLoginBtn").onclick = loginMemberFromGate;
 $("openMemberRegisterBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberRegister"); };
 $("openMemberForgotBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberForgot"); };
@@ -2157,6 +2231,7 @@ if ($("adminModeBtn")) $("adminModeBtn").onclick = openAdminModeModal;
 if ($("adminModeCancelBtn")) $("adminModeCancelBtn").onclick = closeAdminModeModal;
 if ($("adminModeConfirmBtn")) $("adminModeConfirmBtn").onclick = enterAdminModeFromMember;
 if ($("adminModePassword")) $("adminModePassword").onkeydown = (event) => { if (event.key === "Enter") enterAdminModeFromMember(); };
+if ($("adminModeInstagram")) $("adminModeInstagram").onkeydown = (event) => { if (event.key === "Enter") $("adminModePassword")?.focus(); };
 $("memberLoginPassword").onkeydown = (event) => { if (event.key === "Enter") loginMemberFromGate(); };
 $("memberRegisterPasswordConfirm").onkeydown = (event) => { if (event.key === "Enter") registerMemberFromGate(); };
 $("gateBackBtn").onclick = backToRoleSelect;
@@ -2409,3 +2484,96 @@ $('v74MemberSearchBtn')?.addEventListener('click',()=>loadV75Members($('v74Membe
 $('v74MemberSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')loadV75Members(e.target.value.trim())});
 $('v74NewMembersBtn')?.addEventListener('click',()=>loadV75Members('',true));
 $('v74DataIssuesBtn')?.addEventListener('click',loadV75Issues);
+
+
+/* =========================================================
+ * V76 알림센터 · 운영진 업무함 · 회원 상세페이지
+ * ======================================================= */
+let v76Notifications=[];
+
+function setNotificationBadgeV76(count){
+  const btn=$("notificationBtn"), badge=$("notificationBadge");
+  if(!btn||!badge)return;
+  if(memberSession?.token)btn.classList.remove("hidden"); else btn.classList.add("hidden");
+  const n=Number(count||0);
+  badge.textContent=n>99?'99+':String(n);
+  badge.classList.toggle("hidden",n<1);
+}
+
+async function loadNotificationsV76(){
+  if(!memberSession?.token){setNotificationBadgeV76(0);return;}
+  try{
+    const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
+    v76Notifications=d.items||[];
+    setNotificationBadgeV76(d.unread||0);
+    renderNotificationsV76();
+  }catch(_){ setNotificationBadgeV76(0); }
+}
+
+function renderNotificationsV76(){
+  const box=$("notificationList"); if(!box)return;
+  if(!v76Notifications.length){box.innerHTML='<div class="notification-empty">새 알림이 없어요 🦊</div>';return;}
+  box.innerHTML=v76Notifications.map(x=>`<button class="notification-item ${x.read?'read':'unread'}" type="button" data-notification-key="${escapeHtml(x.key)}" data-notification-type="${escapeHtml(x.type||'')}"><span class="notification-icon">${escapeHtml(x.icon||'🔔')}</span><span class="notification-copy"><strong>${escapeHtml(x.title||'알림')}</strong><span>${escapeHtml(x.message||'')}</span><small>${escapeHtml(x.createdAt||'')}</small></span>${x.read?'':'<i class="notification-dot"></i>'}</button>`).join('');
+  box.querySelectorAll('[data-notification-key]').forEach(el=>el.addEventListener('click',async()=>{
+    const key=el.dataset.notificationKey,type=el.dataset.notificationType;
+    try{await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);}catch(_){}
+    const item=v76Notifications.find(x=>x.key===key); if(item)item.read=true;
+    setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length); renderNotificationsV76();
+    closeNotificationModalV76();
+    if(type==='match')showView('matchView'); else if(type==='notice')showView('noticeView'); else if(type==='invite')showView('inviteView');
+  }));
+}
+
+function openNotificationModalV76(){
+  if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
+  $("notificationModal")?.classList.remove('hidden'); document.body.classList.add('account-modal-open');
+  void loadNotificationsV76();
+}
+function closeNotificationModalV76(){
+  $("notificationModal")?.classList.add('hidden');
+  if(!document.querySelector('.account-modal:not(.hidden)'))document.body.classList.remove('account-modal-open');
+}
+async function markAllNotificationsReadV76(){
+  if(!memberSession?.token)return;
+  try{await apiPost('markAllNotificationsReadV76',{token:memberSession.token},12000);v76Notifications.forEach(x=>x.read=true);setNotificationBadgeV76(0);renderNotificationsV76();toast('모든 알림을 읽음 처리했습니다.');}catch(e){toast(e.message||'처리하지 못했습니다.');}
+}
+
+async function loadAdminTaskboxV76(){
+  if(!adminLoggedIn)return;
+  const box=$("v76TaskList"); if(!box)return;
+  box.innerHTML='<p class="state-text">업무를 확인하는 중...</p>';
+  try{
+    const d=await apiPost('getAdminTaskboxV76',{adminPassword:adminPasswordValue},15000);
+    $("v76TaskTotal").textContent=`${d.total||0}건`;
+    box.innerHTML=(d.tasks||[]).map(x=>`<button class="v76-task-card" type="button" data-v76-task="${escapeHtml(x.target||'')}"><span>${escapeHtml(x.icon||'📌')}</span><strong>${Number(x.count||0)}</strong><small>${escapeHtml(x.label||'')}</small></button>`).join('');
+    box.querySelectorAll('[data-v76-task]').forEach(b=>b.addEventListener('click',()=>handleAdminTaskV76(b.dataset.v76Task)));
+  }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'업무함을 불러오지 못했습니다.')}</p>`;}
+}
+function handleAdminTaskV76(target){
+  if(target==='match'){void loadMatchReportV73();document.getElementById('matchReportV73')?.scrollIntoView({behavior:'smooth',block:'center'});}
+  else if(target==='issues'){void loadV75Issues();document.getElementById('v74IssueResults')?.scrollIntoView({behavior:'smooth',block:'center'});}
+  else if(target==='members'){document.getElementById('v74MemberSearch')?.scrollIntoView({behavior:'smooth',block:'center'});}
+  else if(target==='invite'){toast('초대별 관리자 메뉴에서 승인대기 목록을 확인해 주세요.');}
+}
+
+async function loadMemberDetailV76(){
+  if(!adminLoggedIn)return toast('운영진모드 전환이 필요합니다.');
+  const id=String($("v76DetailId")?.value||'').trim(), box=$("v76DetailResult");
+  if(!id){box.innerHTML='<p class="error-text">MemberID를 입력해 주세요.</p>';return;}
+  box.innerHTML='<p class="state-text">회원 정보를 불러오는 중...</p>';
+  try{
+    const d=await apiPost('getMemberDetailV76',{adminPassword:adminPasswordValue,memberId:id},15000),m=d.member||{};
+    const p=m.followProgress;
+    const acts=(m.activities||[]).slice(0,8).map(a=>`<div class="v76-detail-activity"><strong>${escapeHtml(a.type||'활동')}</strong><span>${escapeHtml(a.content||'')}</span><small>${escapeHtml(a.at||'')}</small></div>`).join('')||'<p class="state-text">최근 활동기록이 없습니다.</p>';
+    box.innerHTML=`<div class="v76-detail-card"><div class="v76-detail-head"><div><strong>${escapeHtml(m.nickname||'')} · @${escapeHtml(m.instagramId||'')}</strong><span>MemberID ${escapeHtml(m.memberId||'')}</span></div><span class="lock-state ${m.memberStatus==='승인완료'?'unlocked':'locked'}">${escapeHtml(m.memberStatus||'')}</span></div><div class="v76-detail-grid"><div><span>가입일</span><strong>${escapeHtml(m.joinDate||'-')}</strong></div><div><span>최근 로그인</span><strong>${escapeHtml(m.lastLogin||m.accountLastLogin||'-')}</strong></div><div><span>계정</span><strong>${escapeHtml(m.accountStatus||'미등록')}</strong></div><div><span>폭스바겐</span><strong>${escapeHtml(m.foxStatus||'정상')}</strong></div><div><span>맞팔 제출</span><strong>${escapeHtml(m.matchStatus||'미제출')}</strong></div><div><span>오늘 팔로우</span><strong>${Number(m.todayFollowCount||0)}명</strong></div><div><span>이어보기</span><strong>${p?`${escapeHtml(p.no||'')}번 · ${escapeHtml(p.name||'')}`:'기록 없음'}</strong></div><div><span>초대 실적</span><strong>승인 ${Number(m.inviteStats?.approved||0)} · 대기 ${Number(m.inviteStats?.pending||0)}</strong></div></div>${m.memo?`<div class="v76-detail-memo"><strong>📝 운영진 메모</strong><p>${escapeHtml(m.memo)}</p></div>`:''}<h4>최근 활동</h4><div class="v76-detail-activities">${acts}</div></div>`;
+  }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'회원 정보를 불러오지 못했습니다.')}</p>`;}
+}
+
+$("notificationBtn")?.addEventListener('click',openNotificationModalV76);
+$("notificationCloseBtn")?.addEventListener('click',closeNotificationModalV76);
+$("notificationReadAllBtn")?.addEventListener('click',markAllNotificationsReadV76);
+$("notificationModal")?.addEventListener('click',e=>{if(e.target?.id==='notificationModal')closeNotificationModalV76();});
+$("v76TaskRefreshBtn")?.addEventListener('click',loadAdminTaskboxV76);
+$("v76DetailBtn")?.addEventListener('click',loadMemberDetailV76);
+$("v76DetailId")?.addEventListener('keydown',e=>{if(e.key==='Enter')loadMemberDetailV76();});
+setInterval(()=>{if(memberSession?.token&&!document.hidden)void loadNotificationsV76();},5*60*1000);

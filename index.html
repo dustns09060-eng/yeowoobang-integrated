@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=720" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=720" />
+  <link rel="stylesheet" href="style.css?v=760" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -44,8 +44,8 @@
     @keyframes bootSpin{to{transform:rotate(360deg)}}
   </style>
 <style>
-/* V53 - 맞팔 프로그램 전용: 이용하기 > 운영진 */
-.access-role-grid{grid-template-columns:1fr!important}
+/* V77 - 일반회원 / 운영진 분리 진입 */
+.access-role-grid{grid-template-columns:1fr 1fr!important}
 </style>
 </head>
 <body>
@@ -72,7 +72,7 @@
           <span class="role-icon">🦊</span>
           <strong>이용하기</strong>
         </button>
-        <button id="adminAccessBtn" class="access-role admin hidden" type="button">
+        <button id="adminAccessBtn" class="access-role admin" type="button">
           <span class="role-icon">⚙️</span>
           <strong>운영진</strong>
         </button>
@@ -118,6 +118,17 @@
         <button id="backToMemberLoginBtn" class="text-btn" type="button">이미 계정이 있어요 · 로그인</button>
       </div>
 
+      <div id="operatorLoginForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>운영진 로그인</strong>
+          <span>운영진회원에 등록된 인스타 아이디만 이용할 수 있어요.</span>
+        </div>
+        <input id="operatorInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="운영진 인스타 아이디" />
+        <input id="operatorPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
+        <button id="operatorLoginBtn" class="primary" type="button">운영진모드로 전환</button>
+        <button id="operatorLoginBackBtn" class="text-btn" type="button">뒤로</button>
+      </div>
+
       <div id="gateForm" class="gate-form hidden">
         <input id="gatePassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="비밀번호 입력" />
         <button id="gateSubmitBtn" class="primary" type="button">입장하기</button>
@@ -151,6 +162,7 @@
         <strong id="memberBadgeName"></strong>
         <span id="memberBadgeId"></span>
       </div>
+      <button id="notificationBtn" class="install notification-btn hidden" type="button" aria-label="알림센터">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button>
       <button id="adminModeBtn" class="install admin-mode-switch hidden" type="button">⚙️ 운영진모드</button>
       <button id="themeToggleBtn" class="install theme-toggle" type="button" aria-label="화면 모드 변경">🌙</button>
       <button id="installBtn" class="install" type="button">앱설치</button>
@@ -412,27 +424,42 @@
         <div class="setting-block v73-ops">
           <div class="section-title-row"><div><h3>🧰 운영 안정화</h3><p class="subtext">자동 백업 · 변경이력 · 맞팔 미제출 · 폭스바겐 제재</p></div><span id="adminRoleBadge" class="lock-state unlocked">방장</span></div>
           <div class="stats-grid compact admin-stats">
-            <article><span>버전</span><strong id="v73Version">V75</strong></article>
+            <article><span>버전</span><strong id="v73Version">V77</strong></article>
             <article><span>최근 백업</span><strong id="v73LastBackup" style="font-size:12px">확인중</strong></article>
           </div>
           <div class="admin-actions">
-            <button id="createBackupV75Btn" class="outline" type="button">💾 지금 백업</button>
-            <button id="loadMatchReportV75Btn" class="outline" type="button">🔄 맞팔 제출현황</button>
+            <button id="createBackupV73Btn" class="outline" type="button">💾 지금 백업</button>
+            <button id="loadMatchReportV73Btn" class="outline" type="button">🔄 맞팔 제출현황</button>
           </div>
-          <div id="matchReportV75" class="v73-report hidden">
+          <div id="matchReportV73" class="v73-report hidden">
             <div class="v73-report-tabs">
               <button class="outline" data-v73-report="done">완료 <b id="v73DoneCount">0</b></button>
               <button class="outline" data-v73-report="delay">지연 <b id="v73DelayCount">0</b></button>
               <button class="outline danger-outline" data-v73-report="missing">미제출 <b id="v73MissingCount">0</b></button>
             </div>
-            <button id="copyMatchReportV75Btn" class="outline small" type="button">현재 명단 복사</button>
-            <div id="matchReportV75List" class="admin-member-list"></div>
+            <button id="copyMatchReportV73Btn" class="outline small" type="button">현재 명단 복사</button>
+            <div id="matchReportV73List" class="admin-member-list"></div>
           </div>
+        </div>
+
+
+        <hr />
+        <div class="setting-block v76-taskbox">
+          <div class="section-title-row"><div><h3>📥 운영진 업무함</h3><p class="subtext">지금 확인해야 할 일을 한눈에 모아봤어요.</p></div><span id="v76TaskTotal" class="lock-state unlocked">0건</span></div>
+          <div id="v76TaskList" class="v76-task-grid"><p class="state-text">운영진모드 전환 후 자동으로 불러옵니다.</p></div>
+          <button id="v76TaskRefreshBtn" class="outline small" type="button">업무함 새로고침</button>
+        </div>
+
+        <hr />
+        <div class="setting-block v76-member-detail">
+          <div class="section-title-row"><div><h3>🔎 회원 상세페이지</h3><p class="subtext">MemberID로 회원의 활동·맞팔·초대·계정 상태를 한 번에 확인합니다.</p></div></div>
+          <div class="setting-row"><input id="v76DetailId" inputmode="numeric" placeholder="MemberID 입력" /><button id="v76DetailBtn" class="outline" type="button">상세보기</button></div>
+          <div id="v76DetailResult" class="v76-detail-result"><p class="state-text">MemberID를 입력해 주세요.</p></div>
         </div>
 
         <hr />
         <div class="setting-block v74-ops">
-          <div class="section-title-row"><div><h3>👤 회원 통합관리 V75</h3><p class="subtext">신규회원 · 탈퇴/강퇴 · 운영진 메모 · 데이터 오류를 한곳에서 관리합니다.</p></div></div>
+          <div class="section-title-row"><div><h3>👤 회원 통합관리 V77</h3><p class="subtext">신규회원 · 탈퇴/강퇴 · 운영진 메모 · 데이터 오류를 한곳에서 관리합니다.</p></div></div>
           <div class="setting-row"><input id="v74MemberSearch" placeholder="닉네임 · @아이디 · MemberID" /><button id="v74MemberSearchBtn" class="outline" type="button">통합검색</button></div>
           <div class="admin-actions"><button id="v74NewMembersBtn" class="outline" type="button">🆕 신규회원 D+7</button><button id="v74DataIssuesBtn" class="outline danger-outline" type="button">🚨 데이터 오류검사</button></div>
           <div id="v74MemberResults" class="admin-member-list"><p class="state-text">회원 검색 또는 신규회원 버튼을 눌러주세요.</p></div>
@@ -557,10 +584,20 @@
 
 
 
+
+  <div id="notificationModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
+    <section class="account-modal-card notification-modal-card">
+      <div class="account-modal-head"><button id="notificationCloseBtn" type="button">←</button><h2 id="notificationTitle">🔔 알림센터</h2><button id="notificationReadAllBtn" class="text-btn small" type="button">모두 읽음</button></div>
+      <p class="subtext">맞팔확인, 초대 처리결과, 새 공지를 한곳에서 확인해요.</p>
+      <div id="notificationList" class="notification-list"><p class="state-text">알림을 불러오는 중입니다.</p></div>
+    </section>
+  </div>
+
   <div id="adminModeModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminModeTitle">
     <section class="account-modal-card admin-mode-card">
-      <div class="section-title-row"><div><h2 id="adminModeTitle">🛡️ 운영진모드 전환</h2><p class="subtext">운영진으로 등록된 회원만 전환할 수 있습니다.</p></div></div>
-      <div class="admin-mode-profile"><strong id="adminModeProfileText">회원 로그인 계정 확인 + 운영진 비밀번호 확인</strong></div>
+      <div class="section-title-row"><div><h2 id="adminModeTitle">🛡️ 운영진모드 전환</h2><p class="subtext">운영진회원에 등록된 인스타 아이디와 운영진 비밀번호를 확인합니다.</p></div></div>
+      <div class="admin-mode-profile"><strong id="adminModeProfileText">운영진 인스타 아이디 + 운영진 비밀번호 확인</strong></div>
+      <input id="adminModeInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="운영진 인스타 아이디" />
       <input id="adminModePassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
       <p id="adminModeMessage" class="error-text"></p>
       <div class="account-modal-actions"><button id="adminModeCancelBtn" class="outline" type="button">취소</button><button id="adminModeConfirmBtn" class="primary" type="button">운영진모드 전환</button></div>
@@ -581,7 +618,7 @@
       <button id="openActivityBtn" type="button">📊 내 활동기록</button>
       <button id="drawerLogoutBtn" class="drawer-logout" type="button">↪ <span>로그아웃</span></button>
     </nav>
-    <small class="drawer-version">Version 71.0</small>
+    <small class="drawer-version">Version 76.0</small>
   </aside>
 
 
@@ -641,6 +678,6 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=720"></script>
+  <script src="app.js?v=770"></script>
 </body>
 </html>
