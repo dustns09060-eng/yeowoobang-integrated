@@ -68,6 +68,94 @@
 }
 </style>
 
+
+<style id="v77HeaderFinalFix">
+/* 모바일 헤더 최종 보정 */
+.header .brand{
+  flex:0 1 auto !important;
+  min-width:0 !important;
+}
+.header .brand-text{
+  min-width:0 !important;
+}
+.header .brand-text h1{
+  font-size:24px !important;
+  white-space:nowrap !important;
+  word-break:keep-all !important;
+  overflow:visible !important;
+}
+.header-actions{
+  flex:0 0 auto !important;
+}
+#adminModeBtn{
+  white-space:nowrap !important;
+  word-break:keep-all !important;
+}
+@media (max-width:520px){
+  .header{
+    gap:6px !important;
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+  .brand{
+    gap:6px !important;
+  }
+  .brand-logo{
+    width:50px !important;
+    height:50px !important;
+    flex:0 0 50px !important;
+  }
+  .brand-text h1{
+    font-size:21px !important;
+  }
+  .header-actions{
+    gap:5px !important;
+  }
+  .notification-btn,
+  .theme-toggle,
+  .header-more-btn{
+    width:42px !important;
+    min-width:42px !important;
+    height:42px !important;
+  }
+  .admin-mode-switch{
+    height:42px !important;
+    padding:0 8px !important;
+    font-size:12px !important;
+  }
+}
+@media (max-width:390px){
+  .header{
+    padding-left:8px !important;
+    padding-right:8px !important;
+    gap:4px !important;
+  }
+  .brand-logo{
+    width:44px !important;
+    height:44px !important;
+    flex-basis:44px !important;
+  }
+  .brand-text h1{
+    font-size:19px !important;
+  }
+  .header-actions{
+    gap:4px !important;
+  }
+  .notification-btn,
+  .theme-toggle,
+  .header-more-btn{
+    width:39px !important;
+    min-width:39px !important;
+    height:39px !important;
+  }
+  .admin-mode-switch{
+    height:39px !important;
+    padding:0 6px !important;
+    font-size:11px !important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
