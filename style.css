@@ -1122,3 +1122,14 @@ html[data-theme="dark"] .v72-dashboard,html[data-theme="dark"] .v72-member-row,h
 /* V74 회원 통합관리 */
 .v74-ops{border:1px solid var(--line);border-radius:18px;padding:14px;background:var(--card)}
 .v74-member{align-items:flex-start}.v74-memo{width:100%;min-height:58px;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);resize:vertical}.v74-member .v72-member-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+
+/* ===== V75 운영진모드 전환 ===== */
+.admin-mode-switch{white-space:nowrap;border-color:#f6b2c5;background:#fff7fa;color:#a52d58;font-weight:800}
+.admin-mode-switch.active-admin-mode{background:#9f234f;color:#fff;border-color:#9f234f}
+.admin-mode-card{max-width:420px}
+.admin-mode-card input{width:100%;box-sizing:border-box;margin-top:14px}
+.admin-mode-profile{margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--soft,#fff5f8);font-size:13px;color:var(--muted,#666)}
+body.dark .admin-mode-switch,html[data-theme="dark"] .admin-mode-switch{background:#2a1f24;color:#ff9fbd;border-color:#704052}
+body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mode-switch.active-admin-mode{background:#d6507c;color:#fff}
+@media(max-width:700px){.admin-mode-switch{font-size:12px;padding:8px 9px}.header-actions{gap:5px}.member-badge{display:none!important}}
