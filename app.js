@@ -2304,3 +2304,25 @@ $('createBackupV73Btn')?.addEventListener('click',createBackupV73Ui);
 $('loadMatchReportV73Btn')?.addEventListener('click',loadMatchReportV73);
 $('copyMatchReportV73Btn')?.addEventListener('click',copyMatchReportV73);
 document.querySelectorAll('[data-v73-report]').forEach(b=>b.addEventListener('click',()=>{v73ReportType=b.dataset.v73Report;renderMatchReportV73();}));
+
+/* =========================================================
+ * V74 회원 통합관리
+ * ======================================================= */
+let v74Members=[];
+async function loadV74Members(query='',newOnly=false){
+  if(!adminLoggedIn)return toast('운영진 로그인이 필요합니다.');
+  const box=$('v74MemberResults'); box.innerHTML='<p class="state-text">불러오는 중...</p>';
+  try{const d=await apiPost('getV74MemberOps',{adminPassword:adminPasswordValue,query},15000);v74Members=(d.items||[]).filter(x=>!newOnly||(x.day!==null&&x.day<=7&&x.memberStatus==='승인완료'));renderV74Members();}
+  catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'불러오기 실패')}</p>`;}
+}
+function renderV74Members(){
+  const box=$('v74MemberResults');
+  box.innerHTML=v74Members.length?v74Members.map(x=>`<div class="v72-member-row v74-member"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)}${x.day!==null?` · D+${x.day}`:''} · 회원 ${escapeHtml(x.memberStatus)} · 맞팔 ${escapeHtml(x.matchStatus)} · 폭스 ${escapeHtml(x.foxStatus)}</div><div class="meta">계정 ${escapeHtml(x.account?.status||'미등록')}${x.lastLogin?` · 최근로그인 ${escapeHtml(x.lastLogin)}`:''}</div><textarea id="memo-${escapeHtml(x.memberId)}" class="v74-memo" placeholder="운영진 메모">${escapeHtml(x.memo||'')}</textarea></div><div class="v72-member-actions"><button class="outline" onclick="saveV74Memo('${escapeHtml(x.memberId)}')">메모 저장</button><button class="outline success-outline" onclick="setV74Lifecycle('${escapeHtml(x.memberId)}','승인완료')">정상</button><button class="outline danger-outline" onclick="setV74Lifecycle('${escapeHtml(x.memberId)}','탈퇴')">탈퇴</button><button class="outline danger-outline" onclick="setV74Lifecycle('${escapeHtml(x.memberId)}','강퇴')">강퇴</button></div></div>`).join(''):'<p class="state-text">해당 회원이 없습니다.</p>';
+}
+async function saveV74Memo(id){try{await apiPost('saveMemberMemoV74',{adminPassword:adminPasswordValue,memberId:id,memo:$(`memo-${id}`)?.value||''},12000);toast('운영진 메모를 저장했습니다.');}catch(e){toast(e.message||'저장 실패');}}
+async function setV74Lifecycle(id,status){if(!confirm(`회원 상태를 '${status}'로 변경할까요?\n탈퇴/강퇴 시 로그인도 즉시 정지됩니다.`))return;try{await apiPost('setMemberLifecycleV74',{adminPassword:adminPasswordValue,memberId:id,status},12000);toast(`회원 상태를 ${status}로 변경했습니다.`);await loadV74Members($('v74MemberSearch')?.value.trim()||'');}catch(e){toast(e.message||'변경 실패');}}
+async function loadV74Issues(){const box=$('v74IssueResults');box.classList.remove('hidden');box.innerHTML='<p class="state-text">검사 중...</p>';try{const d=await apiPost('getDataIssuesV74',{adminPassword:adminPasswordValue},15000);box.innerHTML=`<p class="subtext">오류 ${d.count||0}건</p>`+((d.items||[]).length?(d.items||[]).map(x=>`<div class="v72-member-row"><div><strong>🚨 ${escapeHtml(x.type)}</strong><div class="meta">${x.row}행 · ${escapeHtml(x.detail)}</div></div></div>`).join(''):'<p class="state-text">발견된 데이터 오류가 없습니다. ✅</p>');}catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검사 실패')}</p>`;}}
+$('v74MemberSearchBtn')?.addEventListener('click',()=>loadV74Members($('v74MemberSearch')?.value.trim()||''));
+$('v74MemberSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')loadV74Members(e.target.value.trim())});
+$('v74NewMembersBtn')?.addEventListener('click',()=>loadV74Members('',true));
+$('v74DataIssuesBtn')?.addEventListener('click',loadV74Issues);

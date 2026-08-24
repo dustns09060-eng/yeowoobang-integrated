@@ -1,4 +1,4 @@
-const CACHE = "yeowoobang-v73-final";
+const CACHE = "yeowoobang-v74-final";
 
 const STATIC_ASSETS = [
   "./",
