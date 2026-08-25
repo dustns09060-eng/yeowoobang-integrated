@@ -350,56 +350,16 @@ function unique(values) {
 
 
 function saveFollowListCache(list) {
-  if (!Array.isArray(list) || !list.length) return;
-
-  writeStorageJson(FOLLOW_LIST_CACHE_KEY, {
-    savedAt: Date.now(),
-    members: list.map((item) => ({
-      no: item.no,
-      name: item.name,
-      id: item.id,
-      status: item.status || "ACTIVE",
-      statusLabel: item.statusLabel || "",
-    })),
-  });
+  // V104: 팔로우리스트 원본을 브라우저 저장소에 남기지 않습니다.
+  try { localStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+  try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
 }
 
 function restoreFollowListCache() {
-  const cached = readStorageJson(FOLLOW_LIST_CACHE_KEY, null);
-  if (!cached || !Array.isArray(cached.members) || !cached.members.length) {
-    return false;
-  }
-
-  const age = Date.now() - Number(cached.savedAt || 0);
-  if (!Number.isFinite(age) || age > FOLLOW_LIST_CACHE_MAX_AGE) {
-    return false;
-  }
-
-  const restored = cached.members
-    .map((item, index) => ({
-      no: item.no || index + 1,
-      name: String(item.name || ""),
-      id: normalize(item.id),
-      status: String(item.status || "ACTIVE"),
-      statusLabel: String(item.statusLabel || ""),
-    }))
-    .filter((item) => item.status === "SUSPENDED" || validUsername(item.id));
-
-  if (!restored.length) return false;
-
-  roomList = restored;
-  updateFollowStats();
-  renderGroupTabs();
-  renderCopyBatches();
-  renderFollowList();
-  renderResumeCard();
-
-  if ($("followState")) {
-    $("followState").textContent =
-      `저장된 명단 ${roomList.length}명을 먼저 표시했습니다. 최신 명단 확인 중...`;
-  }
-
-  return true;
+  // V104: 로그인 전/로그아웃 후 캐시에서 명단을 복원하지 않습니다.
+  try { localStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+  try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+  return false;
 }
 
 function scheduleNoticeLoad(delay = 2000) {
@@ -829,6 +789,7 @@ async function adminSimpleLoginFromGate() {
     if (!result?.ok || !result?.admin) throw new Error(result?.message || "운영진 로그인에 실패했습니다.");
     memberSession = null;
     clearMemberSessionStorage();
+    updateFollowWatermarkV104?.();
     await activateAdminMode(result, password);
   } catch (error) {
     $("gateError").textContent = error.message || "운영진 로그인에 실패했습니다.";
@@ -1107,6 +1068,7 @@ $("adminPanel")?.classList.add("hidden");
     try { sessionStorage.setItem("yeowoobangRole","member"); } catch(_){}
     accessGranted=true; matchGranted=true; followGranted=true;
     setMemberHeader(memberSession.member);
+  updateFollowWatermarkV104?.();
     applyFollowLock(); applyMatchLock();
     showView("followView");
     toast("일반모드로 돌아왔습니다.");
@@ -1452,46 +1414,47 @@ function rowsToRoom(rows) {
 
 async function loadRoomList(show = false) {
   setSheetState("불러오는 중");
-  let lastError = "";
+
+  if (!memberSession?.token) {
+    roomList = [];
+    setSheetState("로그인 필요");
+    renderGroupTabs();
+    renderCopyBatches();
+    renderFollowList();
+    if (show) toast("회원 로그인 후 팔로우리스트를 이용해주세요.");
+    return;
+  }
 
   try {
-    const data = await apiGet("followList");
+    const data = await apiPost("getSecureFollowList", { token: memberSession.token }, 20000);
     const apiMembers = Array.isArray(data.members)
       ? data.members
       : (Array.isArray(data.items)
           ? data.items.map(x => ({
               no:x.no,
               name:x.name || x.nickname || "",
-              id:x.id || x.instagramId || x.instagram || ""
+              id:x.id || x.instagramId || x.instagram || "",
+              status:x.status || "ACTIVE",
+              statusLabel:x.statusLabel || ""
             }))
           : []);
 
-    const realMembers = apiMembers.filter(item => {
+    roomList = apiMembers.filter(item => {
       const name=String(item.name||"").trim();
       const id=normalize(item.id||"");
       const status=String(item.status||"ACTIVE");
       if (!name) return false;
       if (status === "SUSPENDED") return true;
       return Boolean(id && validUsername(id));
-    });
-
-    roomAuditSource = realMembers.map((item) => ({
-      no: String(item.no || "").trim(),
-      name: String(item.name || "").trim(),
-      idRaw: String(item.id || "").trim(),
-      id: normalize(item.id),
-      status: String(item.status || "ACTIVE"),
-      statusLabel: String(item.statusLabel || ""),
-    }));
-    roomList = realMembers.map((item, index) => ({
-      no: item.no || index + 1,
-      name: String(item.name || "").trim(),
-      id: normalize(item.id),
-      status: String(item.status || "ACTIVE"),
-      statusLabel: String(item.statusLabel || ""),
+    }).map((item,index)=>({
+      no:item.no || index+1,
+      name:String(item.name||"").trim(),
+      id:normalize(item.id||""),
+      status:String(item.status||"ACTIVE"),
+      statusLabel:String(item.statusLabel||"")
     }));
 
-    if (!roomList.length) throw new Error("API 명단 0명");
+    if (!roomList.length) throw new Error("팔로우리스트를 불러오지 못했습니다.");
 
     setSheetState("정상");
     updateFollowStats();
@@ -1499,112 +1462,16 @@ async function loadRoomList(show = false) {
     renderCopyBatches();
     renderFollowList();
     renderResumeCard();
-    saveFollowListCache(roomList);
+    updateFollowWatermarkV104();
     if (adminLoggedIn) renderRosterAudit();
     if (show) toast("명단 새로고침 완료");
-    return;
   } catch (error) {
-    lastError = error.message;
-  }
-
-  const urls = [];
-  if (config.sheetId) {
-    const sheet = encodeURIComponent(config.sheetName || "Sheet1");
-    urls.push(`https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:csv&sheet=${sheet}&t=${Date.now()}`);
-    urls.push(`https://docs.google.com/spreadsheets/d/${config.sheetId}/export?format=csv&sheet=${sheet}&t=${Date.now()}`);
-  }
-  urls.push(`${config.fallbackCsv || "room-list.csv"}?t=${Date.now()}`);
-
-  for (const url of urls) {
-    try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const parsedRows = parseCsv(await response.text());
-      const list = rowsToRoom(parsedRows);
-      if (!list.length) throw new Error("0명");
-      roomAuditSource = rowsToAuditSource(parsedRows);
-      roomList = list;
-      setSheetState("백업");
-      updateFollowStats();
-      renderGroupTabs();
-      renderCopyBatches();
-      renderFollowList();
-      renderResumeCard();
-      saveFollowListCache(roomList);
-      if (adminLoggedIn) renderRosterAudit();
-      if (show) toast("백업 명단으로 불러왔습니다.");
-      return;
-    } catch (error) {
-      lastError = error.message;
-    }
-  }
-
-  setSheetState("오류");
-  $("followState").textContent = `명단을 불러오지 못했습니다. (${lastError})`;
-  if (show) toast("명단 불러오기 실패");
-}
-
-
-async function loadMatchRoomList(show = false, force = false) {
-  if (!isMatchPeriodOpen()) {
-    updateMatchAnalysisUi();
-    throw new Error("지금은 맞팔분석 기간이 아닙니다.");
-  }
-  if (!memberSession?.token && !adminLoggedIn) {
-    updateMatchAnalysisUi();
-    throw new Error("회원 로그인이 필요합니다.");
-  }
-  if (!force && matchRoomList.length) {
-    if ($("roomState")) {
-      $("roomState").textContent = `${matchRoomList.length}명 준비 완료`;
-    }
-    return matchRoomList;
-  }
-
-  if ($("roomState")) {
-    $("roomState").textContent = "불러오는 중";
-  }
-
-  try {
-    const data = await apiGet("matchList");
-
-    matchRoomList = (data.members || [])
-      .map((item, index) => ({
-        no: item.no || index + 1,
-        name: item.name || "",
-        id: normalize(item.id),
-      }))
-      .filter((item) => validUsername(item.id));
-
-    if (!matchRoomList.length) {
-      throw new Error("맞팔확인용 명단이 비어 있습니다.");
-    }
-
-    if ($("roomState")) {
-      $("roomState").textContent = `${matchRoomList.length}명 준비 완료`;
-    }
-
-    if (show) {
-      toast(`맞팔확인용 명단 ${matchRoomList.length}명 새로고침 완료`);
-    }
-
-    return matchRoomList;
-  } catch (error) {
-    matchRoomList = [];
-
-    if ($("roomState")) {
-      $("roomState").textContent = "불러오기 오류";
-    }
-
-    if ($("status")) {
-      $("status").textContent = `맞팔확인용 명단을 불러오지 못했습니다. (${error.message})`;
-    }
-
-    if (show) {
-      toast("맞팔확인용 명단 불러오기 실패");
-    }
-
-    throw error;
+    roomList=[];
+    setSheetState("접근 제한");
+    renderGroupTabs();
+    renderCopyBatches();
+    renderFollowList();
+    toast(error.message || "팔로우리스트를 불러오지 못했습니다.");
   }
 }
 
@@ -1720,6 +1587,13 @@ async function copyFollowBatch(batchIndex) {
     const lastNo = batch[batch.length - 1]?.no || start + batch.length;
 
     renderCopyBatches();
+    if (memberSession?.token) {
+      apiPost("logFollowUsage", {
+        token: memberSession.token,
+        eventType: "COPY_40",
+        detail: `${firstNo}~${lastNo} · ${batch.length}명`
+      }, 8000).catch(() => {});
+    }
     toast(`${firstNo}~${lastNo} · ${batch.length}명 복사 완료`);
   } catch (error) {
     toast(error.message || "40명 복사 실패");
@@ -3135,3 +3009,24 @@ async function saveMatchPeriodV101(clear=false){
 }
 $("saveMatchPeriodBtn")?.addEventListener("click",()=>saveMatchPeriodV101(false));
 $("clearMatchPeriodBtn")?.addEventListener("click",()=>saveMatchPeriodV101(true));
+
+
+/* V104 팔로우리스트 개인 워터마크 */
+function updateFollowWatermarkV104(){
+  let wm=document.getElementById("followSecurityWatermarkV104");
+  if(!wm){
+    wm=document.createElement("div");
+    wm.id="followSecurityWatermarkV104";
+    wm.setAttribute("aria-hidden","true");
+    document.body.appendChild(wm);
+  }
+  const id=memberSession?.member?.instagramId || "";
+  if(!id){
+    wm.classList.remove("show");
+    wm.textContent="";
+    return;
+  }
+  const stamp=new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  wm.textContent=Array(16).fill(`@${id} · ${stamp}`).join("     ");
+  wm.classList.add("show");
+}

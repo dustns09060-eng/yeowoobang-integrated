@@ -1480,3 +1480,27 @@ button:disabled[title="계정정지 회원"]{
 .admin-floating-btn{
   bottom:calc(86px + env(safe-area-inset-bottom)) !important;
 }
+
+
+/* V104 - 로그인 회원 식별 워터마크: 캡처 유출 억제용 */
+#followSecurityWatermarkV104{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9998;
+  pointer-events:none;
+  overflow:hidden;
+  padding:80px 20px;
+  box-sizing:border-box;
+  font-size:13px;
+  font-weight:800;
+  line-height:8;
+  letter-spacing:.4px;
+  word-spacing:22px;
+  color:rgba(70,55,62,.075);
+  transform:rotate(-18deg) scale(1.15);
+  transform-origin:center;
+  white-space:normal;
+  user-select:none;
+}
+#followSecurityWatermarkV104.show{display:block}
