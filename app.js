@@ -34,7 +34,7 @@ const APP_VERSION = "V78-MATCH-REQUEST-INVITE";
 let config = {
   version: "V77 FINAL",
   appName: "여우방 통합 프로그램",
-  apiUrl: "https://script.google.com/macros/s/AKfycbxWgC8LmsbYvyAhTJ34wc_oiJVdBLQz5iFBaSAbX8yKn1HHxl2bBMn2tLYyCFtBjd09/exec",
+  apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
   sheetName: "팔로우리스트",
   fallbackCsv: "room-list.csv",
