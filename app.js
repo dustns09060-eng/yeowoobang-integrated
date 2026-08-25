@@ -1691,12 +1691,123 @@ async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await ap
 async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map((x,i)=>`<div class="invite-summary-wrap"><button class="invite-summary-row invite-summary-button" type="button" data-admin-invite-detail="${i}"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0} ▾</span></button><div id="adminInviteDetail${i}" class="invite-summary-detail hidden">${(x.invitees||[]).length?x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join(""):'<p class="state-text">기록된 초대 회원 닉네임이 없습니다.</p>'}</div></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>';$("inviteSummaryList").querySelectorAll("[data-admin-invite-detail]").forEach(b=>b.onclick=()=>$("adminInviteDetail"+b.dataset.adminInviteDetail)?.classList.toggle("hidden"));}
 
 async function loadInviteLeaderboard(){
-  const box=$("inviteLeaderboardList");if(!box)return;
+  const top3=$("inviteTop3"), list=$("inviteRankList"), myCard=$("inviteMyRankCard");
+  if(!top3||!list)return;
+
+  const medal = rank => rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":`#${rank}`;
+  const normId = value => normalize(value||"");
+
   try{
-    const d=await apiGet("getInviteLeaderboard",10000),items=(d.items||[]).filter(x=>Number(x.total||0)>0).sort((a,b)=>Number(b.total||0)-Number(a.total||0));
-    box.innerHTML=items.length?items.map((x,i)=>`<div class="invite-leader-item"><button class="invite-leader-row" type="button" data-invite-leader="${i}"><span><b>${escapeHtml(x.nickname||"")}</b><small>${escapeHtml(String(x.no||""))}번</small></span><strong>누적 ${Number(x.total||0)}명 <em>보기⌄</em></strong></button><div class="invite-leader-detail hidden" id="inviteLeaderDetail${i}">${(x.invitees||[]).length?`<div class="invitee-chip-list">${x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join("")}</div>`:'<p class="state-text">현재 프로그램에 기록된 초대 회원 닉네임이 없습니다.</p>'}${Number(x.previous||0)>0?`<p class="state-text">이전 누적 ${Number(x.previous||0)}명은 기존 집계값으로 닉네임 기록이 없을 수 있어요.</p>`:""}</div></div>`).join(""):'<p class="state-text">초대 누적 기록이 없습니다.</p>';
-    box.querySelectorAll("[data-invite-leader]").forEach(b=>b.onclick=()=>{const d=$(`inviteLeaderDetail${b.dataset.inviteLeader}`);d?.classList.toggle("hidden");});
-  }catch(e){box.innerHTML=`<p class="state-text">${escapeHtml(e.message||"누적 현황을 불러오지 못했습니다.")}</p>`;}
+    const d=await apiGet("getInviteLeaderboard",10000);
+    const items=(d.items||[])
+      .map((x,i)=>({...x,rank:Number(x.rank||i+1),total:Number(x.total||0),invite:Number(x.invite||0),previous:Number(x.previous||0)}))
+      .filter(x=>x.nickname||x.instagram)
+      .sort((a,b)=>a.rank-b.rank);
+
+    const active=items.filter(x=>x.total>0);
+    const top10=active.slice(0,10);
+    const podium=top10.slice(0,3);
+    const rest=top10.slice(3);
+
+    if(!active.length){
+      top3.innerHTML='<p class="state-text">아직 초대 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>';
+      list.innerHTML="";
+    }else{
+      top3.innerHTML=podium.map(x=>`
+        <button class="invite-podium rank-${x.rank}" type="button" data-rank-detail="${x.rank-1}">
+          <span class="podium-medal">${medal(x.rank)}</span>
+          <b>${escapeHtml(x.nickname||"")}</b>
+          <strong>${x.total}명</strong>
+          <small>${x.rank}위</small>
+        </button>`).join("");
+
+      list.innerHTML=rest.map(x=>`
+        <button class="invite-game-rank-row" type="button" data-rank-detail="${x.rank-1}">
+          <span class="game-rank-no">${x.rank}</span>
+          <span class="game-rank-name">
+            <b>${escapeHtml(x.nickname||"")}</b>
+            <small>${x.instagram?`@${escapeHtml(normId(x.instagram))}`:""}</small>
+          </span>
+          <strong>${x.total}명</strong>
+          <span class="rank-chevron">›</span>
+        </button>`).join("");
+    }
+
+    const memberId=normId(memberSession?.member?.instagramId||"");
+    const memberNick=String(memberSession?.member?.nickname||"").trim();
+    const mine=items.find(x=>
+      (memberId && normId(x.instagram)===memberId) ||
+      (!memberId && memberNick && String(x.nickname||"").trim()===memberNick)
+    );
+
+    if(mine){
+      $("inviteMyRankText").textContent=`${mine.rank}위 · 누적 ${mine.total}명`;
+      $("inviteMyRankSub").textContent=mine.rank<=10?"TOP 10에 올라와 있어요! 🔥":"TOP 10까지 조금만 더 힘내요!";
+    }else{
+      $("inviteMyRankText").textContent=memberSession?.token?"아직 초대 실적 없음":"로그인 후 확인";
+      $("inviteMyRankSub").textContent=memberSession?.token?"첫 초대를 달성하면 순위가 표시됩니다.":"회원 로그인 계정 기준으로 표시됩니다.";
+    }
+
+    const myTotal=mine?mine.total:0;
+    updateInviteMission(myTotal);
+
+    const host=$("inviteLeaderboardDetailHost");
+    const openDetail = idx => {
+      const x=active[idx];
+      if(!x||!host)return;
+      const chips=(x.invitees||[]).length
+        ? `<div class="invitee-chip-list">${x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join("")}</div>`
+        : '<p class="state-text">현재 프로그램에 기록된 초대 회원 닉네임이 없습니다.</p>';
+      host.innerHTML=`
+        <div class="invite-rank-detail">
+          <div class="invite-rank-detail-head">
+            <div><b>${medal(x.rank)} ${escapeHtml(x.nickname||"")}</b><span>누적 ${x.total}명</span></div>
+            <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
+          </div>
+          ${chips}
+          ${x.previous>0?`<p class="state-text">이전 누적 ${x.previous}명은 기존 집계값으로, 개별 닉네임 기록이 없을 수 있어요.</p>`:""}
+        </div>`;
+      $("closeInviteRankDetail").onclick=()=>{host.innerHTML="";};
+      host.scrollIntoView({behavior:"smooth",block:"nearest"});
+    };
+
+    top3.querySelectorAll("[data-rank-detail]").forEach(b=>b.onclick=()=>openDetail(Number(b.dataset.rankDetail)));
+    list.querySelectorAll("[data-rank-detail]").forEach(b=>b.onclick=()=>openDetail(Number(b.dataset.rankDetail)));
+
+  }catch(e){
+    top3.innerHTML='<p class="state-text">초대 랭킹을 불러오지 못했습니다.</p>';
+    list.innerHTML=`<div class="invite-rank-error"><b>데이터 연결을 확인해주세요.</b><span>${escapeHtml(e.message||"")}</span></div>`;
+    $("inviteMyRankText").textContent="확인 불가";
+    updateInviteMission(0);
+  }
+}
+
+function updateInviteMission(total){
+  const count=Math.max(0,Number(total||0));
+  const milestones=[10,20,40];
+  let next=milestones.find(n=>count<n);
+  const prev=next===10?0:next===20?10:next===40?20:40;
+  const max=next||40;
+  let pct;
+
+  if(!next){
+    pct=100;
+    $("inviteNextBenefitText").textContent="최고 단계 40명 혜택을 달성했어요! 🏆";
+    $("inviteProgressNumbers").textContent=`${count}명 달성`;
+  }else{
+    pct=Math.max(0,Math.min(100,((count-prev)/(next-prev))*100));
+    $("inviteNextBenefitText").textContent=`${next}명 달성까지 ${next-count}명 남았어요!`;
+    $("inviteProgressNumbers").textContent=`${count} / ${next}명`;
+  }
+
+  $("inviteMissionCount").textContent=`${count}명`;
+  $("inviteProgressBar").style.width=`${pct}%`;
+
+  document.querySelectorAll(".invite-milestones article").forEach(card=>{
+    const target=Number(card.dataset.milestone||0);
+    card.classList.toggle("done",count>=target);
+    card.classList.toggle("next",next===target);
+  });
 }
 
 async function changeInviteStatus(id,status,reason=""){try{await apiPost("updateInviteStatus",{inviteAdminPassword:inviteAdminPasswordValue,id,status,reason});toast(status==="APPROVED"?"초대 승인 및 자동 반영 완료":status==="CANCELLED"?"승인 취소 완료 · 팔로우리스트와 초대 실적을 되돌렸어요.":"초대 거절 완료");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary(),loadRoomList(true)])}catch(e){toast(e.message||"처리하지 못했습니다.")}}

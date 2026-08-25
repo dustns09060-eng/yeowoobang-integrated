@@ -478,8 +478,69 @@
       </div></section>
     <section class="card invite-card"><h3>나를 초대한 사람</h3><div class="invite-form-grid"><label class="invite-field"><span>초대한 사람 닉네임</span><input id="inviterName" placeholder="초대한 분 닉네임"></label><label class="invite-field"><span>초대한 사람 인스타 아이디</span><input id="inviterInstagram" placeholder="예: @instagram_id"></label></div><button id="inviteRegisterBtn" class="primary invite-submit" type="button">초대자 등록 요청</button><p id="inviteRegisterMsg" class="state-text"></p><div class="invite-help-box">등록 후 관리자 승인이 완료되면 초대한 사람의 초대 실적에 1명이 반영됩니다. 같은 인스타 계정은 한 번만 등록할 수 있어요.</div></section>
     <section class="card invite-card"><h3>내 등록 상태</h3><div class="invite-my-stats"><article><span>등록 요청</span><strong id="inviteMyRequestCount">0</strong></article><article><span>승인 완료</span><strong id="inviteMyApprovedCount">0</strong></article><article><span>승인 대기</span><strong id="inviteMyPendingCount">0</strong></article></div><div class="invite-my-table"><div class="invite-my-head"><span>나를 초대한 사람</span><span>인스타 아이디</span><span>등록일</span><span>상태</span></div><div id="inviteMyList" class="invite-my-body"><p class="state-text">내 정보를 확인하면 등록 상태가 표시됩니다.</p></div></div></section>
-    <section class="card invite-card"><div class="section-title-row"><div><h3>🏆 초대 누적 현황</h3><p class="subtext">닉네임을 누르면 현재 프로그램에 기록된 초대 회원을 확인할 수 있어요.</p></div><button id="refreshInviteLeaderboardBtn" class="outline small" type="button">새로고침</button></div><div id="inviteLeaderboardList" class="invite-leaderboard-list"><p class="state-text">누적 현황을 불러오는 중...</p></div></section>
-    <section class="card invite-card"><h3>💌 초대왕 혜택 제공</h3><div class="invite-benefit-list"><article><strong>10명 이상 초대 시</strong><p>💛 팔로우리스트 앞번호로 이동<br>🌱 무기한 품앗이 프리패스 1회권 지급</p></article><article><strong>20명 이상 초대 시</strong><p>💎 프로필 내 다이아몬드 부여<br>🌱 무기한 품앗이 프리패스 3회권 지급</p></article><article><strong>40명 이상 초대 시</strong><p>💎 프로필 내 쌍 다이아몬드 💎 부여<br>🌱 무기한 품앗이 프리패스 10회권 지급</p></article></div><div class="invite-warning">⚠ 초대받으신 분이 무단 퇴장 시 기존 부여되었던 초대별은 무효화됩니다.</div><div class="invite-contact">💬 수정 사항 또는 문의 사항은 보살 1:1 채팅 또는 <b>@yeolmu.___.v</b> DM으로 문의해주세요.</div></section>
+    
+    <section class="card invite-card invite-rank-card">
+      <div class="section-title-row invite-rank-head">
+        <div>
+          <h3>🏆 초대 랭킹 TOP 10</h3>
+          <p class="subtext">승인된 누적 초대수를 기준으로 실시간 순위가 바뀌어요.</p>
+        </div>
+        <button id="refreshInviteLeaderboardBtn" class="outline small" type="button">새로고침</button>
+      </div>
+
+      <div id="inviteTop3" class="invite-top3">
+        <div class="rank-loading">랭킹을 불러오는 중...</div>
+      </div>
+
+      <div id="inviteRankList" class="invite-rank-list"></div>
+
+      <div id="inviteMyRankCard" class="invite-my-rank-card">
+        <span>내 순위</span>
+        <strong id="inviteMyRankText">확인 중...</strong>
+        <small id="inviteMyRankSub">회원 로그인 계정 기준으로 표시됩니다.</small>
+      </div>
+
+      <div id="inviteLeaderboardDetailHost" class="invite-rank-detail-host"></div>
+    </section>
+
+    <section class="card invite-card invite-mission-card">
+      <div class="invite-mission-title">
+        <div>
+          <h3>🎮 초대 달성 현황</h3>
+          <p class="subtext">다음 혜택까지 얼마나 남았는지 한눈에 확인해요.</p>
+        </div>
+        <strong id="inviteMissionCount">0명</strong>
+      </div>
+
+      <div class="invite-progress-track">
+        <div id="inviteProgressBar" class="invite-progress-bar" style="width:0%"></div>
+      </div>
+      <div class="invite-progress-copy">
+        <strong id="inviteNextBenefitText">10명 달성까지 10명 남았어요!</strong>
+        <span id="inviteProgressNumbers">0 / 10명</span>
+      </div>
+
+      <div class="invite-milestones">
+        <article data-milestone="10">
+          <span>10명</span>
+          <strong>💛 앞번호 이동</strong>
+          <small>품앗이 프리패스 1회</small>
+        </article>
+        <article data-milestone="20">
+          <span>20명</span>
+          <strong>💎 다이아몬드</strong>
+          <small>품앗이 프리패스 3회</small>
+        </article>
+        <article data-milestone="40">
+          <span>40명</span>
+          <strong>💎💎 쌍 다이아</strong>
+          <small>품앗이 프리패스 10회</small>
+        </article>
+      </div>
+
+      <div class="invite-warning compact">⚠ 초대받은 회원이 무단 퇴장하면 해당 초대 실적은 승인취소와 함께 반영에서 제외됩니다.</div>
+    </section>
+
   </div>
   <div id="inviteAdminMode" class="hidden">
     <section class="card invite-admin-topbar"><div><h3>관리자 화면</h3><p class="subtext">초대 승인과 회원별 누적 현황을 관리합니다.</p></div><button id="inviteAdminLogoutBtn" class="outline" type="button">관리자 나가기</button></section>
