@@ -738,6 +738,8 @@ async function completeMemberLogin(result, showToast = true) {
   memberSession = { token: result.token, member: result.member };
   saveMemberSessionStorage(memberSession);
   accessGranted = true;
+  followGranted = true;
+  matchGranted = true;
   adminLoggedIn = false;
   adminPasswordValue = "";
   adminModeToken = "";
@@ -781,29 +783,20 @@ async function loginMemberFromGate() {
 async function adminSimpleLoginFromGate() {
   const instagram = normalize($("adminInstagram")?.value || "");
   const password = String($("adminPassword")?.value || "").trim();
-
   if (!instagram || !password) {
-    $("gateError").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요.";
+    $("gateError").textContent = "운영진 인스타 아이디와 공동비밀번호를 입력해 주세요.";
     return;
   }
-
   const btn = $("adminSimpleLoginBtn");
   try {
     btn.disabled = true;
     btn.textContent = "확인 중...";
     $("gateError").textContent = "";
-
     const result = await apiPost("adminSimpleLogin", { instagram, password }, 15000);
     if (!result?.ok || !result?.admin) throw new Error(result?.message || "운영진 로그인에 실패했습니다.");
-
-    localStorage.setItem("yeowoobang_admin_token", result.token || "");
-    localStorage.setItem("yeowoobang_admin_instagram", result.instagram || instagram);
-    localStorage.setItem("yeowoobang_role", "admin");
-
-    gate.classList.add("hidden");
-    appRoot?.classList.remove("hidden");
-    document.body.classList.add("is-admin");
-    await bootAfterLogin?.();
+    memberSession = null;
+    clearMemberSessionStorage();
+    await activateAdminMode(result, password);
   } catch (error) {
     $("gateError").textContent = error.message || "운영진 로그인에 실패했습니다.";
   } finally {
@@ -1037,11 +1030,11 @@ applyFollowLock(); applyMatchLock();
 async function loginOperatorFromGate() {
   const instagramId = normalize($("operatorInstagram")?.value || "");
   const password = $("operatorPassword")?.value || "";
-  if (!instagramId || !password) { $("gateError").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요."; return; }
+  if (!instagramId || !password) { $("gateError").textContent = "운영진 인스타 아이디와 공동비밀번호를 입력해 주세요."; return; }
   const btn = $("operatorLoginBtn");
   try {
     btn.disabled = true; $("gateError").textContent = "";
-    const r = await apiPost("adminLogin", { instagramId, password }, 15000);
+    const r = await apiPost("adminSimpleLogin", { instagram: instagramId, password }, 15000);
     memberSession = null; clearMemberSessionStorage();
     await activateAdminMode(r, password);
     $("operatorPassword").value = "";
@@ -1053,13 +1046,13 @@ async function loginOperatorFromGate() {
 async function enterAdminModeFromMember() {
   const instagramId = normalize($("adminModeInstagram")?.value || memberSession?.member?.instagramId || "");
   const password = $("adminModePassword")?.value || "";
-  if (!instagramId || !password) { $("adminModeMessage").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요."; return; }
+  if (!instagramId || !password) { $("adminModeMessage").textContent = "운영진 인스타 아이디와 공동비밀번호를 입력해 주세요."; return; }
   const btn=$("adminModeConfirmBtn");
   try {
     btn.disabled=true; $("adminModeMessage").textContent="";
     const payload={instagramId,password};
     if(memberSession?.token) payload.token=memberSession.token;
-    const r=await apiPost("enterAdminMode",payload,15000);
+    const r=await apiPost("adminSimpleLogin",{instagram:instagramId,password},15000);
     closeAdminModeModal();
     await activateAdminMode(r,password);
   } catch(e) {
@@ -1079,7 +1072,7 @@ $("adminPanel")?.classList.add("hidden");
 
   if (memberSession?.token) {
     try { sessionStorage.setItem("yeowoobangRole","member"); } catch(_){}
-    accessGranted=true; matchGranted=false; followGranted=false;
+    accessGranted=true; matchGranted=true; followGranted=true;
     setMemberHeader(memberSession.member);
     applyFollowLock(); applyMatchLock();
     showView("followView");
@@ -1144,7 +1137,7 @@ accessGranted = true;
   } catch (error) {
     $("gateError").textContent =
       gateMode === "admin"
-        ? "운영진 비밀번호가 올바르지 않습니다."
+        ? "운영진 공동비밀번호가 올바르지 않습니다."
         : "접속 비밀번호가 올바르지 않습니다.";
   } finally {
     $("gateSubmitBtn").disabled = false;
@@ -1219,29 +1212,10 @@ function updateLockIndicators() {
 }
 
 function applyFollowLock() {
-  const locked = Boolean(publicConfig?.followLocked) && !followGranted && !adminLoggedIn;
-  $("followLockCard")?.classList.toggle("hidden", !locked);
-  $("followContent")?.classList.toggle("hidden", locked);
+  const signedIn = Boolean(memberSession?.token) || adminLoggedIn;
+  $("followContent")?.classList.toggle("hidden", !signedIn);
 }
 
-async function unlockFollow() {
-  const password = $("followPassword").value.trim();
-  if (!password) {
-    $("followUnlockMsg").textContent = "비밀번호를 입력해 주세요.";
-    return;
-  }
-
-  try {
-    await apiPost("verifyFollowPassword", { password });
-    followGranted = true;
-    $("followUnlockMsg").textContent = "";
-    $("followPassword").value = "";
-    applyFollowLock();
-    toast("팔로우리스트 잠금이 해제되었습니다.");
-  } catch (_) {
-    $("followUnlockMsg").textContent = "팔로우리스트 비밀번호가 올바르지 않습니다.";
-  }
-}
 
 function isMatchPeriodOpen() {
   const status = window.__matchVoteStatus || {};
@@ -2032,7 +2006,7 @@ function prefillMatchRequestIdentity() {
   if(id && $("matchRequestMyInstagram")) $("matchRequestMyInstagram").value=`@${id}`;
 }
 async function verifyMatchRequestIdentity() {
-  const input=normalize($("matchRequestMyInstagram")?.value||memberSession?.member?.instagramId||"");
+  const input=normalize(memberSession?.member?.instagramId||$("matchRequestMyInstagram")?.value||"");
   if(!input) return toast("내 인스타 아이디를 입력해주세요.");
   try{
     const data=await apiPost("verifyMatchRequestIdentity",{instagramId:input},10000);
@@ -2322,7 +2296,7 @@ $("adminLoginMsg").textContent = "";
     applyMatchLock();
     toast("운영진 로그인 완료");
   } catch (_) {
-    $("adminLoginMsg").textContent = "운영진 비밀번호가 올바르지 않습니다.";
+    $("adminLoginMsg").textContent = "운영진 공동비밀번호가 올바르지 않습니다.";
   }
 }
 
@@ -2458,12 +2432,9 @@ $("copyBatchButtons").addEventListener("click", (event) => {
   }
 });
 
-$("followUnlockBtn").onclick = unlockFollow;
-$("followPassword").onkeydown = (event) => { if (event.key === "Enter") unlockFollow(); };
 
 $("matchVoteDoneBtn")?.addEventListener("click",()=>submitMatchVote("완료"));
 $("matchVoteDelayBtn")?.addEventListener("click",()=>submitMatchVote("지연"));
-$("matchPassword")?.addEventListener("keydown", (event) => { if (event.key === "Enter" && typeof unlockMatch === "function") unlockMatch(); });
 
 $("zipFile").onchange = () => {
   $("fileName").textContent = $("zipFile").files[0]?.name || "인스타그램 ZIP 파일 선택";
@@ -2496,8 +2467,6 @@ $("adminRefreshBtn").onclick = async () => {
 
 $("lockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: true }, "앱을 잠갔습니다.");
 $("unlockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: false }, "앱 잠금을 해제했습니다.");
-$("lockFollowBtn").onclick = () => runAdminAction("setFollowLock", { locked: true }, "팔로우리스트를 잠갔습니다.");
-$("unlockFollowBtn").onclick = () => runAdminAction("setFollowLock", { locked: false }, "팔로우리스트 잠금을 해제했습니다.");
 $("lockMatchBtn").onclick = () => runAdminAction("setMatchVoteOpen", { open: false }, "맞팔확인 기간을 종료했습니다.");
 $("unlockMatchBtn").onclick = () => runAdminAction("setMatchVoteOpen", { open: true }, "맞팔확인 기간을 시작했습니다.");
 

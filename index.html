@@ -191,10 +191,10 @@
       <div id="adminSimpleLoginForm" class="gate-form member-auth-form hidden">
         <div class="member-auth-title">
           <strong>⚙️ 운영진 로그인</strong>
-          <span>운영진 인스타 아이디와 운영진 비밀번호만 입력해 주세요.</span>
+          <span>운영진 인스타 아이디와 운영진 공동비밀번호만 입력해 주세요.</span>
         </div>
         <input id="adminInstagram" type="text" autocapitalize="none" spellcheck="false" autocomplete="username" placeholder="운영진 인스타 아이디" />
-        <input id="adminPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
+        <input id="adminPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 공동비밀번호" />
         <button id="adminSimpleLoginBtn" class="primary" type="button">운영진 모드 입장</button>
         <button id="backFromAdminSimpleBtn" class="text-btn" type="button">뒤로</button>
       </div>
@@ -270,7 +270,7 @@
           <span>운영진회원에 등록된 인스타 아이디만 이용할 수 있어요.</span>
         </div>
         <input id="operatorInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="운영진 인스타 아이디" />
-        <input id="operatorPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
+        <input id="operatorPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 공동비밀번호" />
         <button id="operatorLoginBtn" class="primary" type="button">운영진모드로 전환</button>
         <button id="operatorLoginBackBtn" class="text-btn" type="button">뒤로</button>
       </div>
@@ -329,18 +329,7 @@
     </section>
 
     <section id="followView" class="view active">
-      <section id="followLockCard" class="card lock-card hidden">
-        <div class="lock-icon">🔒</div>
-        <h2>팔로우리스트 잠금 중</h2>
-        <p>팔로우리스트 비밀번호를 입력해 주세요.</p>
-        <div class="inline-auth">
-          <input id="followPassword" type="password" inputmode="numeric" placeholder="팔로우리스트 비밀번호" />
-          <button id="followUnlockBtn" class="primary small-primary" type="button">잠금 해제</button>
-        </div>
-        <p id="followUnlockMsg" class="error-text"></p>
-      </section>
-
-      <div id="followContent">
+<div id="followContent">
         <section class="card">
           <div class="section-title-row">
             <div><h2>팔로우리스트</h2></div>
@@ -390,7 +379,7 @@
               <div id="copyBatchButtons" class="copy-batch-buttons"></div>
             </section>
           </div>
-          <p id="followState" class="state-text">접속 비밀번호 확인 후 명단을 불러옵니다.</p>
+          <p id="followState" class="state-text">회원 로그인 후 명단을 바로 이용할 수 있습니다.</p>
           <div class="follow-head"><span>번호</span><span>닉네임</span><span>아이디</span><span>바로가기</span></div>
           <div id="followList" class="follow-list"></div>
         </section>
@@ -520,7 +509,7 @@
       <section class="card hidden" id="adminLoginCard">
         <h2>운영진 로그인</h2>
         <div class="admin-login">
-          <input id="adminPassword" type="password" inputmode="numeric" placeholder="운영진 비밀번호" />
+          <input id="adminPassword" type="password" inputmode="numeric" placeholder="운영진 공동비밀번호" />
           <button id="adminLoginBtn" class="primary small-primary" type="button">로그인</button>
         </div>
         <p id="adminLoginMsg" class="error-text"></p>
@@ -631,21 +620,6 @@
         </div>
 
         <hr />
-        <div class="setting-block">
-          <div class="section-title-row">
-            <div><h3>팔로우리스트 잠금</h3></div>
-            <span id="followLockState" class="lock-state unlocked">사용 가능</span>
-          </div>
-          <div class="admin-actions">
-            <button id="lockFollowBtn" class="outline danger-outline" type="button">팔로우리스트 잠그기</button>
-            <button id="unlockFollowBtn" class="outline success-outline" type="button">팔로우리스트 잠금 해제</button>
-          </div>
-          <div class="setting-row">
-            <input id="newFollowPassword" type="password" inputmode="numeric" placeholder="새 팔로우리스트 비밀번호" />
-            <button id="changeFollowPasswordBtn" class="outline" type="button">팔로우리스트 비밀번호 변경</button>
-          </div>
-        </div>
-
         <hr />
         <div class="setting-block">
           <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 완료/지연 투표와 ZIP 맞팔분석이 함께 활성화됩니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
@@ -660,12 +634,6 @@
         </div>
 
         <hr />
-        <div class="setting-block password-sheet-note">
-          <h3>🔐 비밀번호 관리</h3>
-          <p class="subtext">비밀번호는 구글 스프레드시트의 <b>설정</b> 시트에서만 수정합니다. A열 키는 그대로 두고 B열 값만 바꿔주세요.</p>
-          <button id="openSettingsSheetBtn" class="outline" type="button">구글 설정 시트 열기</button>
-        </div>
-
         <hr />
         <div class="setting-block">
           <h3>공지 관리</h3>
@@ -742,10 +710,10 @@
 
   <div id="adminModeModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminModeTitle">
     <section class="account-modal-card admin-mode-card">
-      <div class="section-title-row"><div><h2 id="adminModeTitle">🛡️ 운영진모드 전환</h2><p class="subtext">운영진회원에 등록된 인스타 아이디와 운영진 비밀번호를 확인합니다.</p></div></div>
-      <div class="admin-mode-profile"><strong id="adminModeProfileText">운영진 인스타 아이디 + 운영진 비밀번호 확인</strong></div>
+      <div class="section-title-row"><div><h2 id="adminModeTitle">🛡️ 운영진모드 전환</h2><p class="subtext">운영진회원에 등록된 인스타 아이디와 운영진 공동비밀번호를 확인합니다.</p></div></div>
+      <div class="admin-mode-profile"><strong id="adminModeProfileText">운영진 인스타 아이디 + 운영진 공동비밀번호 확인</strong></div>
       <input id="adminModeInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="운영진 인스타 아이디" />
-      <input id="adminModePassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
+      <input id="adminModePassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 공동비밀번호" />
       <p id="adminModeMessage" class="error-text"></p>
       <div class="account-modal-actions"><button id="adminModeCancelBtn" class="outline" type="button">취소</button><button id="adminModeConfirmBtn" class="primary" type="button">운영진모드 전환</button></div>
     </section>

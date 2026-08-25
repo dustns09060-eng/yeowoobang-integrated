@@ -1117,3 +1117,5 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
 #adminSimpleLoginForm input{
   width:100%;
 }
+
+/* V86: 회원 로그인으로 팔로우리스트/맞팔확인 통합 인증 */
