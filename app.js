@@ -1196,6 +1196,7 @@ async function refreshPublicConfig(recheck = true) {
   publicConfig = await apiGet("publicConfig");
   updateLockIndicators();
   syncFollowLockAdminV99?.();
+  syncMatchPeriodAdminV101?.();
   applyFollowLock();
   applyMatchLock();
   loadMatchVoteStatus().catch(()=>{});
@@ -1235,7 +1236,10 @@ function updateLockIndicators() {
   }
 
   if ($("matchLockState")) {
-    $("matchLockState").textContent = matchLocked ? "기간 아님" : "진행중";
+    const scheduled=Boolean(publicConfig?.matchPeriodScheduled);
+    $("matchLockState").textContent = matchLocked
+      ? (scheduled ? "예약 대기/종료" : "기간 아님")
+      : (scheduled ? "예약 진행중" : "진행중");
     $("matchLockState").className = `lock-state ${matchLocked ? "locked" : "unlocked"}`;
   }
 
@@ -2722,8 +2726,8 @@ $("adminRefreshBtn").onclick = async () => {
 
 $("lockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: true }, "앱을 잠갔습니다.");
 $("unlockAppBtn").onclick = () => runAdminAction("setAppLock", { locked: false }, "앱 잠금을 해제했습니다.");
-$("lockMatchBtn").onclick = () => runAdminAction("setMatchVoteOpen", { open: false }, "맞팔확인 기간을 종료했습니다.");
-$("unlockMatchBtn").onclick = () => runAdminAction("setMatchVoteOpen", { open: true }, "맞팔확인 기간을 시작했습니다.");
+$("lockMatchBtn").onclick = () => setMatchVoteOpenV101(false);
+$("unlockMatchBtn").onclick = () => setMatchVoteOpenV101(true);
 
 
 $("saveNoticeBtn").onclick = saveNotice;
@@ -3061,3 +3065,73 @@ $("lockFollowBtn")?.addEventListener("click",()=>setFollowLockV99(true));
 $("unlockFollowBtn")?.addEventListener("click",()=>setFollowLockV99(false));
 $("saveFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(false));
 $("clearFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(true));
+
+
+/* V101 맞팔확인 기간 / 예약기간 */
+function toLocalDateTimeInputV101(value){
+  if(!value)return "";
+  const d=new Date(value);
+  if(isNaN(d.getTime()))return "";
+  const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function syncMatchPeriodAdminV101(){
+  if($("matchPeriodStartAdmin") && document.activeElement!==$("matchPeriodStartAdmin")){
+    $("matchPeriodStartAdmin").value=toLocalDateTimeInputV101(publicConfig?.matchPeriodStartAt||"");
+  }
+  if($("matchPeriodEndAdmin") && document.activeElement!==$("matchPeriodEndAdmin")){
+    $("matchPeriodEndAdmin").value=toLocalDateTimeInputV101(publicConfig?.matchPeriodEndAt||"");
+  }
+  if($("matchPeriodReserveBadge")){
+    $("matchPeriodReserveBadge").textContent=publicConfig?.matchPeriodScheduled ? "예약 설정됨" : "예약 없음";
+    $("matchPeriodReserveBadge").classList.toggle("active",Boolean(publicConfig?.matchPeriodScheduled));
+  }
+}
+
+async function setMatchVoteOpenV101(open){
+  if(!adminLoggedIn || !adminModeToken){
+    toast("운영진모드로 다시 전환해주세요.");
+    return;
+  }
+  try{
+    await apiPost("setMatchVoteOpen",{
+      adminModeToken,
+      adminPassword:adminPasswordValue,
+      open:Boolean(open)
+    },15000);
+    await refreshPublicConfig(false);
+    syncMatchPeriodAdminV101();
+    toast(open?"맞팔확인 기간을 시작했습니다.":"맞팔확인 기간을 종료했습니다.");
+  }catch(e){
+    toast(e.message||"맞팔확인 기간 변경에 실패했습니다.");
+  }
+}
+
+async function saveMatchPeriodV101(clear=false){
+  if(!adminLoggedIn || !adminModeToken){
+    toast("운영진모드로 다시 전환해주세요.");
+    return;
+  }
+  const start=clear ? "" : ($("matchPeriodStartAdmin")?.value||"");
+  const end=clear ? "" : ($("matchPeriodEndAdmin")?.value||"");
+  if(!clear && (!start||!end)){
+    toast("예약 시작과 종료 시간을 모두 입력해주세요.");
+    return;
+  }
+  try{
+    await apiPost("setMatchPeriod",{
+      adminModeToken,
+      adminPassword:adminPasswordValue,
+      startAt:start,
+      endAt:end
+    },15000);
+    await refreshPublicConfig(false);
+    syncMatchPeriodAdminV101();
+    toast(clear?"맞팔확인 예약을 해제했습니다.":"맞팔확인 예약을 저장했습니다.");
+  }catch(e){
+    toast(e.message||"맞팔확인 예약 설정에 실패했습니다.");
+  }
+}
+$("saveMatchPeriodBtn")?.addEventListener("click",()=>saveMatchPeriodV101(false));
+$("clearMatchPeriodBtn")?.addEventListener("click",()=>saveMatchPeriodV101(true));
