@@ -358,6 +358,8 @@ function saveFollowListCache(list) {
       no: item.no,
       name: item.name,
       id: item.id,
+      status: item.status || "ACTIVE",
+      statusLabel: item.statusLabel || "",
     })),
   });
 }
@@ -378,8 +380,10 @@ function restoreFollowListCache() {
       no: item.no || index + 1,
       name: String(item.name || ""),
       id: normalize(item.id),
+      status: String(item.status || "ACTIVE"),
+      statusLabel: String(item.statusLabel || ""),
     }))
-    .filter((item) => validUsername(item.id));
+    .filter((item) => item.status === "SUSPENDED" || validUsername(item.id));
 
   if (!restored.length) return false;
 
@@ -1369,8 +1373,13 @@ function rowsToAuditSource(rows) {
     const idRaw = String(row[2] || "").trim();
     const id = normalize(idRaw);
 
-    if (!no || !name || !id || !validUsername(id)) return;
-    list.push({ no, name, idRaw, id });
+    if (!no) return;
+    if (String(no) === "1826") {
+      list.push({ no, name:name || "챤쥰맘", idRaw:"", id:"", status:"SUSPENDED", statusLabel:"계정정지" });
+      return;
+    }
+    if (!name || !id || !validUsername(id)) return;
+    list.push({ no, name, idRaw, id, status:"ACTIVE", statusLabel:"" });
   });
   return list;
 }
@@ -1385,12 +1394,20 @@ function rowsToRoom(rows) {
     const name = String(row[1] || "").trim();
     const id = normalize(row[2] || "");
 
-    if (!no || !name || !id || !validUsername(id)) return;
-    list.push({ no, name, id });
+    if (!no) return;
+    if (String(no) === "1826") {
+      list.push({ no, name: name || "챤쥰맘", id: "", status:"SUSPENDED", statusLabel:"계정정지" });
+      return;
+    }
+    if (!name || !id || !validUsername(id)) return;
+    list.push({ no, name, id, status:"ACTIVE", statusLabel:"" });
   });
 
   const seen = new Set();
-  return list.filter((item) => !seen.has(item.id) && seen.add(item.id));
+  return list.filter((item) => {
+    const key=item.status==="SUSPENDED"?`SUSPENDED:${item.no}`:item.id;
+    return !seen.has(key) && seen.add(key);
+  });
 }
 
 async function loadRoomList(show = false) {
