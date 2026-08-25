@@ -1177,3 +1177,165 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
   .invite-milestones{gap:5px}
   .invite-milestones article{padding:9px 4px}
 }
+
+
+/* V91 - 하단 메뉴 4개 균등 배치 */
+.bottom-nav,
+.bottomNav,
+.app-bottom-nav,
+nav.bottom-nav,
+.footer-nav {
+  display:grid !important;
+  grid-template-columns:repeat(4, minmax(0,1fr)) !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+  gap:0 !important;
+  width:100% !important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)) !important;
+  box-sizing:border-box !important;
+}
+
+.bottom-nav .nav-btn,
+.bottomNav .nav-btn,
+.app-bottom-nav .nav-btn,
+.footer-nav .nav-btn,
+.bottom-nav button,
+.bottomNav button {
+  width:100% !important;
+  min-width:0 !important;
+  height:64px !important;
+  margin:0 !important;
+  padding:7px 4px !important;
+  border-radius:16px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:4px !important;
+  box-sizing:border-box !important;
+  text-align:center !important;
+}
+
+.bottom-nav .nav-btn .icon,
+.bottomNav .nav-btn .icon,
+.app-bottom-nav .nav-btn .icon,
+.footer-nav .nav-btn .icon,
+.bottom-nav .nav-btn > span:first-child,
+.bottomNav .nav-btn > span:first-child {
+  line-height:1 !important;
+  margin:0 !important;
+}
+
+.bottom-nav .nav-btn .label,
+.bottomNav .nav-btn .label,
+.app-bottom-nav .nav-btn .label,
+.footer-nav .nav-btn .label,
+.bottom-nav .nav-btn > span:last-child,
+.bottomNav .nav-btn > span:last-child {
+  white-space:nowrap !important;
+  text-align:center !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+}
+
+.bottom-nav .nav-btn.active,
+.bottomNav .nav-btn.active,
+.app-bottom-nav .nav-btn.active,
+.footer-nav .nav-btn.active {
+  transform:none !important;
+  margin:0 !important;
+}
+
+@media (max-width:480px){
+  .bottom-nav,
+  .bottomNav,
+  .app-bottom-nav,
+  nav.bottom-nav,
+  .footer-nav{
+    padding-left:8px !important;
+    padding-right:8px !important;
+  }
+
+  .bottom-nav .nav-btn,
+  .bottomNav .nav-btn,
+  .app-bottom-nav .nav-btn,
+  .footer-nav .nav-btn{
+    height:62px !important;
+    border-radius:15px !important;
+  }
+}
+
+
+/* V92 - 월간 / 총누적 초대 랭킹 분리 */
+.invite-rank-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:14px 0 8px;
+  padding:4px;
+  border-radius:16px;
+  background:#f8f1f4;
+}
+.invite-rank-tab{
+  border:0;
+  background:transparent;
+  border-radius:12px;
+  padding:10px 8px;
+  font-size:12px;
+  font-weight:900;
+  color:#8b7d83;
+}
+.invite-rank-tab.active{
+  background:#fff;
+  color:#ed547e;
+  box-shadow:0 4px 14px rgba(87,49,62,.08);
+}
+.invite-rank-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:8px 0 4px;
+  padding:8px 10px;
+  border-radius:12px;
+  background:#fff8fa;
+}
+.invite-rank-summary span{
+  font-size:11px;
+  color:#8b7d83;
+  font-weight:800;
+}
+.invite-rank-summary strong{
+  font-size:13px;
+  color:#e7547d;
+}
+.invite-my-rank-card.dual{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.invite-my-rank-card.dual>div{
+  border-radius:12px;
+  background:rgba(255,255,255,.7);
+  padding:10px;
+}
+.invite-my-rank-card.dual span,
+.invite-my-rank-card.dual strong{
+  display:block;
+}
+.invite-my-rank-card.dual span{
+  font-size:10px;
+  color:#d75277;
+  font-weight:900;
+}
+.invite-my-rank-card.dual strong{
+  margin-top:4px;
+  font-size:14px;
+  text-align:left;
+}
+.invite-my-rank-card.dual small{
+  grid-column:1/-1;
+}
+@media(max-width:430px){
+  .invite-rank-tab{font-size:11px;padding:9px 5px}
+  .invite-my-rank-card.dual strong{font-size:13px}
+}

@@ -483,9 +483,23 @@
       <div class="section-title-row invite-rank-head">
         <div>
           <h3>🏆 초대 랭킹 TOP 10</h3>
-          <p class="subtext">승인된 누적 초대수를 기준으로 실시간 순위가 바뀌어요.</p>
+          <p class="subtext">이번달 초대 순위와 총누적 순위를 따로 확인할 수 있어요.</p>
         </div>
         <button id="refreshInviteLeaderboardBtn" class="outline small" type="button">새로고침</button>
+      </div>
+
+      <div class="invite-rank-tabs" role="tablist" aria-label="초대 랭킹 구분">
+        <button id="inviteMonthlyTab" class="invite-rank-tab active" type="button" data-rank-mode="monthly">
+          📅 <span id="inviteMonthlyLabel">이번달</span> TOP 10
+        </button>
+        <button id="inviteTotalTab" class="invite-rank-tab" type="button" data-rank-mode="total">
+          🏆 총누적 TOP 10
+        </button>
+      </div>
+
+      <div id="inviteRankSummary" class="invite-rank-summary">
+        <span id="inviteRankSummaryLabel">이번달 초대 랭킹</span>
+        <strong id="inviteRankSummaryCount">0명</strong>
       </div>
 
       <div id="inviteTop3" class="invite-top3">
@@ -494,9 +508,15 @@
 
       <div id="inviteRankList" class="invite-rank-list"></div>
 
-      <div id="inviteMyRankCard" class="invite-my-rank-card">
-        <span>내 순위</span>
-        <strong id="inviteMyRankText">확인 중...</strong>
+      <div id="inviteMyRankCard" class="invite-my-rank-card dual">
+        <div>
+          <span>📅 이번달 내 순위</span>
+          <strong id="inviteMyMonthlyRankText">확인 중...</strong>
+        </div>
+        <div>
+          <span>🏆 총누적 내 순위</span>
+          <strong id="inviteMyTotalRankText">확인 중...</strong>
+        </div>
         <small id="inviteMyRankSub">회원 로그인 계정 기준으로 표시됩니다.</small>
       </div>
 
@@ -815,7 +835,7 @@
         <div><span>가입일</span><strong id="myPageJoinDate">-</strong></div>
         <div><span>MemberID</span><strong id="myPageMemberId">-</strong></div>
       </div>
-      <div class="mypage-progress-card"><div><strong>팔로우리스트 진행률</strong><span id="myPageFollowText">0 / 0명</span></div><div class="mini-progress"><i id="myPageFollowBar"></i></div><small id="myPageFollowPercent">0%</small></div>
+      <div class="mypage-progress-card"><div><strong>팔로우리스트 시작 상태</strong><span id="myPageFollowText">확인 중...</span></div><div class="mini-progress"><i id="myPageFollowBar"></i></div><small id="myPageFollowPercent">0%</small></div>
       <div class="mypage-progress-card"><div><strong>맞팔확인 제출 현황</strong><span id="myPageMatchText">미제출</span></div><small id="myPageMatchDate"></small></div>
       <button id="myPagePasswordBtn" class="primary" type="button">비밀번호 변경</button>
     </section>

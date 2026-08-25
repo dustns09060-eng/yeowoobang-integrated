@@ -921,9 +921,9 @@ async function openMyPage() {
     $("myPageInsta").textContent=m.instagramId?`@${m.instagramId}`:"-";
     $("myPageJoinDate").textContent=m.joinDate||"등록 전";
     $("myPageMemberId").textContent=m.memberId??"-";
-    $("myPageFollowText").textContent=`${Number(f.completed||0).toLocaleString()} / ${Number(f.total||0).toLocaleString()}명`;
-    $("myPageFollowPercent").textContent=`${Number(f.percent||0)}% · 오늘 ${Number(f.todayCount||0)}명`;
-    $("myPageFollowBar").style.width=`${Math.max(0,Math.min(100,Number(f.percent||0)))}%`;
+    $("myPageFollowText").textContent=f.started?`1번 시작 완료`:(f.status||"시작 상태 확인");
+    $("myPageFollowPercent").textContent=f.startedAt?`시작일 ${f.startedAt}`:`전체 ${Number(f.total||0).toLocaleString()}명`;
+    $("myPageFollowBar").style.width=f.started?"100%":"0%";
     $("myPageMatchText").textContent=mt.submitted?`${mt.status} 제출`:(mt.open?"아직 미제출":"기간 아님");
     $("myPageMatchDate").textContent=mt.submittedAt?`최근 제출 ${mt.submittedAt}`:`${mt.title||"맞팔확인"}`;
   } catch(e) { toast(e.message||"마이페이지를 불러오지 못했습니다."); }
@@ -1384,17 +1384,33 @@ async function loadRoomList(show = false) {
 
   try {
     const data = await apiGet("followList");
-    roomAuditSource = (data.members || []).map((item) => ({
+    const apiMembers = Array.isArray(data.members)
+      ? data.members
+      : (Array.isArray(data.items)
+          ? data.items.map(x => ({
+              no:x.no,
+              name:x.name || x.nickname || "",
+              id:x.id || x.instagramId || x.instagram || ""
+            }))
+          : []);
+
+    const realMembers = apiMembers.filter(item => {
+      const name=String(item.name||"").trim();
+      const id=normalize(item.id||"");
+      return Boolean(name && id && validUsername(id));
+    });
+
+    roomAuditSource = realMembers.map((item) => ({
       no: String(item.no || "").trim(),
       name: String(item.name || "").trim(),
       idRaw: String(item.id || "").trim(),
       id: normalize(item.id),
     }));
-    roomList = (data.members || []).map((item, index) => ({
+    roomList = realMembers.map((item, index) => ({
       no: item.no || index + 1,
-      name: item.name || "",
+      name: String(item.name || "").trim(),
       id: normalize(item.id),
-    })).filter((item) => validUsername(item.id));
+    }));
 
     if (!roomList.length) throw new Error("API 명단 0명");
 
@@ -1690,94 +1706,147 @@ function renderInviteAdminList(){const q=($("inviteAdminSearch")?.value||"").tri
 async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteAdmin",{inviteAdminPassword:inviteAdminPasswordValue});inviteAdminItemsCache=d.items||[];$("invitePendingCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="PENDING").length;$("inviteApprovedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="APPROVED").length;$("inviteRejectedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="REJECTED").length;if($("inviteCancelledCount"))$("inviteCancelledCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="CANCELLED").length;if($("inviteExpelCount"))$("inviteExpelCount").textContent=inviteAdminItemsCache.filter(x=>x.expelTarget).length;renderInviteAdminList()}
 async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map((x,i)=>`<div class="invite-summary-wrap"><button class="invite-summary-row invite-summary-button" type="button" data-admin-invite-detail="${i}"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0} ▾</span></button><div id="adminInviteDetail${i}" class="invite-summary-detail hidden">${(x.invitees||[]).length?x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join(""):'<p class="state-text">기록된 초대 회원 닉네임이 없습니다.</p>'}</div></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>';$("inviteSummaryList").querySelectorAll("[data-admin-invite-detail]").forEach(b=>b.onclick=()=>$("adminInviteDetail"+b.dataset.adminInviteDetail)?.classList.toggle("hidden"));}
 
-async function loadInviteLeaderboard(){
-  const top3=$("inviteTop3"), list=$("inviteRankList"), myCard=$("inviteMyRankCard");
+let inviteRankModeV92="monthly";
+let inviteRankDataV92=[];
+
+function currentInviteMonthLabelV92(){
+  const d=new Date();
+  return `${d.getMonth()+1}월`;
+}
+
+function rankInviteItemsV92(items,mode){
+  const key=mode==="monthly"?"invite":"total";
+  return [...items]
+    .map(x=>({...x,score:Number(x[key]||0)}))
+    .filter(x=>x.nickname||x.instagram)
+    .sort((a,b)=>{
+      if(b.score!==a.score)return b.score-a.score;
+      if(Number(b.total||0)!==Number(a.total||0))return Number(b.total||0)-Number(a.total||0);
+      return String(a.nickname||"").localeCompare(String(b.nickname||""),"ko");
+    })
+    .map((x,i)=>({...x,rank:i+1}));
+}
+
+function renderInviteRankV92(){
+  const top3=$("inviteTop3"), list=$("inviteRankList");
   if(!top3||!list)return;
 
-  const medal = rank => rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":`#${rank}`;
-  const normId = value => normalize(value||"");
+  const medal=rank=>rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":`#${rank}`;
+  const mode=inviteRankModeV92;
+  const label=mode==="monthly"?`${currentInviteMonthLabelV92()} 초대`:"총누적";
+  const ranked=rankInviteItemsV92(inviteRankDataV92,mode);
+  const active=ranked.filter(x=>x.score>0);
+  const top10=active.slice(0,10);
+  const podium=top10.slice(0,3);
+  const rest=top10.slice(3);
+
+  $("inviteRankSummaryLabel").textContent=`${label} 랭킹`;
+  $("inviteRankSummaryCount").textContent=active.length?`1위 ${active[0].score}명`:"0명";
+
+  $("inviteMonthlyTab")?.classList.toggle("active",mode==="monthly");
+  $("inviteTotalTab")?.classList.toggle("active",mode==="total");
+
+  if(!active.length){
+    top3.innerHTML=`<p class="state-text">아직 ${label} 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>`;
+    list.innerHTML="";
+  }else{
+    top3.innerHTML=podium.map(x=>`
+      <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
+        <span class="podium-medal">${medal(x.rank)}</span>
+        <b>${escapeHtml(x.nickname||"")}</b>
+        <strong>${x.score}명</strong>
+        <small>${x.rank}위</small>
+      </button>`).join("");
+
+    list.innerHTML=rest.map(x=>`
+      <button class="invite-game-rank-row" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
+        <span class="game-rank-no">${x.rank}</span>
+        <span class="game-rank-name">
+          <b>${escapeHtml(x.nickname||"")}</b>
+          <small>${x.instagram?`@${escapeHtml(normalize(x.instagram))}`:""}</small>
+        </span>
+        <strong>${x.score}명</strong>
+        <span class="rank-chevron">›</span>
+      </button>`).join("");
+  }
+
+  const host=$("inviteLeaderboardDetailHost");
+  const openDetail=(id)=>{
+    const x=inviteRankDataV92.find(v=>String(v.instagram||v.nickname||"")===String(id));
+    if(!x||!host)return;
+    const monthRank=rankInviteItemsV92(inviteRankDataV92,"monthly").find(v=>String(v.instagram||v.nickname||"")===String(id));
+    const totalRank=rankInviteItemsV92(inviteRankDataV92,"total").find(v=>String(v.instagram||v.nickname||"")===String(id));
+    const chips=(x.invitees||[]).length
+      ? `<div class="invitee-chip-list">${x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join("")}</div>`
+      : '<p class="state-text">현재 프로그램에 기록된 초대 회원 닉네임이 없습니다.</p>';
+
+    host.innerHTML=`
+      <div class="invite-rank-detail">
+        <div class="invite-rank-detail-head">
+          <div>
+            <b>${escapeHtml(x.nickname||"")}</b>
+            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
+          </div>
+          <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
+        </div>
+        ${chips}
+        ${Number(x.previous||0)>0?`<p class="state-text">이전 누적 ${Number(x.previous||0)}명은 기존 집계값으로, 개별 닉네임 기록이 없을 수 있어요.</p>`:""}
+      </div>`;
+    $("closeInviteRankDetail").onclick=()=>{host.innerHTML="";};
+    host.scrollIntoView({behavior:"smooth",block:"nearest"});
+  };
+
+  top3.querySelectorAll("[data-rank-id]").forEach(b=>b.onclick=()=>openDetail(b.dataset.rankId));
+  list.querySelectorAll("[data-rank-id]").forEach(b=>b.onclick=()=>openDetail(b.dataset.rankId));
+}
+
+async function loadInviteLeaderboard(){
+  const top3=$("inviteTop3"), list=$("inviteRankList");
+  if(!top3||!list)return;
 
   try{
+    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",10000);
-    const items=(d.items||[])
-      .map((x,i)=>({...x,rank:Number(x.rank||i+1),total:Number(x.total||0),invite:Number(x.invite||0),previous:Number(x.previous||0)}))
-      .filter(x=>x.nickname||x.instagram)
-      .sort((a,b)=>a.rank-b.rank);
+    inviteRankDataV92=(d.items||[]).map(x=>({
+      ...x,
+      invite:Number(x.invite||0),
+      previous:Number(x.previous||0),
+      total:Number(x.total||0)
+    }));
 
-    const active=items.filter(x=>x.total>0);
-    const top10=active.slice(0,10);
-    const podium=top10.slice(0,3);
-    const rest=top10.slice(3);
+    renderInviteRankV92();
 
-    if(!active.length){
-      top3.innerHTML='<p class="state-text">아직 초대 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>';
-      list.innerHTML="";
-    }else{
-      top3.innerHTML=podium.map(x=>`
-        <button class="invite-podium rank-${x.rank}" type="button" data-rank-detail="${x.rank-1}">
-          <span class="podium-medal">${medal(x.rank)}</span>
-          <b>${escapeHtml(x.nickname||"")}</b>
-          <strong>${x.total}명</strong>
-          <small>${x.rank}위</small>
-        </button>`).join("");
-
-      list.innerHTML=rest.map(x=>`
-        <button class="invite-game-rank-row" type="button" data-rank-detail="${x.rank-1}">
-          <span class="game-rank-no">${x.rank}</span>
-          <span class="game-rank-name">
-            <b>${escapeHtml(x.nickname||"")}</b>
-            <small>${x.instagram?`@${escapeHtml(normId(x.instagram))}`:""}</small>
-          </span>
-          <strong>${x.total}명</strong>
-          <span class="rank-chevron">›</span>
-        </button>`).join("");
-    }
-
-    const memberId=normId(memberSession?.member?.instagramId||"");
+    const memberId=normalize(memberSession?.member?.instagramId||"");
     const memberNick=String(memberSession?.member?.nickname||"").trim();
-    const mine=items.find(x=>
-      (memberId && normId(x.instagram)===memberId) ||
+    const mine=inviteRankDataV92.find(x=>
+      (memberId && normalize(x.instagram)===memberId) ||
       (!memberId && memberNick && String(x.nickname||"").trim()===memberNick)
     );
 
+    const monthlyRank=mine?rankInviteItemsV92(inviteRankDataV92,"monthly").find(x=>String(x.instagram||x.nickname||"")===String(mine.instagram||mine.nickname||"")):null;
+    const totalRank=mine?rankInviteItemsV92(inviteRankDataV92,"total").find(x=>String(x.instagram||x.nickname||"")===String(mine.instagram||mine.nickname||"")):null;
+
     if(mine){
-      $("inviteMyRankText").textContent=`${mine.rank}위 · 누적 ${mine.total}명`;
-      $("inviteMyRankSub").textContent=mine.rank<=10?"TOP 10에 올라와 있어요! 🔥":"TOP 10까지 조금만 더 힘내요!";
+      $("inviteMyMonthlyRankText").textContent=`${monthlyRank?.rank||"-"}위 · ${Number(mine.invite||0)}명`;
+      $("inviteMyTotalRankText").textContent=`${totalRank?.rank||"-"}위 · ${Number(mine.total||0)}명`;
+      $("inviteMyRankSub").textContent=
+        (monthlyRank?.rank<=10||totalRank?.rank<=10)
+          ?"TOP 10에 올라와 있어요! 🔥"
+          :"TOP 10까지 조금만 더 힘내요!";
+      updateInviteMission(Number(mine.total||0));
     }else{
-      $("inviteMyRankText").textContent=memberSession?.token?"아직 초대 실적 없음":"로그인 후 확인";
+      $("inviteMyMonthlyRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
+      $("inviteMyTotalRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
       $("inviteMyRankSub").textContent=memberSession?.token?"첫 초대를 달성하면 순위가 표시됩니다.":"회원 로그인 계정 기준으로 표시됩니다.";
+      updateInviteMission(0);
     }
-
-    const myTotal=mine?mine.total:0;
-    updateInviteMission(myTotal);
-
-    const host=$("inviteLeaderboardDetailHost");
-    const openDetail = idx => {
-      const x=active[idx];
-      if(!x||!host)return;
-      const chips=(x.invitees||[]).length
-        ? `<div class="invitee-chip-list">${x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join("")}</div>`
-        : '<p class="state-text">현재 프로그램에 기록된 초대 회원 닉네임이 없습니다.</p>';
-      host.innerHTML=`
-        <div class="invite-rank-detail">
-          <div class="invite-rank-detail-head">
-            <div><b>${medal(x.rank)} ${escapeHtml(x.nickname||"")}</b><span>누적 ${x.total}명</span></div>
-            <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
-          </div>
-          ${chips}
-          ${x.previous>0?`<p class="state-text">이전 누적 ${x.previous}명은 기존 집계값으로, 개별 닉네임 기록이 없을 수 있어요.</p>`:""}
-        </div>`;
-      $("closeInviteRankDetail").onclick=()=>{host.innerHTML="";};
-      host.scrollIntoView({behavior:"smooth",block:"nearest"});
-    };
-
-    top3.querySelectorAll("[data-rank-detail]").forEach(b=>b.onclick=()=>openDetail(Number(b.dataset.rankDetail)));
-    list.querySelectorAll("[data-rank-detail]").forEach(b=>b.onclick=()=>openDetail(Number(b.dataset.rankDetail)));
 
   }catch(e){
     top3.innerHTML='<p class="state-text">초대 랭킹을 불러오지 못했습니다.</p>';
     list.innerHTML=`<div class="invite-rank-error"><b>데이터 연결을 확인해주세요.</b><span>${escapeHtml(e.message||"")}</span></div>`;
-    $("inviteMyRankText").textContent="확인 불가";
+    if($("inviteMyMonthlyRankText"))$("inviteMyMonthlyRankText").textContent="확인 불가";
+    if($("inviteMyTotalRankText"))$("inviteMyTotalRankText").textContent="확인 불가";
     updateInviteMission(0);
   }
 }
@@ -2866,3 +2935,6 @@ function isActualFollowMemberV90(row){
   const instagram=String(row.instagramId ?? row.instagram ?? row.insta ?? row.username ?? "").trim();
   return !!(nickname && instagram);
 }
+
+$("inviteMonthlyTab")?.addEventListener("click",()=>{ inviteRankModeV92="monthly"; renderInviteRankV92(); });
+$("inviteTotalTab")?.addEventListener("click",()=>{ inviteRankModeV92="total"; renderInviteRankV92(); });
