@@ -2137,7 +2137,7 @@ function statusLabel(status) {
   return {
     mutual: "맞팔 완료",
     onlyMe: "나만 팔로우 함",
-    fansOnly: "상대가 팔로우만 함",
+    fansOnly: "상대만 팔로우 함",
     neither: "서로 팔로우 안 함",
   }[status];
 }
