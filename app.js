@@ -510,6 +510,7 @@ function setGate(mode, message = "") {
   const form = $("gateForm");
   const memberLoginForm = $("memberLoginForm");
   const memberRegisterForm = $("memberRegisterForm");
+  const newMemberInviteForm = $("newMemberInviteForm");
   const memberForgotForm = $("memberForgotForm");
   const operatorLoginForm = $("operatorLoginForm");
   const retryBtn = $("gateRetryBtn");
@@ -520,6 +521,7 @@ function setGate(mode, message = "") {
   form.classList.add("hidden");
   memberLoginForm?.classList.add("hidden");
   memberRegisterForm?.classList.add("hidden");
+  newMemberInviteForm?.classList.add("hidden");
   memberForgotForm?.classList.add("hidden");
   operatorLoginForm?.classList.add("hidden");
   retryBtn.classList.add("hidden");
@@ -542,6 +544,11 @@ function setGate(mode, message = "") {
     text.textContent = "";
     memberForgotForm?.classList.remove("hidden");
     setTimeout(() => $("memberForgotNickname")?.focus(), 0);
+  } else if (mode === "newMemberInvite") {
+    title.textContent = "여우방";
+    text.textContent = "";
+    newMemberInviteForm?.classList.remove("hidden");
+    setTimeout(() => $("newMemberNickname")?.focus(), 0);
   } else if (mode === "memberRegister") {
     title.textContent = "여우방";
     text.textContent = "";
@@ -760,6 +767,60 @@ async function loginMemberFromGate() {
   } finally {
     btn.disabled = false;
   }
+}
+
+
+async function registerNewMemberInviteFromGate() {
+  const inviteeName = String($("newMemberNickname")?.value || "").trim();
+  const inviteeInstagram = normalize($("newMemberInstagram")?.value || "");
+  const inviterName = String($("newMemberInviterNickname")?.value || "").trim();
+  const inviterInstagram = normalize($("newMemberInviterInstagram")?.value || "");
+
+  if (!inviteeName || !inviteeInstagram || !inviterName || !inviterInstagram) {
+    $("gateError").textContent = "내 정보와 초대한 회원 정보를 모두 입력해 주세요.";
+    return;
+  }
+  if (inviteeInstagram === inviterInstagram) {
+    $("gateError").textContent = "본인을 초대자로 등록할 수 없습니다.";
+    return;
+  }
+
+  const btn = $("newMemberInviteSubmitBtn");
+  try {
+    btn.disabled = true;
+    $("gateError").textContent = "";
+    btn.textContent = "등록 확인 중...";
+
+    const result = await apiPost("registerInvite", {
+      inviteeName,
+      inviteeInstagram,
+      inviterName,
+      inviterInstagram
+    }, 20000);
+
+    btn.textContent = "✅ 등록 완료 · 승인 대기";
+    $("gateError").classList.add("new-member-success");
+    $("gateError").textContent =
+      result?.message ||
+      "초대별 등록 요청이 완료되었습니다. 운영진 승인 후 기존회원 계정 등록이 가능합니다.";
+
+    ["newMemberNickname","newMemberInstagram","newMemberInviterNickname","newMemberInviterInstagram"]
+      .forEach(id => { const el=$(id); if(el) el.disabled=true; });
+
+  } catch (error) {
+    btn.disabled = false;
+    btn.textContent = "초대별 등록 요청";
+    $("gateError").classList.remove("new-member-success");
+    $("gateError").textContent = error.message || "신규회원 등록 요청에 실패했습니다.";
+  }
+}
+
+function resetNewMemberInviteGate() {
+  ["newMemberNickname","newMemberInstagram","newMemberInviterNickname","newMemberInviterInstagram"]
+    .forEach(id => { const el=$(id); if(el){ el.value=""; el.disabled=false; } });
+  const btn=$("newMemberInviteSubmitBtn");
+  if(btn){ btn.disabled=false; btn.textContent="초대별 등록 요청"; }
+  $("gateError")?.classList.remove("new-member-success");
 }
 
 async function registerMemberFromGate() {
@@ -2286,6 +2347,11 @@ if ($("operatorLoginBtn")) $("operatorLoginBtn").onclick = loginOperatorFromGate
 if ($("operatorLoginBackBtn")) $("operatorLoginBackBtn").onclick = backToRoleSelect;
 if ($("operatorPassword")) $("operatorPassword").onkeydown = (event) => { if (event.key === "Enter") loginOperatorFromGate(); };
 $("memberLoginBtn").onclick = loginMemberFromGate;
+if ($("openNewMemberInviteBtn")) $("openNewMemberInviteBtn").onclick = () => {
+  resetNewMemberInviteGate();
+  $("gateError").textContent = "";
+  setGate("newMemberInvite");
+};
 $("openMemberRegisterBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberRegister"); };
 $("openMemberForgotBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberForgot"); };
 $("backFromForgotBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
@@ -2293,6 +2359,15 @@ $("memberForgotBtn").onclick = resetMemberPasswordFromGate;
 $("memberLoginBackBtn").onclick = backToRoleSelect;
 $("backToMemberLoginBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
 $("memberRegisterBtn").onclick = registerMemberFromGate;
+if ($("newMemberInviteSubmitBtn")) $("newMemberInviteSubmitBtn").onclick = registerNewMemberInviteFromGate;
+if ($("backFromNewMemberInviteBtn")) $("backFromNewMemberInviteBtn").onclick = () => {
+  $("gateError").classList.remove("new-member-success");
+  $("gateError").textContent = "";
+  setGate("memberLogin");
+};
+if ($("newMemberInviterInstagram")) $("newMemberInviterInstagram").onkeydown = (event) => {
+  if (event.key === "Enter") registerNewMemberInviteFromGate();
+};
 $("memberMenuBtn").onclick = openMemberDrawer;
 if ($("adminModeBtn")) $("adminModeBtn").onclick = openAdminModeModal;
 if ($("adminModeCancelBtn")) $("adminModeCancelBtn").onclick = closeAdminModeModal;

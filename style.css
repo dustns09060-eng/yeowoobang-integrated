@@ -1067,3 +1067,44 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
 /* V78 맞팔 요청 + 초대 누적 현황 */
 .match-item-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end}.match-request-send-btn{border:1px solid #f4c6d3;background:#fff3f7;color:#d94e73;border-radius:999px;padding:8px 10px;font-weight:900;font-size:12px}.match-request-send-btn:disabled{opacity:.4}.match-request-identity{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:#fffafd}.match-request-id-row{display:grid;grid-template-columns:1fr auto;gap:8px}.match-request-verified{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 13px;margin:10px 0;border-radius:14px;background:#fff3f7}.match-request-tabs{display:flex;gap:8px;margin:12px 0}.match-request-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:900}.match-request-tab.active{border-color:#f06f94;background:#fff3f7;color:#d84b73}.match-request-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eef0f2}.match-request-row strong,.match-request-row span{display:block}.match-request-row span{font-size:12px;color:var(--muted);margin-top:3px}.match-request-row-actions{display:flex;align-items:center;gap:6px}.request-status,.request-read-label{border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}.request-status.unread{background:#fff3f7;color:#d84b73}.request-status.read,.request-read-label{background:#ecfaf1;color:#178650}.match-request-period-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.match-request-period-grid label{font-size:12px;color:var(--muted);font-weight:900}.match-request-period-grid input{display:block;width:100%;margin-top:5px;border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit}.invite-leader-item{border-bottom:1px solid #eee}.invite-leader-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;padding:13px 2px;text-align:left}.invite-leader-row span b,.invite-leader-row span small{display:block}.invite-leader-row span small{font-size:11px;color:var(--muted);margin-top:3px}.invite-leader-row>strong{color:#ee6487}.invite-leader-row em{font-style:normal;font-size:11px;color:var(--muted)}.invite-leader-detail,.invite-summary-detail{padding:0 4px 12px}.invitee-chip-list,.invite-summary-detail{display:flex;gap:6px;flex-wrap:wrap}.invitee-chip-list span,.invite-summary-detail>span{display:inline-flex;padding:7px 9px;border-radius:999px;background:#fff3f7;border:1px solid #f4d4de;font-size:12px}.invite-summary-button{width:100%;border:0;background:transparent;text-align:left}.invite-summary-detail{padding:10px 4px 14px;border-bottom:1px solid #eee}
 @media(max-width:760px){.match-item-actions{grid-column:3;grid-row:1/3;flex-direction:column;align-items:stretch}.match-item-actions .insta,.match-request-send-btn{text-align:center}.match-request-id-row,.match-request-period-grid{grid-template-columns:1fr}.match-request-row{align-items:flex-start}.match-request-row-actions{flex-direction:column}.invite-leader-row{align-items:flex-start}}
+
+
+/* V83 신규회원 입장 / 초대별 등록 */
+.primary-soft{
+  width:100%;
+  border:1px solid #f5bfd0;
+  border-radius:14px;
+  padding:14px 16px;
+  background:#fff0f5;
+  color:#df4e79;
+  font-weight:900;
+  font-size:14px;
+}
+#newMemberInviteForm .new-member-section-title{
+  margin:7px 2px 2px;
+  font-size:12px;
+  font-weight:900;
+  color:#f05f87;
+  text-align:left;
+}
+#newMemberInviteForm .new-member-section-title.inviter{
+  margin-top:12px;
+}
+#newMemberInviteForm .new-member-help{
+  margin:8px 0 11px;
+  padding:11px 12px;
+  border-radius:13px;
+  background:#fff7fa;
+  color:#84767c;
+  font-size:11px;
+  line-height:1.55;
+  text-align:left;
+}
+#newMemberInviteForm .new-member-help b{color:#e7547d}
+#gateError.new-member-success{
+  color:#279767 !important;
+  background:#effbf5;
+  border-radius:12px;
+  padding:10px 12px;
+  line-height:1.5;
+}
