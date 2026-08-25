@@ -2856,3 +2856,13 @@ setInterval(()=>{if(memberSession?.token&&!document.hidden)void loadNotification
 // V87 숫자 비밀번호 입력 제어
 const V87_NUMERIC_PASSWORD_IDS=["adminPassword","memberLoginPassword","memberForgotPassword","memberForgotPasswordConfirm","memberRegisterPassword","memberRegisterPasswordConfirm","operatorPassword","adminModePassword","currentMemberPassword","newMemberPassword","newMemberPasswordConfirm"];
 window.addEventListener("DOMContentLoaded",()=>V87_NUMERIC_PASSWORD_IDS.forEach(id=>{const el=$(id);if(!el)return;el.setAttribute("inputmode","numeric");el.setAttribute("pattern","[0-9]*");el.setAttribute("minlength","4");el.setAttribute("maxlength","6");el.addEventListener("input",()=>{el.value=String(el.value||"").replace(/\D/g,"").slice(0,6);});}));
+
+
+/* V90 - 실제 팔로우리스트 회원 판별
+   A열 번호만 예약되어 있고 B/C가 빈 행은 회원으로 표시하지 않습니다. */
+function isActualFollowMemberV90(row){
+  if(!row) return false;
+  const nickname=String(row.nickname ?? row.nick ?? row.name ?? "").trim();
+  const instagram=String(row.instagramId ?? row.instagram ?? row.insta ?? row.username ?? "").trim();
+  return !!(nickname && instagram);
+}
