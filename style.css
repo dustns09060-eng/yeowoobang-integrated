@@ -1409,3 +1409,74 @@ button:disabled[title="계정정지 회원"]{
 @media(max-width:520px){
   .match-period-grid{grid-template-columns:1fr}
 }
+
+
+/* V102 - 맞팔 분석 결과 모바일 정리 */
+#resultsSection{
+  padding-bottom:28px;
+}
+#resultsSection .tools{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+#resultsSection .tools .search-wrap{
+  grid-column:1/-1;
+  width:100%;
+  box-sizing:border-box;
+}
+#resultsSection .tools>button{
+  width:100%;
+  min-width:0;
+  margin:0;
+}
+#resultsSection .tabs{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;
+  padding:4px 2px 8px;
+  margin-inline:0;
+  scrollbar-width:none;
+}
+#resultsSection .tabs::-webkit-scrollbar{display:none}
+#resultsSection .tab{
+  flex:0 0 auto;
+  scroll-snap-align:start;
+  min-height:38px;
+  padding:8px 13px;
+  white-space:nowrap;
+}
+#resultsSection .list{
+  padding-bottom:80px;
+}
+#resultsSection .list .match-item,
+#resultsSection .list .list-item{
+  scroll-margin-bottom:110px;
+}
+@media(max-width:560px){
+  #resultsSection{
+    padding-left:14px;
+    padding-right:14px;
+  }
+  #resultsSection .tools{
+    gap:7px;
+  }
+  #resultsSection .tabs{
+    width:100%;
+  }
+  #resultsSection .table-head{
+    display:none !important;
+  }
+  #resultsSection .list{
+    display:grid;
+    gap:0;
+  }
+}
+
+/* 화면 우측 운영진 플로팅 버튼이 목록/하단메뉴를 가리지 않도록 위로 이동 */
+#adminNavBtn,
+.admin-floating-btn{
+  bottom:calc(86px + env(safe-area-inset-bottom)) !important;
+}

@@ -29,10 +29,10 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V78-MATCH-REQUEST-INVITE";
+const APP_VERSION = "V102";
 
 let config = {
-  version: "V77 FINAL",
+  version: "V102",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
