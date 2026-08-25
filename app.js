@@ -1412,7 +1412,10 @@ async function loadRoomList(show = false) {
     const realMembers = apiMembers.filter(item => {
       const name=String(item.name||"").trim();
       const id=normalize(item.id||"");
-      return Boolean(name && id && validUsername(id));
+      const status=String(item.status||"ACTIVE");
+      if (!name) return false;
+      if (status === "SUSPENDED") return true;
+      return Boolean(id && validUsername(id));
     });
 
     roomAuditSource = realMembers.map((item) => ({
@@ -1420,11 +1423,15 @@ async function loadRoomList(show = false) {
       name: String(item.name || "").trim(),
       idRaw: String(item.id || "").trim(),
       id: normalize(item.id),
+      status: String(item.status || "ACTIVE"),
+      statusLabel: String(item.statusLabel || ""),
     }));
     roomList = realMembers.map((item, index) => ({
       no: item.no || index + 1,
       name: String(item.name || "").trim(),
       id: normalize(item.id),
+      status: String(item.status || "ACTIVE"),
+      statusLabel: String(item.statusLabel || ""),
     }));
 
     if (!roomList.length) throw new Error("API 명단 0명");
@@ -2953,3 +2960,9 @@ function isActualFollowMemberV90(row){
 
 $("inviteMonthlyTab")?.addEventListener("click",()=>{ inviteRankModeV92="monthly"; renderInviteRankV92(); });
 $("inviteTotalTab")?.addEventListener("click",()=>{ inviteRankModeV92="total"; renderInviteRankV92(); });
+
+
+/* V95 계정정지 회원 안전처리 */
+function canOpenInstagramV95(item){
+  return !!(item && item.status !== "SUSPENDED" && item.id);
+}

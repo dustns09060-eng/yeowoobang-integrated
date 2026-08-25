@@ -1339,3 +1339,21 @@ nav.bottom-nav,
   .invite-rank-tab{font-size:11px;padding:9px 5px}
   .invite-my-rank-card.dual strong{font-size:13px}
 }
+
+
+/* V95 계정정지 회원 */
+.suspended-label{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#f1f1f3;
+  color:#777078;
+  font-size:11px;
+  font-weight:900;
+}
+button:disabled[title="계정정지 회원"]{
+  opacity:.45;
+  cursor:not-allowed;
+  filter:grayscale(.35);
+}
