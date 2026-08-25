@@ -1108,3 +1108,12 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
   padding:10px 12px;
   line-height:1.5;
 }
+
+
+/* V85 운영진 간편 로그인 */
+#adminSimpleLoginForm .member-auth-title span{
+  line-height:1.55;
+}
+#adminSimpleLoginForm input{
+  width:100%;
+}

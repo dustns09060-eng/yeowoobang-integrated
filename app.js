@@ -509,6 +509,7 @@ function setGate(mode, message = "") {
   const roles = $("gateRoleSelect");
   const form = $("gateForm");
   const memberLoginForm = $("memberLoginForm");
+  const adminSimpleLoginForm = $("adminSimpleLoginForm");
   const memberRegisterForm = $("memberRegisterForm");
   const newMemberInviteForm = $("newMemberInviteForm");
   const memberForgotForm = $("memberForgotForm");
@@ -520,6 +521,7 @@ function setGate(mode, message = "") {
   roles.classList.add("hidden");
   form.classList.add("hidden");
   memberLoginForm?.classList.add("hidden");
+  adminSimpleLoginForm?.classList.add("hidden");
   memberRegisterForm?.classList.add("hidden");
   newMemberInviteForm?.classList.add("hidden");
   memberForgotForm?.classList.add("hidden");
@@ -534,6 +536,11 @@ function setGate(mode, message = "") {
     title.textContent = "여우방";
     text.textContent = "";
     roles.classList.remove("hidden");
+  } else if (mode === "adminSimple") {
+    title.textContent = "여우방";
+    text.textContent = "";
+    adminSimpleLoginForm?.classList.remove("hidden");
+    setTimeout(() => $("adminInstagram")?.focus(), 0);
   } else if (mode === "memberLogin") {
     title.textContent = "여우방";
     text.textContent = "";
@@ -769,6 +776,41 @@ async function loginMemberFromGate() {
   }
 }
 
+
+
+async function adminSimpleLoginFromGate() {
+  const instagram = normalize($("adminInstagram")?.value || "");
+  const password = String($("adminPassword")?.value || "").trim();
+
+  if (!instagram || !password) {
+    $("gateError").textContent = "운영진 인스타 아이디와 비밀번호를 입력해 주세요.";
+    return;
+  }
+
+  const btn = $("adminSimpleLoginBtn");
+  try {
+    btn.disabled = true;
+    btn.textContent = "확인 중...";
+    $("gateError").textContent = "";
+
+    const result = await apiPost("adminSimpleLogin", { instagram, password }, 15000);
+    if (!result?.ok || !result?.admin) throw new Error(result?.message || "운영진 로그인에 실패했습니다.");
+
+    localStorage.setItem("yeowoobang_admin_token", result.token || "");
+    localStorage.setItem("yeowoobang_admin_instagram", result.instagram || instagram);
+    localStorage.setItem("yeowoobang_role", "admin");
+
+    gate.classList.add("hidden");
+    appRoot?.classList.remove("hidden");
+    document.body.classList.add("is-admin");
+    await bootAfterLogin?.();
+  } catch (error) {
+    $("gateError").textContent = error.message || "운영진 로그인에 실패했습니다.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "운영진 모드 입장";
+  }
+}
 
 async function registerNewMemberInviteFromGate() {
   const inviteeName = String($("newMemberNickname")?.value || "").trim();
@@ -2359,6 +2401,15 @@ $("memberForgotBtn").onclick = resetMemberPasswordFromGate;
 $("memberLoginBackBtn").onclick = backToRoleSelect;
 $("backToMemberLoginBtn").onclick = () => { $("gateError").textContent = ""; setGate("memberLogin"); };
 $("memberRegisterBtn").onclick = registerMemberFromGate;
+
+if ($("adminSimpleLoginBtn")) $("adminSimpleLoginBtn").onclick = adminSimpleLoginFromGate;
+if ($("backFromAdminSimpleBtn")) $("backFromAdminSimpleBtn").onclick = () => {
+  $("gateError").textContent = "";
+  setGate("memberLogin");
+};
+if ($("adminPassword")) $("adminPassword").onkeydown = (event) => {
+  if (event.key === "Enter") adminSimpleLoginFromGate();
+};
 if ($("newMemberInviteSubmitBtn")) $("newMemberInviteSubmitBtn").onclick = registerNewMemberInviteFromGate;
 if ($("backFromNewMemberInviteBtn")) $("backFromNewMemberInviteBtn").onclick = () => {
   $("gateError").classList.remove("new-member-success");

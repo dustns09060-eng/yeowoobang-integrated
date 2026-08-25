@@ -187,7 +187,19 @@
         </button>
       </div>
 
-      <div id="memberLoginForm" class="gate-form member-auth-form hidden">
+      
+      <div id="adminSimpleLoginForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>⚙️ 운영진 로그인</strong>
+          <span>운영진 인스타 아이디와 운영진 비밀번호만 입력해 주세요.</span>
+        </div>
+        <input id="adminInstagram" type="text" autocapitalize="none" spellcheck="false" autocomplete="username" placeholder="운영진 인스타 아이디" />
+        <input id="adminPassword" type="password" inputmode="numeric" autocomplete="current-password" placeholder="운영진 비밀번호" />
+        <button id="adminSimpleLoginBtn" class="primary" type="button">운영진 모드 입장</button>
+        <button id="backFromAdminSimpleBtn" class="text-btn" type="button">뒤로</button>
+      </div>
+
+<div id="memberLoginForm" class="gate-form member-auth-form hidden">
         <div class="member-auth-title">
           <strong>회원 로그인</strong>
           <span>여우방 회원만 이용할 수 있어요.</span>
