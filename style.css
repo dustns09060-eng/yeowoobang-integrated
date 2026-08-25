@@ -1357,3 +1357,118 @@ button:disabled[title="계정정지 회원"]{
   cursor:not-allowed;
   filter:grayscale(.35);
 }
+
+
+/* =========================================================
+   V96 - 하단 메뉴 최종 정렬
+   팔로우리스트 / 맞팔확인 / 초대별 / 공지 = 정확히 4등분
+   운영진 버튼은 4등분 계산에서 제외하고 별도 플로팅 표시
+   ========================================================= */
+.bottom-nav.integrated-bottom-nav{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  grid-auto-flow:column !important;
+  gap:6px !important;
+  align-items:center !important;
+  left:50% !important;
+  right:auto !important;
+  transform:translateX(-50%) !important;
+  width:min(100%,560px) !important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom)) !important;
+  overflow:visible !important;
+  box-sizing:border-box !important;
+}
+
+.bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn){
+  position:relative !important;
+  display:grid !important;
+  grid-template-rows:24px 18px !important;
+  place-items:center !important;
+  align-content:center !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:58px !important;
+  margin:0 !important;
+  padding:5px 2px !important;
+  gap:2px !important;
+  border-radius:15px !important;
+  box-sizing:border-box !important;
+  text-align:center !important;
+}
+
+.bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn) .nav-icon{
+  display:block !important;
+  width:100% !important;
+  height:24px !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:24px !important;
+  font-size:20px !important;
+  text-align:center !important;
+}
+
+.bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn) > span:last-child{
+  display:block !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:18px !important;
+  font-size:11px !important;
+  font-weight:850 !important;
+  white-space:nowrap !important;
+  text-align:center !important;
+}
+
+/* 운영진은 하단 4개 메뉴의 폭을 건드리지 않음 */
+.bottom-nav.integrated-bottom-nav > #adminNavBtn{
+  position:absolute !important;
+  right:10px !important;
+  bottom:calc(76px + env(safe-area-inset-bottom)) !important;
+  width:48px !important;
+  min-width:48px !important;
+  height:48px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border-radius:50% !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:#fff !important;
+  border:1px solid #f0dce4 !important;
+  box-shadow:0 6px 20px rgba(60,35,45,.12) !important;
+  z-index:3 !important;
+}
+.bottom-nav.integrated-bottom-nav > #adminNavBtn.hidden{
+  display:none !important;
+}
+.bottom-nav.integrated-bottom-nav > #adminNavBtn .nav-icon{
+  font-size:21px !important;
+  line-height:1 !important;
+}
+.bottom-nav.integrated-bottom-nav > #adminNavBtn > span:last-child{
+  display:none !important;
+}
+
+@media(max-width:560px){
+  .bottom-nav.integrated-bottom-nav{
+    left:0 !important;
+    right:0 !important;
+    transform:none !important;
+    width:100% !important;
+    max-width:none !important;
+    gap:4px !important;
+    padding-left:8px !important;
+    padding-right:8px !important;
+  }
+  .bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn){
+    height:58px !important;
+  }
+}
+@media(max-width:360px){
+  .bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn) > span:last-child{
+    font-size:10px !important;
+  }
+  .bottom-nav.integrated-bottom-nav > .nav-btn:not(#adminNavBtn) .nav-icon{
+    font-size:19px !important;
+  }
+}
