@@ -825,21 +825,6 @@ body.gate-open{overflow:hidden}
 /* V4.1 초대 회원/관리자 분리 */
 .invite-page-head{margin-bottom:14px}.invite-brand{display:flex;align-items:center;gap:12px;margin-bottom:14px}.invite-brand-logo{width:58px;height:58px;border-radius:50%;object-fit:cover}.invite-brand h2{margin:0;font-size:27px}.invite-brand p{margin:4px 0 0;color:#777;font-size:13px}.invite-mode-tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid #e3e4e6;border-radius:16px;overflow:hidden;background:#fff}.invite-mode-tab{border:0;background:#fff;padding:16px;font-weight:900;font-size:16px}.invite-mode-tab.active{background:#111;color:#fff}.invite-card h3{margin-top:0}.invite-help-box{margin-top:12px;padding:13px 14px;border-radius:14px;background:#f7f7f7;color:#646464;font-size:13px;line-height:1.55}.invite-my-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 16px}.invite-my-stats article{border:1px solid #ececec;border-radius:14px;padding:12px;text-align:center}.invite-my-stats span{display:block;font-size:12px;color:#777}.invite-my-stats strong{display:block;font-size:23px;margin-top:4px}.invite-my-table,.invite-summary-table{overflow-x:auto}.invite-my-head,.invite-my-row{display:grid;grid-template-columns:1.2fr 1.2fr .9fr .7fr;gap:8px;min-width:560px;align-items:center}.invite-my-head{font-weight:900;font-size:12px;padding:10px 0;border-bottom:1px solid #eee}.invite-my-row{font-size:13px;padding:11px 0;border-bottom:1px solid #eee}.invite-admin-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}.invite-admin-topbar h3{margin:0}.invite-status-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.invite-status-tab{border:1px solid #ddd;background:#fff;border-radius:11px;padding:9px 13px;font-weight:800}.invite-status-tab.active{background:#111;color:#fff;border-color:#111}.invite-admin-search{width:100%;margin:4px 0 12px}.invite-admin-item{border:1px solid #e8e8e8;border-radius:14px;padding:13px}.invite-admin-item+.invite-admin-item{margin-top:9px}.invite-summary-head,.invite-summary-row{display:grid;grid-template-columns:1.8fr .6fr .6fr .6fr;gap:8px;align-items:center}.invite-summary-head{font-size:12px;font-weight:900;padding:10px 0;border-bottom:1px solid #eee}.invite-summary-row{font-size:13px;padding:10px 0;border-bottom:1px solid #eee}.invite-summary-row .numNick{display:flex;align-items:center;gap:7px;font-weight:800}.invite-summary-row .badgeNo{display:inline-flex;min-width:25px;height:25px;border-radius:7px;background:#f2f2f2;align-items:center;justify-content:center;font-size:11px}.invite-summary-row .total{font-weight:900}.invite-admin-login{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px}.invite-admin-login.hidden{display:none}.invite-admin-login-card{width:min(420px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.18)}.invite-admin-login-card h3{margin-top:0}.invite-admin-login-card input{width:100%;margin:12px 0}.invite-admin-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:700px){.invite-brand h2{font-size:24px}.invite-mode-tab{padding:14px 10px}.invite-my-stats{gap:6px}.invite-my-stats article{padding:10px 6px}}
 
-/* V4.3 폭스바겐 회원/운영진 연결 분리 */
-.fox-mode-card{position:relative}
-.fox-mode-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:999px;background:#f2f2f2;color:#666;font-size:12px;font-weight:900;white-space:nowrap}
-.fox-mode-badge.admin{background:#111;color:#fff}
-.fox-admin-notice{margin-top:13px;padding:13px 14px;border-radius:14px;background:#fff7ed;color:#8a4a12;font-size:13px;line-height:1.55}
-
-.invite-start-box{margin-top:12px;padding:14px;border:1px solid #e7e7e7;border-radius:15px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.invite-start-box strong{display:block;font-size:14px}.invite-start-box p{margin:5px 0 0;color:#777;font-size:12px;line-height:1.5}.invite-start-box button{width:auto;white-space:nowrap}
-.invite-admin-policy{padding:12px 13px;background:#f7f7f7;border-radius:13px;font-size:12px;line-height:1.55}.invite-admin-policy strong{display:block;margin-bottom:3px;font-size:13px}
-.invite-expel-summary{display:flex;align-items:center;gap:8px;margin:8px 0 14px;padding:11px 13px;border-radius:13px;background:#fff2f2;color:#a33535}.invite-expel-summary strong{font-size:20px}.invite-expel-summary small{margin-left:auto;font-weight:900}
-.invite-admin-item.expel{border-color:#f1b7b7;background:#fffafa}.invite-admin-item .joinMeta{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
-.invite-pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:#f3f3f3;font-size:11px;font-weight:800}.invite-pill.good{background:#eaf8ef;color:#147a43}.invite-pill.warn{background:#fff2f2;color:#b13232}
-@media(max-width:700px){.invite-start-box{align-items:stretch;flex-direction:column}.invite-start-box button{width:100%}}
-
-
 /* =========================================================
    V4.5 PINK UNIFIED UI
    기능은 유지하고 전체 색상/하단 메뉴만 통일
@@ -934,20 +919,6 @@ input:focus,textarea:focus,.search-wrap:focus-within{
 .invite-pill.good{background:#edf9f1;color:#247c4d}
 .invite-pill.warn{background:#fff0f2;color:#b43c55}
 
-/* 폭스바겐 */
-.fox-mode-badge{
-  background:#fff0f5;
-  color:#d65c7b;
-}
-.fox-mode-badge.admin{
-  background:#2a2a2a;
-  color:#fff;
-}
-.fox-admin-notice{
-  background:#fff2f6;
-  color:#9f4962;
-}
-
 /* 하단 메뉴: 항상 정확히 5개가 한 줄 */
 .bottom-nav.integrated-bottom-nav{
   display:grid!important;
@@ -1006,53 +977,6 @@ input:focus,textarea:focus,.search-wrap:focus-within{
   letter-spacing:.12em;
   border:1.5px solid #efbfd0!important;
 }
-
-/* V66 폭스바겐 내부 통합 */
-.fox-embedded-card{padding-bottom:14px}
-.fox-frame-wrap{
-  position:relative;
-  margin-top:14px;
-  border:1px solid #f0dce4;
-  border-radius:18px;
-  overflow:hidden;
-  background:#fff;
-  min-height:72vh;
-}
-.fox-frame{
-  display:block;
-  width:100%;
-  height:72vh;
-  border:0;
-  background:#fff;
-}
-.fox-frame-loading{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#fff8fb;
-  color:#c14d73;
-  font-weight:800;
-  z-index:2;
-}
-.fox-frame-loading.hidden{display:none}
-@media(max-width:760px){
-  .fox-embedded-card{
-    padding-left:10px;
-    padding-right:10px;
-  }
-  .fox-frame-wrap{
-    min-height:74vh;
-    border-radius:14px;
-  }
-  .fox-frame{
-    height:74vh;
-  }
-}
-
-@media(max-width:620px){.invite-admin-summary{grid-template-columns:repeat(2,1fr)}}
-
 
 /* =========================================================
    V67 MEMBER LOGIN
@@ -1139,3 +1063,7 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
 .v76-taskbox,.v76-member-detail{border:1px solid var(--line);border-radius:18px;padding:14px;background:var(--card)}.v76-task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.v76-task-card{border:1px solid var(--line);background:var(--white);color:var(--text);border-radius:16px;padding:13px 8px;display:grid;justify-items:center;gap:4px;cursor:pointer}.v76-task-card span{font-size:22px}.v76-task-card strong{font-size:21px}.v76-task-card small{font-size:11px;color:var(--muted);font-weight:850;text-align:center}.v76-detail-result{margin-top:12px}.v76-detail-card{border:1px solid var(--line);border-radius:17px;background:var(--white);padding:14px}.v76-detail-head{display:flex;justify-content:space-between;gap:10px;align-items:start;margin-bottom:12px}.v76-detail-head>div{display:grid;gap:4px}.v76-detail-head strong{font-size:17px}.v76-detail-head span{font-size:11px;color:var(--muted)}.v76-detail-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden}.v76-detail-grid div{padding:10px;border-bottom:1px solid var(--line)}.v76-detail-grid div:nth-child(odd){border-right:1px solid var(--line)}.v76-detail-grid div:nth-last-child(-n+2){border-bottom:0}.v76-detail-grid span{display:block;font-size:10px;color:var(--muted);font-weight:800;margin-bottom:3px}.v76-detail-grid strong{font-size:12px}.v76-detail-memo{margin:12px 0;padding:12px;border-radius:14px;background:#fff7ed}.v76-detail-memo p{margin:5px 0 0;font-size:12px;line-height:1.55}.v76-detail-card h4{margin:15px 0 8px}.v76-detail-activities{display:grid;gap:7px}.v76-detail-activity{padding:9px;border:1px solid var(--line);border-radius:12px;display:grid;gap:3px}.v76-detail-activity strong{font-size:12px}.v76-detail-activity span{font-size:11px}.v76-detail-activity small{font-size:10px;color:var(--muted)}
 :root[data-theme="dark"] .notification-item,:root[data-theme="dark"] .v76-task-card,:root[data-theme="dark"] .v76-detail-card{background:#1b1e24;border-color:#343841}:root[data-theme="dark"] .notification-item.unread{background:#2a2025;border-color:#704052}:root[data-theme="dark"] .v76-detail-memo{background:#28221b}
 @media(max-width:620px){.notification-btn{padding:8px;min-width:40px}.v76-task-grid{grid-template-columns:repeat(2,1fr)}.v76-detail-grid{grid-template-columns:1fr}.v76-detail-grid div:nth-child(odd){border-right:0}.v76-detail-grid div:nth-last-child(-n+2){border-bottom:1px solid var(--line)}.v76-detail-grid div:last-child{border-bottom:0}}
+
+/* V78 맞팔 요청 + 초대 누적 현황 */
+.match-item-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end}.match-request-send-btn{border:1px solid #f4c6d3;background:#fff3f7;color:#d94e73;border-radius:999px;padding:8px 10px;font-weight:900;font-size:12px}.match-request-send-btn:disabled{opacity:.4}.match-request-identity{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:15px;background:#fffafd}.match-request-id-row{display:grid;grid-template-columns:1fr auto;gap:8px}.match-request-verified{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 13px;margin:10px 0;border-radius:14px;background:#fff3f7}.match-request-tabs{display:flex;gap:8px;margin:12px 0}.match-request-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:900}.match-request-tab.active{border-color:#f06f94;background:#fff3f7;color:#d84b73}.match-request-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #eef0f2}.match-request-row strong,.match-request-row span{display:block}.match-request-row span{font-size:12px;color:var(--muted);margin-top:3px}.match-request-row-actions{display:flex;align-items:center;gap:6px}.request-status,.request-read-label{border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}.request-status.unread{background:#fff3f7;color:#d84b73}.request-status.read,.request-read-label{background:#ecfaf1;color:#178650}.match-request-period-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.match-request-period-grid label{font-size:12px;color:var(--muted);font-weight:900}.match-request-period-grid input{display:block;width:100%;margin-top:5px;border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit}.invite-leader-item{border-bottom:1px solid #eee}.invite-leader-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;padding:13px 2px;text-align:left}.invite-leader-row span b,.invite-leader-row span small{display:block}.invite-leader-row span small{font-size:11px;color:var(--muted);margin-top:3px}.invite-leader-row>strong{color:#ee6487}.invite-leader-row em{font-style:normal;font-size:11px;color:var(--muted)}.invite-leader-detail,.invite-summary-detail{padding:0 4px 12px}.invitee-chip-list,.invite-summary-detail{display:flex;gap:6px;flex-wrap:wrap}.invitee-chip-list span,.invite-summary-detail>span{display:inline-flex;padding:7px 9px;border-radius:999px;background:#fff3f7;border:1px solid #f4d4de;font-size:12px}.invite-summary-button{width:100%;border:0;background:transparent;text-align:left}.invite-summary-detail{padding:10px 4px 14px;border-bottom:1px solid #eee}
+@media(max-width:760px){.match-item-actions{grid-column:3;grid-row:1/3;flex-direction:column;align-items:stretch}.match-item-actions .insta,.match-request-send-btn{text-align:center}.match-request-id-row,.match-request-period-grid{grid-template-columns:1fr}.match-request-row{align-items:flex-start}.match-request-row-actions{flex-direction:column}.invite-leader-row{align-items:flex-start}}

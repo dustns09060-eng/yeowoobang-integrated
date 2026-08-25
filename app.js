@@ -5,6 +5,12 @@ let roomAuditSource = [];
 let matchRoomList = [];
 let result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [] };
 let currentTab = "all";
+let matchRequestIdentity = "";
+let matchRequestIdentityName = "";
+let matchRequestPeriod = { active:false, startAt:"", endAt:"" };
+let matchRequestData = { received:[], sent:[] };
+let matchRequestTab = "received";
+let pendingMatchRequestTarget = "";
 let currentGroup = 0;
 let currentCopyBatch = 0;
 let installPrompt = null;
@@ -23,7 +29,7 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V77-FINAL";
+const APP_VERSION = "V78-MATCH-REQUEST-INVITE";
 
 let config = {
   version: "V77 FINAL",
@@ -915,8 +921,7 @@ async function activateAdminMode(r, password) {
   if (r.publicConfig) publicConfig = r.publicConfig;
   setAdminNavigation(true);
   setAdminHeader(adminProfile);
-  updateFoxMode();
-  applyFollowLock(); applyMatchLock();
+applyFollowLock(); applyMatchLock();
   hideGate();
   await loadAfterAuth();
   showView("adminView");
@@ -966,8 +971,7 @@ function exitAdminModeToMember() {
   adminMemberRole="";
   adminProfile=null;
   setAdminNavigation(false);
-  updateFoxMode();
-  $("adminPanel")?.classList.add("hidden");
+$("adminPanel")?.classList.add("hidden");
   $("adminLoginCard")?.classList.add("hidden");
 
   if (memberSession?.token) {
@@ -1022,8 +1026,7 @@ async function submitGatePassword() {
       setMemberHeader(null);
       adminPasswordValue = password;
       try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
-      updateFoxMode();
-      accessGranted = true;
+accessGranted = true;
       matchGranted = true;
       followGranted = true;
       setAdminNavigation(true);
@@ -1608,15 +1611,23 @@ function logoutInviteAdmin(){inviteAdminLoggedIn=false;inviteAdminPasswordValue=
 function inviteStatusText(s){return s==="APPROVED"?"승인 완료":s==="REJECTED"?"거절":s==="CANCELLED"?"승인 취소":"승인 대기"}
 function renderInviteAdminList(){const q=($("inviteAdminSearch")?.value||"").trim().toLowerCase();let a=inviteAdminItemsCache.slice();if(inviteAdminFilter!=="ALL")a=a.filter(x=>x.status===inviteAdminFilter);if(q)a=a.filter(x=>[x.inviteeName,x.inviteeInstagram,x.inviterName,x.inviterInstagram].join(" ").toLowerCase().includes(q));$("inviteAdminList").innerHTML=a.length?a.map(x=>`<div class="invite-admin-item ${x.expelTarget?"expel":""}"><strong>${escapeHtml(x.inviteeName)} · ${escapeHtml(x.inviteeInstagram)}</strong><div class="route">초대한 사람 → <b>${escapeHtml(x.inviterName)}</b> · ${escapeHtml(x.inviterInstagram)}</div><div class="meta">${escapeHtml(x.createdAt||"")} · ${inviteStatusText(x.status)}</div>${x.status==="APPROVED"?`<div class="joinMeta"><span class="invite-pill">입장 D+${Number(x.daysSinceJoin||0)}</span><span class="invite-pill ${x.followStarted?"good":x.expelTarget?"warn":""}">${x.followStarted?`1번 시작 완료 · ${escapeHtml(x.followStartedAt||"")}`:"1번 시작 전"}</span>${x.canCancel?`<span class="invite-pill">승인 취소 가능 · ${escapeHtml(x.cancelDeadline||"")}까지</span>`:'<span class="invite-pill warn">7일 경과 · 승인 취소 불가</span>'}</div>`:""}${x.status==="CANCELLED"?`<div class="joinMeta"><span class="invite-pill warn">취소일 · ${escapeHtml(x.cancelledAt||"")}</span>${x.cancelReason?`<span class="invite-pill">${escapeHtml(x.cancelReason)}</span>`:""}</div>`:""}${x.status==="PENDING"?`<div class="invite-admin-actions"><button class="outline success-outline" data-invite-approve="${escapeHtml(x.id)}">승인</button><button class="outline danger-outline" data-invite-reject="${escapeHtml(x.id)}">거절</button></div>`:""}${x.status==="APPROVED"&&x.canCancel?`<div class="invite-admin-actions"><button class="outline danger-outline" data-invite-cancel="${escapeHtml(x.id)}" data-invite-name="${escapeHtml(x.inviteeName)}">승인 취소</button></div>`:""}</div>`).join(""):'<p class="state-text">표시할 기록이 없습니다.</p>'}
 async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteAdmin",{inviteAdminPassword:inviteAdminPasswordValue});inviteAdminItemsCache=d.items||[];$("invitePendingCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="PENDING").length;$("inviteApprovedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="APPROVED").length;$("inviteRejectedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="REJECTED").length;if($("inviteCancelledCount"))$("inviteCancelledCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="CANCELLED").length;if($("inviteExpelCount"))$("inviteExpelCount").textContent=inviteAdminItemsCache.filter(x=>x.expelTarget).length;renderInviteAdminList()}
-async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map(x=>`<div class="invite-summary-row"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0}</span></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>'}
+async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map((x,i)=>`<div class="invite-summary-wrap"><button class="invite-summary-row invite-summary-button" type="button" data-admin-invite-detail="${i}"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0} ▾</span></button><div id="adminInviteDetail${i}" class="invite-summary-detail hidden">${(x.invitees||[]).length?x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join(""):'<p class="state-text">기록된 초대 회원 닉네임이 없습니다.</p>'}</div></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>';$("inviteSummaryList").querySelectorAll("[data-admin-invite-detail]").forEach(b=>b.onclick=()=>$("adminInviteDetail"+b.dataset.adminInviteDetail)?.classList.toggle("hidden"));}
+
+async function loadInviteLeaderboard(){
+  const box=$("inviteLeaderboardList");if(!box)return;
+  try{
+    const d=await apiGet("getInviteLeaderboard",10000),items=(d.items||[]).filter(x=>Number(x.total||0)>0).sort((a,b)=>Number(b.total||0)-Number(a.total||0));
+    box.innerHTML=items.length?items.map((x,i)=>`<div class="invite-leader-item"><button class="invite-leader-row" type="button" data-invite-leader="${i}"><span><b>${escapeHtml(x.nickname||"")}</b><small>${escapeHtml(String(x.no||""))}번</small></span><strong>누적 ${Number(x.total||0)}명 <em>보기⌄</em></strong></button><div class="invite-leader-detail hidden" id="inviteLeaderDetail${i}">${(x.invitees||[]).length?`<div class="invitee-chip-list">${x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join("")}</div>`:'<p class="state-text">현재 프로그램에 기록된 초대 회원 닉네임이 없습니다.</p>'}${Number(x.previous||0)>0?`<p class="state-text">이전 누적 ${Number(x.previous||0)}명은 기존 집계값으로 닉네임 기록이 없을 수 있어요.</p>`:""}</div></div>`).join(""):'<p class="state-text">초대 누적 기록이 없습니다.</p>';
+    box.querySelectorAll("[data-invite-leader]").forEach(b=>b.onclick=()=>{const d=$(`inviteLeaderDetail${b.dataset.inviteLeader}`);d?.classList.toggle("hidden");});
+  }catch(e){box.innerHTML=`<p class="state-text">${escapeHtml(e.message||"누적 현황을 불러오지 못했습니다.")}</p>`;}
+}
+
 async function changeInviteStatus(id,status,reason=""){try{await apiPost("updateInviteStatus",{inviteAdminPassword:inviteAdminPasswordValue,id,status,reason});toast(status==="APPROVED"?"초대 승인 및 자동 반영 완료":status==="CANCELLED"?"승인 취소 완료 · 팔로우리스트와 초대 실적을 되돌렸어요.":"초대 거절 완료");await Promise.allSettled([loadInviteAdmin(),loadInviteSummary(),loadRoomList(true)])}catch(e){toast(e.message||"처리하지 못했습니다.")}}
 async function cancelInviteApproval(id,name){if(!confirm(`${name||"해당 회원"}의 승인을 취소할까요?\n\n팔로우리스트에서 삭제되고, 초대 실적과 누적도 1명 차감됩니다.`))return;const reason=prompt("승인 취소 사유를 입력해주세요.","7일 이내 퇴장");if(reason===null)return;await changeInviteStatus(id,"CANCELLED",reason.trim()||"7일 이내 퇴장")}
 
 
 
 
-const FOX_PUBLIC_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec";
-const FOX_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxnp91TwjUuE8kM_0TldXa32Tr2tc9WurG1WgpVcrmmExkcSAtSpmrzuBVWuJ9Qgk2_mQ/exec?admin=1";
 
 function isOperatorMode_() {
   // 운영진 로그인 상태를 한 가지 변수에만 의존하지 않도록 보강합니다.
@@ -1627,36 +1638,7 @@ function isOperatorMode_() {
   return Boolean(adminLoggedIn || adminPasswordValue || adminNavVisible || savedRole === "admin");
 }
 
-function updateFoxMode() {
-  const title = $("foxModeTitle");
-  const desc = $("foxModeDesc");
-  const badge = $("foxModeBadge");
-  const link = $("foxModeLink");
-  const notice = $("foxAdminNotice");
-  if (!title || !desc || !badge || !link) return;
-
-  if (isOperatorMode_()) {
-    title.textContent = "🚗 여우방 폭스바겐 운영진";
-    desc.textContent = "폭스바겐 협찬 등록 · 수정 · 삭제 · 참여 현황을 관리합니다.";
-    badge.textContent = "운영진용";
-    badge.classList.add("admin");
-    link.href = FOX_ADMIN_URL;
-    link.textContent = "폭스바겐 운영진 입장하기";
-    if (notice) notice.classList.remove("hidden");
-  } else {
-    title.textContent = "🚗 여우방 폭스바겐";
-    desc.textContent = "기존 폭스바겐 선착순 프로그램을 이용합니다.";
-    badge.textContent = "회원용";
-    badge.classList.remove("admin");
-    link.href = FOX_PUBLIC_URL;
-    link.textContent = "폭스바겐 입장하기";
-    if (notice) notice.classList.add("hidden");
-  }
-}
-
-function showView(id) {
-  if (id === "foxView") updateFoxMode();
-  document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
+function showView(id) {document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === id));
 
   if (id === "followView") {
@@ -1665,12 +1647,15 @@ function showView(id) {
 
   if (id === "matchView") {
     applyMatchLock();
+    prefillMatchRequestIdentity();
+    loadMatchRequestConfig().catch(()=>{});
     const canAnalyze = isMatchPeriodOpen() && (Boolean(memberSession?.token) || adminLoggedIn);
     if (canAnalyze && !matchRoomList.length) {
       loadMatchRoomList(false).catch(() => {});
     }
   }
 
+  if (id === "inviteView") loadInviteLeaderboard().catch(()=>{});
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1846,9 +1831,15 @@ function renderMatchList() {
           <a class="id" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener">@${escapeHtml(item.id)}</a>
         </div>
         <span class="badge ${item.status}">${statusLabel(item.status)}</span>
-        <a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
+        <div class="match-item-actions">
+          <a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
+          ${item.status === "mutual" ? "" : `<button class="match-request-send-btn" type="button" data-match-request-to="${escapeHtml(item.id)}" ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`}
+        </div>
       </div>`).join("")
     : '<div class="empty-state">결과가 없습니다.</div>';
+  document.querySelectorAll("[data-match-request-to]").forEach((button) => {
+    button.onclick = () => beginMatchRequest(button.dataset.matchRequestTo);
+  });
 }
 
 async function writeClipboardText(text) {
@@ -1909,6 +1900,83 @@ async function copyMentions() {
   } catch (error) {
     toast(error.message || "멘션 복사 실패");
   }
+}
+
+
+function matchRequestDateText(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+async function loadMatchRequestConfig() {
+  try {
+    const data=await apiGet("getMatchRequestConfig",8000);
+    matchRequestPeriod=data.period||{active:false,startAt:"",endAt:""};
+  } catch (_) { matchRequestPeriod={active:false,startAt:"",endAt:""}; }
+  const badge=$("matchRequestPeriodBadge");
+  if(badge){badge.textContent=matchRequestPeriod.active?"요청 가능":"기간 아님";badge.className=`lock-state ${matchRequestPeriod.active?"unlocked":"locked"}`;}
+  if($("matchRequestAdminBadge")){ $("matchRequestAdminBadge").textContent=matchRequestPeriod.active?"진행중":"기간 아님"; $("matchRequestAdminBadge").className=`lock-state ${matchRequestPeriod.active?"unlocked":"locked"}`; }
+  const text=$("matchRequestPeriodText");
+  if(text) text.textContent=matchRequestPeriod.startAt&&matchRequestPeriod.endAt?`${matchRequestDateText(matchRequestPeriod.startAt)} ~ ${matchRequestDateText(matchRequestPeriod.endAt)} · ${matchRequestPeriod.active?"현재 요청 가능":"현재 요청 불가"}`:"운영진이 맞팔 요청 기간을 설정하면 요청 기능이 열립니다.";
+  if($("matchRequestStartAt")) $("matchRequestStartAt").value=matchRequestPeriod.startAt?new Date(matchRequestPeriod.startAt).toISOString().slice(0,16):"";
+  if($("matchRequestEndAt")) $("matchRequestEndAt").value=matchRequestPeriod.endAt?new Date(matchRequestPeriod.endAt).toISOString().slice(0,16):"";
+  if(result.all.length) renderMatchList();
+}
+function prefillMatchRequestIdentity() {
+  if(matchRequestIdentity) return;
+  const id=normalize(memberSession?.member?.instagramId||"");
+  if(id && $("matchRequestMyInstagram")) $("matchRequestMyInstagram").value=`@${id}`;
+}
+async function verifyMatchRequestIdentity() {
+  const input=normalize($("matchRequestMyInstagram")?.value||memberSession?.member?.instagramId||"");
+  if(!input) return toast("내 인스타 아이디를 입력해주세요.");
+  try{
+    const data=await apiPost("verifyMatchRequestIdentity",{instagramId:input},10000);
+    matchRequestIdentity=normalize(data.member?.instagramId||input);
+    matchRequestIdentityName=String(data.member?.nickname||"");
+    $("matchRequestIdentityBox")?.classList.add("hidden");
+    $("matchRequestVerifiedBox")?.classList.remove("hidden");
+    if($("matchRequestVerifiedText")) $("matchRequestVerifiedText").textContent=`${matchRequestIdentityName||"회원"} · @${matchRequestIdentity}`;
+    await loadMatchRequests();
+    renderMatchList();
+    if(pendingMatchRequestTarget){const target=pendingMatchRequestTarget;pendingMatchRequestTarget="";await sendMatchRequest(target);}
+  }catch(e){if($("matchRequestIdentityMsg"))$("matchRequestIdentityMsg").textContent=e.message||"아이디를 확인하지 못했습니다.";toast(e.message||"아이디 확인 실패");}
+}
+function changeMatchRequestIdentity(){matchRequestIdentity="";matchRequestIdentityName="";$("matchRequestIdentityBox")?.classList.remove("hidden");$("matchRequestVerifiedBox")?.classList.add("hidden");if($("matchRequestList"))$("matchRequestList").innerHTML='<p class="state-text">내 아이디를 확인하면 요청 내역이 표시됩니다.</p>';prefillMatchRequestIdentity();renderMatchList();}
+function beginMatchRequest(target){
+  if(!matchRequestPeriod.active)return toast("현재는 맞팔 요청 가능 기간이 아닙니다.");
+  if(!matchRequestIdentity){pendingMatchRequestTarget=normalize(target);prefillMatchRequestIdentity();$("matchRequestSection")?.scrollIntoView({behavior:"smooth",block:"start"});$("matchRequestMyInstagram")?.focus();return toast("맞팔 요청을 보내기 전에 내 아이디를 확인해주세요.");}
+  void sendMatchRequest(target);
+}
+async function sendMatchRequest(target){
+  target=normalize(target);if(!target)return;
+  if(target===matchRequestIdentity)return toast("본인에게는 요청할 수 없습니다.");
+  if(!confirm(`@${target}님에게 맞팔 확인 요청을 보낼까요?`))return;
+  try{const data=await apiPost("sendMatchRequest",{fromInstagram:matchRequestIdentity,toInstagram:target},12000);toast(data.message||"맞팔 요청을 보냈습니다.");await loadMatchRequests();}
+  catch(e){toast(e.message||"맞팔 요청을 보내지 못했습니다.");}
+}
+async function loadMatchRequests(){
+  if(!matchRequestIdentity)return;
+  try{const data=await apiPost("getMatchRequests",{instagramId:matchRequestIdentity},12000);matchRequestData={received:data.received||[],sent:data.sent||[]};if($("receivedRequestCount"))$("receivedRequestCount").textContent=matchRequestData.received.filter(x=>x.status!=="READ").length;if($("sentRequestCount"))$("sentRequestCount").textContent=matchRequestData.sent.length;renderMatchRequestList();}
+  catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
+}
+function showMatchRequestTab(tab){matchRequestTab=tab;document.querySelectorAll(".match-request-tab").forEach(b=>b.classList.toggle("active",b.dataset.requestTab===tab));renderMatchRequestList();}
+function renderMatchRequestList(){
+  const box=$("matchRequestList");if(!box)return;
+  const items=matchRequestData[matchRequestTab]||[];
+  box.innerHTML=items.length?items.map(x=>{
+    const received=matchRequestTab==="received";const read=x.status==="READ"||!!x.readAt;
+    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions"><a class="insta" href="https://www.instagram.com/${encodeURIComponent(x.fromInstagram)}/" target="_blank" rel="noopener">↗ 열기</a>${read?'<span class="request-read-label">확인함</span>':`<button class="outline small" data-read-request="${escapeHtml(x.id)}" type="button">확인하기</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"확인함":"확인 전"}</span>`}</div>`;
+  }).join(""):'<p class="state-text">표시할 맞팔 요청이 없습니다.</p>';
+  box.querySelectorAll("[data-read-request]").forEach(b=>b.onclick=()=>markMatchRequestRead(b.dataset.readRequest));
+}
+async function markMatchRequestRead(id){try{await apiPost("markMatchRequestRead",{requestId:id,instagramId:matchRequestIdentity},10000);await loadMatchRequests();toast("맞팔 요청을 확인했습니다.");}catch(e){toast(e.message||"확인 처리 실패");}}
+async function saveMatchRequestPeriod(){
+  const startValue=$("matchRequestStartAt")?.value||"",endValue=$("matchRequestEndAt")?.value||"";
+  if(!startValue||!endValue)return toast("시작일과 종료일을 모두 입력해주세요.");
+  const data=await runAdminAction("setMatchRequestPeriod",{startAt:new Date(startValue).toISOString(),endAt:new Date(endValue).toISOString()},"맞팔 요청 기간을 저장했습니다.");
+  if(data){matchRequestPeriod=data.period||matchRequestPeriod;await loadMatchRequestConfig();}
 }
 
 function resetAnalysis() {
@@ -2141,8 +2209,7 @@ async function adminLogin() {
     adminLoggedIn = true;
     adminPasswordValue = password;
     try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
-    updateFoxMode();
-    $("adminLoginMsg").textContent = "";
+$("adminLoginMsg").textContent = "";
     showAdminPanel();
     renderRosterAudit();
     loadAdminLogs();
@@ -2280,6 +2347,12 @@ $("resetBtn").onclick = resetAnalysis;
 $("searchInput").oninput = renderMatchList;
 $("copyBtn").onclick = copyCurrent;
 $("mentionBtn").onclick = copyMentions;
+$("verifyMatchRequestIdentityBtn")?.addEventListener("click",verifyMatchRequestIdentity);
+$("changeMatchRequestIdentityBtn")?.addEventListener("click",changeMatchRequestIdentity);
+$("matchRequestMyInstagram")?.addEventListener("keydown",e=>{if(e.key==="Enter")verifyMatchRequestIdentity();});
+document.querySelectorAll(".match-request-tab").forEach(b=>b.addEventListener("click",()=>showMatchRequestTab(b.dataset.requestTab)));
+$("saveMatchRequestPeriodBtn")?.addEventListener("click",saveMatchRequestPeriod);
+$("refreshInviteLeaderboardBtn")?.addEventListener("click",loadInviteLeaderboard);
 
 document.querySelectorAll(".tab").forEach((button) => {
   button.onclick = () => showTab(button.dataset.tab);
@@ -2345,8 +2418,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   showGate();
   setGate("role");
   renderResumeCard();
-  updateFoxMode();
-  finishBootScreen();
+finishBootScreen();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js?v=730").catch(() => {});
@@ -2409,7 +2481,7 @@ async function searchAdminMembersV72(){
   if(!q){box.innerHTML='<p class="state-text">검색어를 입력해주세요.</p>';return;}
   box.innerHTML='<p class="state-text">검색 중...</p>';
   try{const d=await apiPost('getAdminMembers',{adminPassword:adminPasswordValue,query:q},12000);const items=d.items||[];
-    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''} · 폭스 ${escapeHtml(x.foxStatus||'정상')}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}<div class="v73-fox-actions"><button class="outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','정상')">폭스 정상</button><button class="outline danger-outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','제재')">제재</button><button class="outline danger-outline" onclick="setFoxPenaltyV73('${escapeHtml(x.memberId)}','영구금지')">영구금지</button></div></div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
+    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}</div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
     box.querySelectorAll('[data-v72-member]').forEach(b=>b.onclick=async()=>{if(!confirm(`이 계정을 ${b.dataset.v72Status} 상태로 변경할까요?`))return;try{await apiPost('setMemberAccountStatus',{adminPassword:adminPasswordValue,memberId:b.dataset.v72Member,status:b.dataset.v72Status},12000);toast('계정 상태를 변경했습니다.');await searchAdminMembersV72();await loadAdminDashboardV72();}catch(e){toast(e.message||'변경 실패');}});
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검색 실패')}</p>`;}
 }
@@ -2454,10 +2526,7 @@ async function copyMatchReportV73(){
   const items=v73MatchReport[v73ReportType]||[]; if(!items.length)return toast('복사할 명단이 없습니다.');
   await navigator.clipboard.writeText(items.map(x=>`${x.nickname}\t@${x.instagramId}`).join('\n'));toast(`${items.length}명 복사했습니다.`);
 }
-async function setFoxPenaltyV73(memberId,status){
-  if(!confirm(`폭스바겐 상태를 '${status}'로 변경할까요?`))return;
-  try{await apiPost('setVolkswagenPenaltyV73',{adminPassword:adminPasswordValue,memberId,status},12000);toast('폭스바겐 상태를 변경했습니다.');await searchAdminMembersV72();}catch(e){toast(e.message||'변경 실패');}
-}
+
 $('createBackupV73Btn')?.addEventListener('click',createBackupV73Ui);
 $('loadMatchReportV73Btn')?.addEventListener('click',loadMatchReportV73);
 $('copyMatchReportV73Btn')?.addEventListener('click',copyMatchReportV73);
@@ -2475,7 +2544,7 @@ async function loadV75Members(query='',newOnly=false){
 }
 function renderV75Members(){
   const box=$('v74MemberResults');
-  box.innerHTML=v74Members.length?v74Members.map(x=>`<div class="v72-member-row v74-member"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)}${x.day!==null?` · D+${x.day}`:''} · 회원 ${escapeHtml(x.memberStatus)} · 맞팔 ${escapeHtml(x.matchStatus)} · 폭스 ${escapeHtml(x.foxStatus)}</div><div class="meta">계정 ${escapeHtml(x.account?.status||'미등록')}${x.lastLogin?` · 최근로그인 ${escapeHtml(x.lastLogin)}`:''}</div><textarea id="memo-${escapeHtml(x.memberId)}" class="v74-memo" placeholder="운영진 메모">${escapeHtml(x.memo||'')}</textarea></div><div class="v72-member-actions"><button class="outline" onclick="saveV75Memo('${escapeHtml(x.memberId)}')">메모 저장</button><button class="outline success-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','승인완료')">정상</button><button class="outline danger-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','탈퇴')">탈퇴</button><button class="outline danger-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','강퇴')">강퇴</button></div></div>`).join(''):'<p class="state-text">해당 회원이 없습니다.</p>';
+  box.innerHTML=v74Members.length?v74Members.map(x=>`<div class="v72-member-row v74-member"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)}${x.day!==null?` · D+${x.day}`:''} · 회원 ${escapeHtml(x.memberStatus)} · 맞팔 ${escapeHtml(x.matchStatus)}</div><div class="meta">계정 ${escapeHtml(x.account?.status||'미등록')}${x.lastLogin?` · 최근로그인 ${escapeHtml(x.lastLogin)}`:''}</div><textarea id="memo-${escapeHtml(x.memberId)}" class="v74-memo" placeholder="운영진 메모">${escapeHtml(x.memo||'')}</textarea></div><div class="v72-member-actions"><button class="outline" onclick="saveV75Memo('${escapeHtml(x.memberId)}')">메모 저장</button><button class="outline success-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','승인완료')">정상</button><button class="outline danger-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','탈퇴')">탈퇴</button><button class="outline danger-outline" onclick="setV75Lifecycle('${escapeHtml(x.memberId)}','강퇴')">강퇴</button></div></div>`).join(''):'<p class="state-text">해당 회원이 없습니다.</p>';
 }
 async function saveV75Memo(id){try{await apiPost('saveMemberMemoV75',{adminPassword:adminPasswordValue,memberId:id,memo:$(`memo-${id}`)?.value||''},12000);toast('운영진 메모를 저장했습니다.');}catch(e){toast(e.message||'저장 실패');}}
 async function setV75Lifecycle(id,status){if(!confirm(`회원 상태를 '${status}'로 변경할까요?\n탈퇴/강퇴 시 로그인도 즉시 정지됩니다.`))return;try{await apiPost('setMemberLifecycleV75',{adminPassword:adminPasswordValue,memberId:id,status},12000);toast(`회원 상태를 ${status}로 변경했습니다.`);await loadV75Members($('v74MemberSearch')?.value.trim()||'');}catch(e){toast(e.message||'변경 실패');}}
@@ -2565,7 +2634,7 @@ async function loadMemberDetailV76(){
     const d=await apiPost('getMemberDetailV76',{adminPassword:adminPasswordValue,memberId:id},15000),m=d.member||{};
     const p=m.followProgress;
     const acts=(m.activities||[]).slice(0,8).map(a=>`<div class="v76-detail-activity"><strong>${escapeHtml(a.type||'활동')}</strong><span>${escapeHtml(a.content||'')}</span><small>${escapeHtml(a.at||'')}</small></div>`).join('')||'<p class="state-text">최근 활동기록이 없습니다.</p>';
-    box.innerHTML=`<div class="v76-detail-card"><div class="v76-detail-head"><div><strong>${escapeHtml(m.nickname||'')} · @${escapeHtml(m.instagramId||'')}</strong><span>MemberID ${escapeHtml(m.memberId||'')}</span></div><span class="lock-state ${m.memberStatus==='승인완료'?'unlocked':'locked'}">${escapeHtml(m.memberStatus||'')}</span></div><div class="v76-detail-grid"><div><span>가입일</span><strong>${escapeHtml(m.joinDate||'-')}</strong></div><div><span>최근 로그인</span><strong>${escapeHtml(m.lastLogin||m.accountLastLogin||'-')}</strong></div><div><span>계정</span><strong>${escapeHtml(m.accountStatus||'미등록')}</strong></div><div><span>폭스바겐</span><strong>${escapeHtml(m.foxStatus||'정상')}</strong></div><div><span>맞팔 제출</span><strong>${escapeHtml(m.matchStatus||'미제출')}</strong></div><div><span>오늘 팔로우</span><strong>${Number(m.todayFollowCount||0)}명</strong></div><div><span>이어보기</span><strong>${p?`${escapeHtml(p.no||'')}번 · ${escapeHtml(p.name||'')}`:'기록 없음'}</strong></div><div><span>초대 실적</span><strong>승인 ${Number(m.inviteStats?.approved||0)} · 대기 ${Number(m.inviteStats?.pending||0)}</strong></div></div>${m.memo?`<div class="v76-detail-memo"><strong>📝 운영진 메모</strong><p>${escapeHtml(m.memo)}</p></div>`:''}<h4>최근 활동</h4><div class="v76-detail-activities">${acts}</div></div>`;
+    box.innerHTML=`<div class="v76-detail-card"><div class="v76-detail-head"><div><strong>${escapeHtml(m.nickname||'')} · @${escapeHtml(m.instagramId||'')}</strong><span>MemberID ${escapeHtml(m.memberId||'')}</span></div><span class="lock-state ${m.memberStatus==='승인완료'?'unlocked':'locked'}">${escapeHtml(m.memberStatus||'')}</span></div><div class="v76-detail-grid"><div><span>가입일</span><strong>${escapeHtml(m.joinDate||'-')}</strong></div><div><span>최근 로그인</span><strong>${escapeHtml(m.lastLogin||m.accountLastLogin||'-')}</strong></div><div><span>계정</span><strong>${escapeHtml(m.accountStatus||'미등록')}</strong></div><div><span>맞팔 제출</span><strong>${escapeHtml(m.matchStatus||'미제출')}</strong></div><div><span>오늘 팔로우</span><strong>${Number(m.todayFollowCount||0)}명</strong></div><div><span>이어보기</span><strong>${p?`${escapeHtml(p.no||'')}번 · ${escapeHtml(p.name||'')}`:'기록 없음'}</strong></div><div><span>초대 실적</span><strong>승인 ${Number(m.inviteStats?.approved||0)} · 대기 ${Number(m.inviteStats?.pending||0)}</strong></div></div>${m.memo?`<div class="v76-detail-memo"><strong>📝 운영진 메모</strong><p>${escapeHtml(m.memo)}</p></div>`:''}<h4>최근 활동</h4><div class="v76-detail-activities">${acts}</div></div>`;
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'회원 정보를 불러오지 못했습니다.')}</p>`;}
 }
 
