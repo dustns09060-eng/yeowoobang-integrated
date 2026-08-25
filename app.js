@@ -449,6 +449,13 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError" || String(error?.message || "").toLowerCase().includes("aborted")) {
+      const timeoutError = new Error("서버 응답이 늦어 다시 시도해주세요.");
+      timeoutError.code = "TIMEOUT";
+      throw timeoutError;
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -462,22 +469,32 @@ async function loadConfig() {
     // app.js에 내장된 API 주소로 계속 진행합니다.
   }
 }
-async function apiGet(action, timeoutMs = 6000) {
+async function apiGet(action, timeoutMs = 15000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
-  const url = new URL(config.apiUrl);
-  url.searchParams.set("action", action);
-  url.searchParams.set("_t", Date.now().toString());
 
-  const response = await fetchWithTimeout(url.toString(), {
-    method: "GET",
-    cache: "no-store",
-    redirect: "follow",
-  }, timeoutMs);
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const url = new URL(config.apiUrl);
+    url.searchParams.set("action", action);
+    url.searchParams.set("_t", Date.now().toString());
+    try {
+      const response = await fetchWithTimeout(url.toString(), {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+      }, timeoutMs);
 
-  if (!response.ok) throw new Error(`API HTTP ${response.status}`);
-  const data = await response.json();
-  if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
-  return data;
+      if (!response.ok) throw new Error(`API HTTP ${response.status}`);
+      const data = await response.json();
+      if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
+      return data;
+    } catch (error) {
+      lastError = error;
+      if (error?.code !== "TIMEOUT" || attempt === 1) break;
+      await new Promise(resolve => setTimeout(resolve, 700));
+    }
+  }
+  throw lastError || new Error("API 요청 실패");
 }
 async function apiPost(action, payload = {}, timeoutMs = 9000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
@@ -1346,14 +1363,14 @@ function rowsToAuditSource(rows) {
   rows.forEach((row, index) => {
     const joined = row.join(" ");
     if (index === 0 && (joined.includes("번호") || joined.includes("닉네임") || joined.includes("아이디"))) return;
-    if (!row.some((cell) => String(cell || "").trim())) return;
 
-    list.push({
-      no: String(row[0] || "").trim(),
-      name: String(row[1] || "").trim(),
-      idRaw: String(row[2] || "").trim(),
-      id: normalize(row[2] || ""),
-    });
+    const no = String(row[0] || "").trim();
+    const name = String(row[1] || "").trim();
+    const idRaw = String(row[2] || "").trim();
+    const id = normalize(idRaw);
+
+    if (!no || !name || !id || !validUsername(id)) return;
+    list.push({ no, name, idRaw, id });
   });
   return list;
 }
@@ -1364,14 +1381,12 @@ function rowsToRoom(rows) {
     const joined = row.join(" ");
     if (index === 0 && (joined.includes("번호") || joined.includes("닉네임") || joined.includes("아이디"))) return;
 
-    const id = normalize(row[2] || row[1] || row[0]);
-    if (validUsername(id)) {
-      list.push({
-        no: row[0] || list.length + 1,
-        name: row[1] || "",
-        id,
-      });
-    }
+    const no = String(row[0] || "").trim();
+    const name = String(row[1] || "").trim();
+    const id = normalize(row[2] || "");
+
+    if (!no || !name || !id || !validUsername(id)) return;
+    list.push({ no, name, id });
   });
 
   const seen = new Set();
@@ -1807,7 +1822,7 @@ async function loadInviteLeaderboard(){
 
   try{
     $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
-    const d=await apiGet("getInviteLeaderboard",10000);
+    const d=await apiGet("getInviteLeaderboard",30000);
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
       invite:Number(x.invite||0),
