@@ -868,8 +868,8 @@ async function registerMemberFromGate() {
     $("gateError").textContent = "모든 항목을 입력해 주세요.";
     return;
   }
-  if (password.length < 6) {
-    $("gateError").textContent = "비밀번호는 6자 이상으로 설정해 주세요.";
+  if (!/^\d{4,6}$/.test(password)) {
+    $("gateError").textContent = "비밀번호는 숫자 4~6자리로 설정해 주세요.";
     return;
   }
   if (password !== confirm) {
@@ -935,7 +935,7 @@ async function changeMemberPasswordFromUi() {
   const confirm=$("newMemberPasswordConfirm")?.value||"";
   const msg=$("changePasswordMessage");
   if(!currentPassword||!newPassword||!confirm){if(msg)msg.textContent="모든 항목을 입력해 주세요.";return;}
-  if(newPassword.length<6){if(msg)msg.textContent="새 비밀번호는 6자 이상으로 설정해 주세요.";return;}
+  if(!/^\d{4,6}$/.test(newPassword)){if(msg)msg.textContent="새 비밀번호는 숫자 4~6자리로 설정해 주세요.";return;}
   if(newPassword!==confirm){if(msg)msg.textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
   try{
     const r=await apiPost("changeMemberPassword",{token:memberSession.token,currentPassword,newPassword},20000);
@@ -952,7 +952,7 @@ async function resetMemberPasswordFromGate(){
   const newPassword=$("memberForgotPassword")?.value||"";
   const confirm=$("memberForgotPasswordConfirm")?.value||"";
   if(!nickname||!instagramId||!memberId||!newPassword||!confirm){$("gateError").textContent="모든 항목을 입력해 주세요.";return;}
-  if(newPassword.length<6){$("gateError").textContent="새 비밀번호는 6자 이상으로 설정해 주세요.";return;}
+  if(!/^\d{4,6}$/.test(newPassword)){$("gateError").textContent="새 비밀번호는 숫자 4~6자리로 설정해 주세요.";return;}
   if(newPassword!==confirm){$("gateError").textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
   const btn=$("memberForgotBtn");
   try{btn.disabled=true;$("gateError").textContent="";const r=await apiPost("resetMemberPassword",{nickname,instagramId,memberId,newPassword},20000);toast(r.message||"새 비밀번호가 설정되었습니다.");setGate("memberLogin");$("memberLoginInstagram").value=instagramId;}
@@ -2741,3 +2741,7 @@ $("v76TaskRefreshBtn")?.addEventListener('click',loadAdminTaskboxV76);
 $("v76DetailBtn")?.addEventListener('click',loadMemberDetailV76);
 $("v76DetailId")?.addEventListener('keydown',e=>{if(e.key==='Enter')loadMemberDetailV76();});
 setInterval(()=>{if(memberSession?.token&&!document.hidden)void loadNotificationsV76();},5*60*1000);
+
+// V87 숫자 비밀번호 입력 제어
+const V87_NUMERIC_PASSWORD_IDS=["adminPassword","memberLoginPassword","memberForgotPassword","memberForgotPasswordConfirm","memberRegisterPassword","memberRegisterPasswordConfirm","operatorPassword","adminModePassword","currentMemberPassword","newMemberPassword","newMemberPasswordConfirm"];
+window.addEventListener("DOMContentLoaded",()=>V87_NUMERIC_PASSWORD_IDS.forEach(id=>{const el=$(id);if(!el)return;el.setAttribute("inputmode","numeric");el.setAttribute("pattern","[0-9]*");el.setAttribute("minlength","4");el.setAttribute("maxlength","6");el.addEventListener("input",()=>{el.value=String(el.value||"").replace(/\D/g,"").slice(0,6);});}));
