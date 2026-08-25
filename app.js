@@ -503,23 +503,35 @@ async function apiGet(action, timeoutMs = 15000) {
 async function apiPost(action, payload = {}, timeoutMs = 9000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
-  const params = new URLSearchParams();
-  params.set("action", action);
-  if (adminLoggedIn && adminModeToken) params.set("adminModeToken", adminModeToken);
-  Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      params.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
-    }
-  });
+  const requestBody = {
+    action,
+    ...payload
+  };
+  if (adminLoggedIn && adminModeToken && !requestBody.adminModeToken) {
+    requestBody.adminModeToken = adminModeToken;
+  }
 
   const response = await fetchWithTimeout(config.apiUrl, {
     method: "POST",
-    body: params,
+    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+    body: JSON.stringify(requestBody),
+    cache: "no-store",
     redirect: "follow",
   }, timeoutMs);
 
   if (!response.ok) throw new Error(`API HTTP ${response.status}`);
-  const data = await response.json();
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (_) {
+    const preview = String(text || "").replace(/\s+/g, " ").slice(0, 120);
+    throw new Error(preview
+      ? `서버 응답 형식을 확인해주세요. (${preview})`
+      : "서버에서 빈 응답을 받았습니다.");
+  }
+
   if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
   return data;
 }
