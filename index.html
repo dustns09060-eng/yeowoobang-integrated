@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json?v=720" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=760" />
+  <link rel="stylesheet" href="style.css?v=990" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -329,7 +329,13 @@
     </section>
 
     <section id="followView" class="view active">
-<div id="followContent">
+<div id="followLockedCard" class="follow-locked-card hidden">
+        <div class="follow-locked-icon">🔒</div>
+        <strong>현재 팔로우리스트 이용이 잠겨 있습니다.</strong>
+        <p id="followLockedMessage">운영진이 이용 가능 시간에 열어드려요.</p>
+        <small id="followLockedPeriod"></small>
+      </div>
+      <div id="followContent">
         <section class="card">
           <div class="section-title-row">
             <div><h2>팔로우리스트</h2></div>
@@ -702,6 +708,27 @@
 
         <hr />
         <hr />
+        <div class="setting-block follow-lock-admin">
+          <div class="section-title-row">
+            <div><h3>👥 팔로우리스트 잠금</h3><p class="subtext">회원의 팔로우리스트 이용만 따로 열고 닫을 수 있어요. 운영진은 잠금 중에도 확인할 수 있습니다.</p></div>
+            <span id="followLockState" class="lock-state unlocked">사용 가능</span>
+          </div>
+          <div class="admin-actions">
+            <button id="lockFollowBtn" class="outline danger-outline" type="button">🔒 지금 잠그기</button>
+            <button id="unlockFollowBtn" class="outline success-outline" type="button">🔓 지금 열기</button>
+          </div>
+          <div class="follow-lock-period-grid">
+            <label>예약 잠금 시작<input id="followLockStartAdmin" type="datetime-local" /></label>
+            <label>예약 잠금 종료<input id="followLockEndAdmin" type="datetime-local" /></label>
+          </div>
+          <div class="admin-actions">
+            <button id="saveFollowLockPeriodBtn" class="outline" type="button">예약 잠금 저장</button>
+            <button id="clearFollowLockPeriodBtn" class="outline" type="button">예약 해제</button>
+          </div>
+          <p id="followLockAdminMessage" class="subtext"></p>
+        </div>
+
+        <hr />
         <div class="setting-block">
           <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 완료/지연 투표와 ZIP 맞팔분석이 함께 활성화됩니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
           <div class="admin-actions"><button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 기간 종료</button><button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 기간 시작</button></div>
@@ -873,7 +900,7 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=780"></script>
+  <script src="app.js?v=990"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

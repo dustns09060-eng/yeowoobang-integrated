@@ -1183,6 +1183,7 @@ async function refreshPublicConfig(recheck = true) {
   const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
   publicConfig = await apiGet("publicConfig");
   updateLockIndicators();
+  syncFollowLockAdminV99?.();
   applyFollowLock();
   applyMatchLock();
   loadMatchVoteStatus().catch(()=>{});
@@ -1233,8 +1234,31 @@ function updateLockIndicators() {
 }
 
 function applyFollowLock() {
-  const signedIn = Boolean(memberSession?.token) || adminLoggedIn;
-  $("followContent")?.classList.toggle("hidden", !signedIn);
+  const signedIn=Boolean(memberSession?.token)||adminLoggedIn;
+  const locked=Boolean(publicConfig?.followLocked);
+  const blocked=signedIn && locked && !adminLoggedIn;
+
+  $("followContent")?.classList.toggle("hidden", !signedIn || blocked);
+  $("followLockedCard")?.classList.toggle("hidden", !blocked);
+
+  if(blocked){
+    const scheduled=Boolean(publicConfig?.followScheduledLocked);
+    $("followLockedMessage").textContent=scheduled
+      ?"운영진이 설정한 예약 잠금 시간입니다."
+      :"운영진이 팔로우리스트 이용을 잠시 잠갔습니다.";
+    const s=publicConfig?.followLockStartAt||"";
+    const e=publicConfig?.followLockEndAt||"";
+    $("followLockedPeriod").textContent=scheduled && s && e
+      ? `${formatFollowLockDateV99(s)} ~ ${formatFollowLockDateV99(e)}`
+      :"";
+  }
+}
+
+function formatFollowLockDateV99(value){
+  if(!value)return "";
+  const d=new Date(value);
+  if(isNaN(d.getTime()))return String(value);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
 
 
@@ -2983,3 +3007,45 @@ $("inviteTotalTab")?.addEventListener("click",()=>{ inviteRankModeV92="total"; r
 function canOpenInstagramV95(item){
   return !!(item && item.status !== "SUSPENDED" && item.id);
 }
+
+
+/* V99 팔로우리스트 잠금 운영진 제어 */
+function syncFollowLockAdminV99(){
+  if($("followLockStartAdmin") && document.activeElement!==$("followLockStartAdmin")){
+    $("followLockStartAdmin").value=toLocalDateTimeInputV99(publicConfig?.followLockStartAt||"");
+  }
+  if($("followLockEndAdmin") && document.activeElement!==$("followLockEndAdmin")){
+    $("followLockEndAdmin").value=toLocalDateTimeInputV99(publicConfig?.followLockEndAt||"");
+  }
+}
+function toLocalDateTimeInputV99(v){
+  if(!v)return "";
+  const d=new Date(v); if(isNaN(d.getTime()))return "";
+  const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+async function setFollowLockV99(locked){
+  if(!adminLoggedIn){toast("운영진모드에서 설정해주세요.");return}
+  try{
+    await apiPost("setFollowLock",{adminPassword:adminPasswordValue,locked:Boolean(locked)},15000);
+    await refreshPublicConfig(false);
+    syncFollowLockAdminV99();
+    toast(locked?"팔로우리스트를 잠갔습니다.":"팔로우리스트를 열었습니다.");
+  }catch(e){toast(e.message||"팔로우리스트 잠금 설정에 실패했습니다.")}
+}
+async function saveFollowLockPeriodV99(clear=false){
+  if(!adminLoggedIn){toast("운영진모드에서 설정해주세요.");return}
+  const start=clear?"":($("followLockStartAdmin")?.value||"");
+  const end=clear?"":($("followLockEndAdmin")?.value||"");
+  if(!clear && (!start||!end)){toast("시작과 종료 시간을 모두 입력해주세요.");return}
+  try{
+    await apiPost("setFollowLockPeriod",{adminPassword:adminPasswordValue,startAt:start,endAt:end},15000);
+    await refreshPublicConfig(false);
+    syncFollowLockAdminV99();
+    toast(clear?"팔로우리스트 예약 잠금을 해제했습니다.":"팔로우리스트 예약 잠금을 저장했습니다.");
+  }catch(e){toast(e.message||"예약 잠금 설정에 실패했습니다.")}
+}
+$("lockFollowBtn")?.addEventListener("click",()=>setFollowLockV99(true));
+$("unlockFollowBtn")?.addEventListener("click",()=>setFollowLockV99(false));
+$("saveFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(false));
+$("clearFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(true));

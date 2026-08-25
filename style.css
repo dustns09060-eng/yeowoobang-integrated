@@ -1329,3 +1329,33 @@ button:disabled[title="계정정지 회원"]{
   .bottom-nav.integrated-bottom-nav>.nav-btn:not(#adminNavBtn)>span:last-child{font-size:10px !important}
   .bottom-nav.integrated-bottom-nav>.nav-btn:not(#adminNavBtn) .nav-icon{font-size:19px !important}
 }
+
+
+/* V99 팔로우리스트 잠금 */
+.follow-locked-card{
+  margin:18px 0;
+  padding:34px 20px;
+  border:1px solid #f0dce4;
+  border-radius:22px;
+  background:#fff9fb;
+  text-align:center;
+}
+.follow-locked-icon{font-size:38px;margin-bottom:10px}
+.follow-locked-card strong{display:block;font-size:16px;color:#493e43}
+.follow-locked-card p{margin:8px 0 4px;font-size:13px;color:#82747a}
+.follow-locked-card small{display:block;color:#e2577e;font-weight:800}
+.follow-lock-period-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:10px 0;
+}
+.follow-lock-period-grid label{
+  display:grid;gap:5px;font-size:11px;font-weight:800;color:#75686e;
+}
+.follow-lock-period-grid input{
+  width:100%;box-sizing:border-box;
+}
+@media(max-width:520px){
+  .follow-lock-period-grid{grid-template-columns:1fr}
+}
