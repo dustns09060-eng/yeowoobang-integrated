@@ -1515,6 +1515,12 @@ function sheetUrl() {
   return `https://docs.google.com/spreadsheets/d/${config.sheetId}/edit`;
 }
 
+// V135: 운영진 모드의 '구글시트 열기'는 실제 공용 팔로우리스트 원본을 엽니다.
+function adminFollowSheetUrlV135() {
+  const followSheetId = "1NAgOFZfmrKlzIM4uyArZ11FssYQqDSiSOS5iYySA1hA";
+  return `https://docs.google.com/spreadsheets/d/${followSheetId}/edit`;
+}
+
 function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -2810,7 +2816,7 @@ document.querySelectorAll(".tab").forEach((button) => {
 $("adminLoginBtn").onclick = adminLogin;
 $("adminPassword").onkeydown = (event) => { if (event.key === "Enter") adminLogin(); };
 $("adminLogoutBtn").onclick = adminLogout;
-$("openSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
+$("openSheetBtn").onclick = () => window.open(adminFollowSheetUrlV135(), "_blank");
 $("adminRefreshBtn").onclick = async () => {
   await Promise.allSettled([refreshPublicConfig(false), loadRoomList(true), loadMatchRoomList(true, true), loadNotices(false), loadAdminLogs(), loadInviteAdmin()]);
   renderRosterAudit();
