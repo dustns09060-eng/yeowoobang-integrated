@@ -1,3 +1,4 @@
+/* V118 체감속도 최적화 + Supabase 세션브리지 */
 const $ = (id) => document.getElementById(id);
 
 let roomList = [];
@@ -29,7 +30,7 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V102";
+const APP_VERSION = "V118";
 
 let config = {
   version: "V102",
@@ -350,16 +351,53 @@ function unique(values) {
 
 
 function saveFollowListCache(list) {
-  // V104: 팔로우리스트 원본을 브라우저 저장소에 남기지 않습니다.
+  // V118: 로그인된 현재 탭(sessionStorage)에서만 잠깐 캐시합니다.
+  // 브라우저를 닫거나 로그아웃하면 사라지며 localStorage에는 명단을 저장하지 않습니다.
   try { localStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
-  try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+  if (!memberSession?.token || !Array.isArray(list) || !list.length) return false;
+  try {
+    sessionStorage.setItem(FOLLOW_LIST_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      memberId: String(memberSession?.member?.memberId || memberSession?.member?.id || ""),
+      list
+    }));
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function restoreFollowListCache() {
-  // V104: 로그인 전/로그아웃 후 캐시에서 명단을 복원하지 않습니다.
+  // 로그인 성공 뒤에만 같은 탭의 직전 명단을 즉시 표시합니다.
   try { localStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
-  try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
-  return false;
+  if (!memberSession?.token) return false;
+  try {
+    const raw = sessionStorage.getItem(FOLLOW_LIST_CACHE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved || !Array.isArray(saved.list) || !saved.list.length) return false;
+    if (Date.now() - Number(saved.savedAt || 0) > FOLLOW_LIST_CACHE_MAX_AGE) {
+      sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY);
+      return false;
+    }
+    const currentMemberId = String(memberSession?.member?.memberId || memberSession?.member?.id || "");
+    if (saved.memberId && currentMemberId && saved.memberId !== currentMemberId) {
+      sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY);
+      return false;
+    }
+    roomList = saved.list;
+    setSheetState("캐시 표시 · 최신 확인 중");
+    updateFollowStats();
+    renderGroupTabs();
+    renderCopyBatches();
+    renderFollowList();
+    renderResumeCard();
+    updateFollowWatermarkV104?.();
+    return true;
+  } catch (_) {
+    try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+    return false;
+  }
 }
 
 function scheduleNoticeLoad(delay = 2000) {
@@ -742,10 +780,15 @@ async function completeMemberLogin(result, showToast = true) {
   setAdminNavigation(false);
   setMemberHeader(result.member);
   hideGate();
-  await loadAfterAuth();
-  await loadMemberFollowProgress();
-  void loadNotificationsV76();
+
+  // V118: 메인 화면을 먼저 보여주고, 네트워크 작업은 뒤에서 병렬 처리합니다.
   showView("followView");
+  void loadAfterAuth();
+  void loadMemberFollowProgress();
+  window.setTimeout(() => {
+    if (memberSession?.token) void loadNotificationsV76();
+  }, 1200);
+
   if (showToast) toast(`${result.member.nickname || "회원"}님, 반가워요 🦊`);
 }
 
@@ -763,17 +806,20 @@ async function loginMemberFromGate() {
     $("gateError").textContent = "";
     // V107: Supabase가 활성화된 경우 먼저 서버 인증/회원상태를 검증합니다.
     // 검증 후에는 기존 Apps Script 세션도 발급받아 기존 기능을 그대로 유지합니다.
-    if (window.YW_SUPABASE_AUTH_V107) {
+    let result;
+    if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
       const supabaseResult = await window.YW_SUPABASE_AUTH_V107.signIn(instagramId, password);
-      if (supabaseResult && !supabaseResult.skipped) {
-        const sm = supabaseResult.member || {};
-        if (String(sm.status || '').toLowerCase() !== 'active') {
-          throw new Error('현재 로그인할 수 없는 회원 상태입니다.');
-        }
+      const sm = supabaseResult.member || {};
+      if (String(sm.status || '').toLowerCase() !== 'active') {
+        throw new Error('현재 로그인할 수 없는 회원 상태입니다.');
       }
+      result = await apiPost("supabaseMemberSessionV114", {
+        accessToken: supabaseResult.access_token
+      }, 20000);
+    } else {
+      // 비상용 레거시 폴백. Supabase 설정이 꺼진 경우에만 사용됩니다.
+      result = await apiPost("memberLogin", { instagramId, password }, 15000);
     }
-
-    const result = await apiPost("memberLogin", { instagramId, password }, 15000);
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
   } catch (error) {
@@ -894,18 +940,19 @@ async function registerMemberFromGate() {
     btn.textContent = "회원 확인 중...";
     $("gateError").textContent = "";
 
-    // V111: Supabase에 기존회원 최초 계정을 먼저 생성/연결한다.
-    if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
-      await window.YW_SUPABASE_AUTH_V107.registerExistingMember(nickname, instagramId, registrationCode, password);
-    }
-
-    btn.textContent = "기존 기능 연결 중...";
+    // V117: Supabase에 최초 계정을 만들고, 발급된 access token으로 기존 프로그램 세션만 연결한다.
     let result;
-    try {
+    if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
+      const supabaseResult = await window.YW_SUPABASE_AUTH_V107.registerExistingMember(
+        nickname, instagramId, registrationCode, password
+      );
+      btn.textContent = "프로그램 연결 중...";
+      result = await apiPost("supabaseMemberSessionV114", {
+        accessToken: supabaseResult.access_token
+      }, 20000);
+    } else {
+      // Supabase를 의도적으로 끈 경우의 비상용 폴백
       result = await apiPost("registerMemberAccount", { nickname, instagramId, password }, 20000);
-    } catch (registerError) {
-      // Apps Script 쪽 계정이 이미 만들어져 있다면 로그인으로 이어간다.
-      result = await apiPost("memberLogin", { instagramId, password }, 15000);
     }
 
     await completeMemberLogin(result, false);
@@ -982,7 +1029,7 @@ async function resetMemberPasswordFromGate(){
   if(!/^\d{4,6}$/.test(newPassword)){$("gateError").textContent="새 비밀번호는 숫자 4~6자리로 설정해 주세요.";return;}
   if(newPassword!==confirm){$("gateError").textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
   const btn=$("memberForgotBtn");
-  try{btn.disabled=true;$("gateError").textContent="";const r=await apiPost("resetMemberPassword",{nickname,instagramId,memberId,newPassword},20000);toast(r.message||"새 비밀번호가 설정되었습니다.");setGate("memberLogin");$("memberLoginInstagram").value=instagramId;}
+  try{btn.disabled=true;$("gateError").textContent="비밀번호 재설정은 운영진에게 문의해 주세요.";return;}
   catch(e){$("gateError").textContent=e.message||"비밀번호 재설정에 실패했습니다.";}
   finally{btn.disabled=false;}
 }
@@ -993,6 +1040,7 @@ function logoutMember() {
   memberTodayFollowCount = null;
   memberFollowProgressLoaded = false;
   clearMemberSessionStorage();
+  try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
   accessGranted = false;
   matchGranted = false;
   followGranted = false;
@@ -1489,6 +1537,7 @@ async function loadRoomList(show = false) {
 
     if (!roomList.length) throw new Error("팔로우리스트를 불러오지 못했습니다.");
 
+    saveFollowListCache(roomList);
     setSheetState("정상");
     updateFollowStats();
     renderGroupTabs();
@@ -1499,6 +1548,12 @@ async function loadRoomList(show = false) {
     if (adminLoggedIn) renderRosterAudit();
     if (show) toast("명단 새로고침 완료");
   } catch (error) {
+    // V118: 이미 로그인 후 캐시 명단을 표시 중이면 0명으로 덮어쓰지 않습니다.
+    if (roomList.length) {
+      setSheetState("기존 명단 표시 · 새로고침 실패");
+      if (show) toast(error.message || "최신 명단 확인이 늦어 기존 명단을 표시합니다.");
+      return;
+    }
     roomList=[];
     setSheetState("접근 제한");
     renderGroupTabs();
@@ -2683,25 +2738,24 @@ window.addEventListener("DOMContentLoaded", async () => {
 finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=730").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=1180").catch(() => {});
   }
 
-  // 로컬 설정과 서버 상태는 백그라운드에서 읽습니다.
-  loadConfig()
-    .then(() => bootstrapAuth())
-    .catch(() => bootstrapAuth());
+  // V118: app.js에 API 주소가 내장되어 있으므로 config.json을 기다리지 않고 즉시 인증을 시작합니다.
+  void loadConfig();
+  void bootstrapAuth();
 
   setInterval(async () => {
     if (!document.hidden && accessGranted) {
       try { await refreshPublicConfig(true); } catch (_) {}
     }
-  }, 30000);
+  }, 300000);
 
   setInterval(async () => {
     if (!document.hidden && accessGranted) {
       await loadNotices(true).catch(() => {});
     }
-  }, 120000);
+  }, 600000);
 });
 
 
@@ -2907,7 +2961,7 @@ $("notificationModal")?.addEventListener('click',e=>{if(e.target?.id==='notifica
 $("v76TaskRefreshBtn")?.addEventListener('click',loadAdminTaskboxV76);
 $("v76DetailBtn")?.addEventListener('click',loadMemberDetailV76);
 $("v76DetailId")?.addEventListener('keydown',e=>{if(e.key==='Enter')loadMemberDetailV76();});
-setInterval(()=>{if(memberSession?.token&&!document.hidden)void loadNotificationsV76();},5*60*1000);
+setInterval(()=>{if(memberSession?.token&&!document.hidden)void loadNotificationsV76();},15*60*1000);
 
 // V87 숫자 비밀번호 입력 제어
 const V87_NUMERIC_PASSWORD_IDS=["adminPassword","memberLoginPassword","memberForgotPassword","memberForgotPasswordConfirm","memberRegisterPassword","memberRegisterPasswordConfirm","operatorPassword","adminModePassword","currentMemberPassword","newMemberPassword","newMemberPasswordConfirm"];
