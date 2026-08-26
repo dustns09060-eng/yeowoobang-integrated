@@ -2776,7 +2776,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=1200").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=1210").catch(() => {});
   }
 
   // V118: app.js에 API 주소가 내장되어 있으므로 config.json을 기다리지 않고 즉시 인증을 시작합니다.

@@ -1,10 +1,10 @@
 /* V117 */
-const CACHE = "yeowoobang-v120-fast-login";
+const CACHE = "yeowoobang-v121-invite-layout";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=1200",
+  "./style.css?v=1210",
   "./app.js?v=1200",
   "./supabase-auth-v107.js?v=1200",
   "./supabase-auth-v107.json?v=1200",
