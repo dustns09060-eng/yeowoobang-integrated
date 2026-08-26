@@ -1580,3 +1580,158 @@ code{
 /* V127 - 운영진 의견 반영: 핵심 기능 중심 */
 .invite-benefit-card{overflow:hidden}.invite-benefit-groups{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.invite-benefit-groups article{padding:15px;border:1px solid #f0e3e8;border-radius:16px;background:#fffafb}.invite-benefit-groups article>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.invite-benefit-groups p{margin:12px 0 0;line-height:1.7;color:#555}.benefit-badge{font-size:12px;font-weight:900;padding:5px 8px;border-radius:999px;background:#f4f1f2;color:#666}.benefit-person{display:inline-block;margin:2px 5px 2px 0;padding:5px 8px;border-radius:999px;background:#fff;color:#333;border:1px solid #f1dfe6;font-weight:700}.benefit-person.me{background:#fff0f5;border-color:#f29ab8;color:#d93d75}
 @media(max-width:700px){.invite-benefit-groups{grid-template-columns:1fr}.integrated-bottom-nav .nav-btn span:last-child{font-size:11px}}
+
+
+/* ============================================================
+   V134 - 다크모드 가독성 보정
+   밝은 카드 안 텍스트는 어두운 색으로 고정하고,
+   어두운 카드/배경 위 텍스트는 밝게 유지합니다.
+   ============================================================ */
+body.dark-mode,
+html.dark-mode body,
+body.dark {
+  color: #f3f4f6;
+}
+
+/* 밝은 카드/패널 내부 텍스트 */
+body.dark-mode .card:not(.dark-card),
+body.dark-mode .white-card,
+body.dark-mode .benefit-card,
+body.dark-mode .achievement-card,
+body.dark-mode .invite-rank-card,
+body.dark-mode .rank-card,
+body.dark-mode .member-card,
+body.dark-mode .list-card,
+body.dark-mode .panel.light,
+body.dark .card:not(.dark-card),
+body.dark .white-card,
+body.dark .benefit-card,
+body.dark .achievement-card,
+body.dark .invite-rank-card,
+body.dark .rank-card,
+body.dark .member-card,
+body.dark .list-card,
+body.dark .panel.light {
+  color: #191919 !important;
+}
+
+/* 밝은 카드 안의 일반 텍스트/라벨 */
+body.dark-mode .benefit-card *,
+body.dark-mode .achievement-card *,
+body.dark-mode .invite-rank-card *,
+body.dark-mode .rank-card *,
+body.dark-mode .white-card *,
+body.dark .benefit-card *,
+body.dark .achievement-card *,
+body.dark .invite-rank-card *,
+body.dark .rank-card *,
+body.dark .white-card * {
+  color: inherit;
+}
+
+/* 보조문구는 너무 흐리지 않게 */
+body.dark-mode .benefit-card .muted,
+body.dark-mode .achievement-card .muted,
+body.dark-mode .invite-rank-card .muted,
+body.dark-mode .rank-card .muted,
+body.dark-mode .white-card .muted,
+body.dark .benefit-card .muted,
+body.dark .achievement-card .muted,
+body.dark .invite-rank-card .muted,
+body.dark .rank-card .muted,
+body.dark .white-card .muted {
+  color: #666 !important;
+}
+
+/* 달성/혜택 카드의 숫자와 핵심 문구 강조 */
+body.dark-mode .benefit-card strong,
+body.dark-mode .benefit-card b,
+body.dark-mode .benefit-card .count,
+body.dark-mode .achievement-card strong,
+body.dark-mode .achievement-card b,
+body.dark-mode .achievement-card .count,
+body.dark .benefit-card strong,
+body.dark .benefit-card b,
+body.dark .benefit-card .count,
+body.dark .achievement-card strong,
+body.dark .achievement-card b,
+body.dark .achievement-card .count {
+  color: #171717 !important;
+}
+
+/* 비활성 혜택 카드도 읽히도록 */
+body.dark-mode .benefit-card.disabled,
+body.dark-mode .achievement-card.disabled,
+body.dark .benefit-card.disabled,
+body.dark .achievement-card.disabled {
+  color: #4b4b4b !important;
+  opacity: 1 !important;
+}
+body.dark-mode .benefit-card.disabled *,
+body.dark-mode .achievement-card.disabled *,
+body.dark .benefit-card.disabled *,
+body.dark .achievement-card.disabled * {
+  color: #575757 !important;
+}
+
+/* 이번달/총누적 순위 카드 */
+body.dark-mode [class*="my-rank"],
+body.dark-mode [class*="myRank"],
+body.dark-mode [class*="rank-summary"],
+body.dark [class*="my-rank"],
+body.dark [class*="myRank"],
+body.dark [class*="rank-summary"] {
+  color: #222 !important;
+}
+body.dark-mode [class*="my-rank"] *,
+body.dark-mode [class*="myRank"] *,
+body.dark-mode [class*="rank-summary"] *,
+body.dark [class*="my-rank"] *,
+body.dark [class*="myRank"] *,
+body.dark [class*="rank-summary"] * {
+  color: inherit;
+}
+
+/* 어두운 배경/공지 영역은 밝은 글씨 유지 */
+body.dark-mode .notice-card,
+body.dark-mode .dark-card,
+body.dark-mode .panel.dark,
+body.dark .notice-card,
+body.dark .dark-card,
+body.dark .panel.dark {
+  color: #f2f2f2 !important;
+}
+body.dark-mode .notice-card .muted,
+body.dark-mode .dark-card .muted,
+body.dark-mode .panel.dark .muted,
+body.dark .notice-card .muted,
+body.dark .dark-card .muted,
+body.dark .panel.dark .muted {
+  color: #b8bcc5 !important;
+}
+
+/* 입력창/검색창 */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark input,
+body.dark select,
+body.dark textarea {
+  color: #f3f4f6;
+}
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder,
+body.dark input::placeholder,
+body.dark textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* 혹시 inline color가 약하게 들어간 카드 텍스트 보정 */
+body.dark-mode .benefit-card [style*="color"],
+body.dark-mode .achievement-card [style*="color"],
+body.dark-mode .rank-card [style*="color"],
+body.dark .benefit-card [style*="color"],
+body.dark .achievement-card [style*="color"],
+body.dark .rank-card [style*="color"] {
+  text-shadow: none !important;
+}

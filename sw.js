@@ -1,11 +1,11 @@
 /* V117 */
-const CACHE = "yeowoobang-v133-login-session-race-fix";
+const CACHE = "yeowoobang-v134-darkmode-contrast";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=1330",
-  "./app.js?v=1330",
+  "./style.css?v=1340",
+  "./app.js?v=1340",
   "./supabase-auth-v107.js?v=1330",
   "./supabase-auth-v107.json?v=1200",
   "./config.json?v=1200",
