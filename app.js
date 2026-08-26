@@ -30,7 +30,7 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V120";
+const APP_VERSION = "V130";
 
 let config = {
   version: "V102",
@@ -730,6 +730,15 @@ async function bootstrapAuth() {
 }
 
 function chooseGeneralAccess() {
+  // V130: 일반모드에서는 이전 운영진 인증 상태/오류를 완전히 분리합니다.
+  adminLoggedIn = false;
+  adminPasswordValue = "";
+  adminModeToken = "";
+  adminMemberRole = "";
+  adminProfile = null;
+  try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
+  setAdminNavigation(false);
+  if ($("gateError")) $("gateError").textContent = "";
   if (publicConfig?.appLocked) {
     setGate("blocked");
     return;
@@ -888,7 +897,9 @@ async function adminSimpleLoginFromGate() {
     updateFollowWatermarkV104?.();
     await activateAdminMode(result, password);
   } catch (error) {
-    $("gateError").textContent = error.message || "운영진 로그인에 실패했습니다.";
+    if (gateMode === "adminSimple") {
+      $("gateError").textContent = error.message || "운영진 로그인에 실패했습니다.";
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = "운영진 모드 입장";
@@ -1152,7 +1163,9 @@ async function loginOperatorFromGate() {
     await activateAdminMode(r, password);
     $("operatorPassword").value = "";
   } catch (e) {
-    $("gateError").textContent = e.message || "운영진 로그인에 실패했습니다.";
+    if (gateMode === "operatorLogin") {
+      $("gateError").textContent = e.message || "운영진 로그인에 실패했습니다.";
+    }
   } finally { btn.disabled = false; }
 }
 
@@ -1280,7 +1293,7 @@ async function refreshPublicConfig(recheck = true) {
   syncMatchPeriodAdminV101?.();
   applyFollowLock();
   applyMatchLock();
-  loadMatchVoteStatus().catch(()=>{});
+  // V130: 맞팔투표 기능 미사용
   checkVersionUpdate();
 
   const nextSecurity = publicConfig?.securityVersion || "";

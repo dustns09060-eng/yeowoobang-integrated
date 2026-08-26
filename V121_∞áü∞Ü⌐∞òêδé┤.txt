@@ -1,0 +1,1 @@
+GitHub에서 index.html, style.css, sw.js, app.js 4개만 교체하세요. Apps Script V119와 회원 데이터/원본 시트/CNAME은 그대로 유지합니다. PC/태블릿은 두 카드 좌우, 모바일은 자동 위아래 배치입니다.
