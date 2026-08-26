@@ -398,7 +398,7 @@
     </section>
 
     <section id="matchView" class="view">
-      <section id="matchVoteCard" class="card match-vote-card">
+      <section id="matchVoteCard" class="card match-vote-card hidden">
         <div class="section-title-row"><div><h2>맞팔 확인 투표</h2><p id="matchVoteTitle" class="subtext">맞팔확인 기간 동안 본인의 진행 상태를 선택해주세요.</p></div><span id="matchVoteBadge" class="lock-state locked">기간 아님</span></div>
         <div class="match-vote-actions"><button id="matchVoteDoneBtn" class="vote-done" type="button">완료</button><button id="matchVoteDelayBtn" class="vote-delay" type="button">지연</button></div>
         <p id="matchVoteMessage" class="state-text">상태를 확인하는 중입니다.</p>
@@ -432,12 +432,12 @@
             <button id="resetBtn" class="icon-btn" type="button" aria-label="새로 분석" title="새로 분석">↻</button>
           </div>
           <div class="summary-grid">
-            <article class="summary-box green"><span>맞팔 완료</span><strong id="mutualCount">0명</strong><small id="mutualRate">0%</small></article>
-            <article class="summary-box orange"><span>나만 팔로우 함</span><strong id="onlyMeCount">0명</strong><small id="onlyMeRate">0%</small></article>
-            <article class="summary-box blue"><span>상대만 팔로우 함</span><strong id="fansOnlyCount">0명</strong><small id="fansOnlyRate">0%</small></article>
-            <article class="summary-box gray"><span>서로 팔로우 안 함</span><strong id="neitherCount">0명</strong><small id="neitherRate">0%</small></article>
+            <article class="summary-box green"><span>맞팔 완료</span><strong id="mutualCount">0명</strong><small id="mutualRate" class="hidden">0%</small></article>
+            <article class="summary-box orange"><span>나만 팔로우 함</span><strong id="onlyMeCount">0명</strong><small id="onlyMeRate" class="hidden">0%</small></article>
+            <article class="summary-box blue"><span>상대만 팔로우 함</span><strong id="fansOnlyCount">0명</strong><small id="fansOnlyRate" class="hidden">0%</small></article>
+            <article class="summary-box gray"><span>서로 팔로우 안 함</span><strong id="neitherCount">0명</strong><small id="neitherRate" class="hidden">0%</small></article>
           </div>
-          <p id="rateText" class="rate"></p>
+          <p id="rateText" class="rate hidden"></p>
         </section>
 
         <section id="resultsSection" class="card hidden">
@@ -474,6 +474,30 @@
       </div>
     </section>
 
+
+    <section id="gulbiView" class="view">
+      <section class="card gulbi-card">
+        <div class="section-title-row">
+          <div>
+            <h2>🔗 모네 굴비엮기</h2>
+            <p class="subtext">품앗이할 게시물 링크만 모아서 한 번에 확인해요.</p>
+          </div>
+          <span id="gulbiCount" class="gulbi-count">0개</span>
+        </div>
+        <label class="gulbi-label" for="gulbiInput">링크 붙여넣기</label>
+        <textarea id="gulbiInput" class="gulbi-input" rows="6" placeholder="카톡에서 복사한 내용을 그대로 붙여넣어도 돼요.&#10;내용 속 https:// 링크만 자동으로 찾아서 모아드려요."></textarea>
+        <div class="gulbi-actions">
+          <button id="gulbiAddBtn" class="primary" type="button">링크 모으기</button>
+          <button id="gulbiCopyBtn" class="outline" type="button">전체 링크 복사</button>
+          <button id="gulbiClearBtn" class="outline" type="button">전체 비우기</button>
+        </div>
+        <div class="gulbi-help">💡 중복 링크는 한 번만 저장되고, 이 기기에서 이어서 볼 수 있어요.</div>
+      </section>
+      <section class="card gulbi-list-card">
+        <div class="section-title-row"><div><h3>모아둔 링크</h3><p class="subtext">위에서부터 차례대로 눌러 품앗이하면 돼요.</p></div></div>
+        <div id="gulbiList" class="gulbi-list"><p class="state-text">아직 모아둔 링크가 없어요.</p></div>
+      </section>
+    </section>
 
     <section id="inviteView" class="view">
   <div class="invite-page-head">
@@ -542,6 +566,20 @@
       </div>
 
       <div id="inviteLeaderboardDetailHost" class="invite-rank-detail-host"></div>
+    </section>
+
+    <section class="card invite-card invite-benefit-card">
+      <div class="section-title-row">
+        <div>
+          <h3>🎁 <span id="inviteBenefitMonthLabel">이번달</span> 혜택 대상</h3>
+          <p class="subtext">이번달 승인된 초대 실적을 기준으로 자동 표시돼요.</p>
+        </div>
+      </div>
+      <div class="invite-benefit-groups">
+        <article><div><span class="benefit-badge">10명+</span><strong>💛 앞번호 이동</strong></div><p id="inviteBenefit10">아직 대상자가 없어요.</p></article>
+        <article><div><span class="benefit-badge">20명+</span><strong>💎 다이아몬드</strong></div><p id="inviteBenefit20">아직 대상자가 없어요.</p></article>
+        <article><div><span class="benefit-badge">40명+</span><strong>💎💎 쌍 다이아</strong></div><p id="inviteBenefit40">아직 대상자가 없어요.</p></article>
+      </div>
     </section>
 
     <section class="card invite-card invite-mission-card">
@@ -829,6 +867,7 @@
   <nav class="bottom-nav integrated-bottom-nav" aria-label="주요 메뉴">
     <button class="nav-btn active" data-view="followView" type="button"><span class="nav-icon">☷</span><span>팔로우리스트</span></button>
     <button class="nav-btn" data-view="matchView" type="button"><span class="nav-icon">↔</span><span>맞팔확인</span></button>
+    <button class="nav-btn" data-view="gulbiView" type="button"><span class="nav-icon">🔗</span><span>굴비엮기</span></button>
     <button class="nav-btn" data-view="inviteView" type="button"><span class="nav-icon">💌</span><span>초대별</span></button>
 <button id="noticeNavBtn" class="nav-btn" data-view="noticeView" type="button"><span class="nav-icon">🔔</span><span>공지</span></button>
     <button id="adminNavBtn" class="nav-btn hidden" data-view="adminView" type="button"><span class="nav-icon">⚙</span><span>운영진</span></button>

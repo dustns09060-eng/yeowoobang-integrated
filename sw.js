@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v121-invite-layout";
+const CACHE = "yeowoobang-v127-invite-layout";
 
 const STATIC_ASSETS = [
   "./",

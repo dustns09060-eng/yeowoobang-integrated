@@ -1881,6 +1881,25 @@ function renderInviteRankV92(){
   list.querySelectorAll("[data-rank-id]").forEach(b=>b.onclick=()=>openDetail(b.dataset.rankId));
 }
 
+
+function renderInviteBenefitTargetsV127(){
+  const label=$("inviteBenefitMonthLabel");
+  if(label) label.textContent=currentInviteMonthLabelV92();
+  const mine=normalize(memberSession?.member?.instagramId||"");
+  const render=(min,id)=>{
+    const el=$(id); if(!el)return;
+    const items=[...inviteRankDataV92]
+      .filter(x=>Number(x.invite||0)>=min)
+      .sort((a,b)=>Number(b.invite||0)-Number(a.invite||0));
+    if(!items.length){el.textContent="아직 대상자가 없어요.";return;}
+    el.innerHTML=items.map(x=>{
+      const isMe=mine&&normalize(x.instagram)===mine;
+      return `<span class="benefit-person ${isMe?'me':''}">${escapeHtml(x.nickname||x.instagram||'회원')} ${Number(x.invite||0)}명${isMe?' · 나':''}</span>`;
+    }).join("");
+  };
+  render(10,"inviteBenefit10"); render(20,"inviteBenefit20"); render(40,"inviteBenefit40");
+}
+
 async function loadInviteLeaderboard(){
   const top3=$("inviteTop3"), list=$("inviteRankList");
   if(!top3||!list)return;
@@ -1915,11 +1934,13 @@ async function loadInviteLeaderboard(){
           ?"TOP 10에 올라와 있어요! 🔥"
           :"TOP 10까지 조금만 더 힘내요!";
       updateInviteMission(Number(mine.total||0));
+      renderInviteBenefitTargetsV127();
     }else{
       $("inviteMyMonthlyRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
       $("inviteMyTotalRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
       $("inviteMyRankSub").textContent=memberSession?.token?"첫 초대를 달성하면 순위가 표시됩니다.":"회원 로그인 계정 기준으로 표시됩니다.";
       updateInviteMission(0);
+      renderInviteBenefitTargetsV127();
     }
 
   }catch(e){
@@ -2709,6 +2730,21 @@ $("changeMatchRequestIdentityBtn")?.addEventListener("click",changeMatchRequestI
 $("matchRequestMyInstagram")?.addEventListener("keydown",e=>{if(e.key==="Enter")verifyMatchRequestIdentity();});
 document.querySelectorAll(".match-request-tab").forEach(b=>b.addEventListener("click",()=>showMatchRequestTab(b.dataset.requestTab)));
 $("saveMatchRequestPeriodBtn")?.addEventListener("click",saveMatchRequestPeriod);
+
+/* V127 - 모네 굴비엮기: 링크 취합 전용 (투표 없음) */
+const GULBI_STORAGE_V127="yeowoobang_gulbi_links_v127";
+let gulbiLinksV127=[];
+function loadGulbiLinksV127(){try{gulbiLinksV127=JSON.parse(localStorage.getItem(GULBI_STORAGE_V127)||"[]");if(!Array.isArray(gulbiLinksV127))gulbiLinksV127=[];}catch(_){gulbiLinksV127=[];}renderGulbiLinksV127();}
+function saveGulbiLinksV127(){localStorage.setItem(GULBI_STORAGE_V127,JSON.stringify(gulbiLinksV127));renderGulbiLinksV127();}
+function extractGulbiLinksV127(text){return (String(text||"").match(/https?:\/\/[^\s<>"']+/gi)||[]).map(x=>x.replace(/[),.]+$/g,""));}
+function renderGulbiLinksV127(){const host=$("gulbiList"),count=$("gulbiCount");if(count)count.textContent=`${gulbiLinksV127.length}개`;if(!host)return;if(!gulbiLinksV127.length){host.innerHTML='<p class="state-text">아직 모아둔 링크가 없어요.</p>';return;}host.innerHTML=gulbiLinksV127.map((url,i)=>`<div class="gulbi-item"><span class="gulbi-no">${i+1}</span><div class="gulbi-url"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a><small>눌러서 게시물 열기</small></div><button class="gulbi-remove" type="button" data-gulbi-remove="${i}" aria-label="링크 삭제">✕</button></div>`).join("");host.querySelectorAll("[data-gulbi-remove]").forEach(b=>b.onclick=()=>{gulbiLinksV127.splice(Number(b.dataset.gulbiRemove),1);saveGulbiLinksV127();});}
+function addGulbiLinksV127(){const input=$("gulbiInput");const found=extractGulbiLinksV127(input?.value||"");if(!found.length)return toast("붙여넣은 내용에서 링크를 찾지 못했어요.");const before=gulbiLinksV127.length;gulbiLinksV127=[...new Set([...gulbiLinksV127,...found])];saveGulbiLinksV127();if(input)input.value="";toast(`${gulbiLinksV127.length-before}개 링크를 추가했어요.`);}
+async function copyGulbiLinksV127(){if(!gulbiLinksV127.length)return toast("복사할 링크가 없어요.");try{await navigator.clipboard.writeText(gulbiLinksV127.join("\n"));toast("전체 링크를 복사했어요.");}catch(_){toast("복사하지 못했어요.");}}
+$("gulbiAddBtn")?.addEventListener("click",addGulbiLinksV127);
+$("gulbiCopyBtn")?.addEventListener("click",copyGulbiLinksV127);
+$("gulbiClearBtn")?.addEventListener("click",()=>{if(!gulbiLinksV127.length)return;if(confirm("모아둔 링크를 전부 비울까요?")){gulbiLinksV127=[];saveGulbiLinksV127();}});
+loadGulbiLinksV127();
+
 $("refreshInviteLeaderboardBtn")?.addEventListener("click",loadInviteLeaderboard);
 
 document.querySelectorAll(".tab").forEach((button) => {
