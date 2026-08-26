@@ -2731,20 +2731,6 @@ $("matchRequestMyInstagram")?.addEventListener("keydown",e=>{if(e.key==="Enter")
 document.querySelectorAll(".match-request-tab").forEach(b=>b.addEventListener("click",()=>showMatchRequestTab(b.dataset.requestTab)));
 $("saveMatchRequestPeriodBtn")?.addEventListener("click",saveMatchRequestPeriod);
 
-/* V127 - 모네 굴비엮기: 링크 취합 전용 (투표 없음) */
-const GULBI_STORAGE_V127="yeowoobang_gulbi_links_v127";
-let gulbiLinksV127=[];
-function loadGulbiLinksV127(){try{gulbiLinksV127=JSON.parse(localStorage.getItem(GULBI_STORAGE_V127)||"[]");if(!Array.isArray(gulbiLinksV127))gulbiLinksV127=[];}catch(_){gulbiLinksV127=[];}renderGulbiLinksV127();}
-function saveGulbiLinksV127(){localStorage.setItem(GULBI_STORAGE_V127,JSON.stringify(gulbiLinksV127));renderGulbiLinksV127();}
-function extractGulbiLinksV127(text){return (String(text||"").match(/https?:\/\/[^\s<>"']+/gi)||[]).map(x=>x.replace(/[),.]+$/g,""));}
-function renderGulbiLinksV127(){const host=$("gulbiList"),count=$("gulbiCount");if(count)count.textContent=`${gulbiLinksV127.length}개`;if(!host)return;if(!gulbiLinksV127.length){host.innerHTML='<p class="state-text">아직 모아둔 링크가 없어요.</p>';return;}host.innerHTML=gulbiLinksV127.map((url,i)=>`<div class="gulbi-item"><span class="gulbi-no">${i+1}</span><div class="gulbi-url"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a><small>눌러서 게시물 열기</small></div><button class="gulbi-remove" type="button" data-gulbi-remove="${i}" aria-label="링크 삭제">✕</button></div>`).join("");host.querySelectorAll("[data-gulbi-remove]").forEach(b=>b.onclick=()=>{gulbiLinksV127.splice(Number(b.dataset.gulbiRemove),1);saveGulbiLinksV127();});}
-function addGulbiLinksV127(){const input=$("gulbiInput");const found=extractGulbiLinksV127(input?.value||"");if(!found.length)return toast("붙여넣은 내용에서 링크를 찾지 못했어요.");const before=gulbiLinksV127.length;gulbiLinksV127=[...new Set([...gulbiLinksV127,...found])];saveGulbiLinksV127();if(input)input.value="";toast(`${gulbiLinksV127.length-before}개 링크를 추가했어요.`);}
-async function copyGulbiLinksV127(){if(!gulbiLinksV127.length)return toast("복사할 링크가 없어요.");try{await navigator.clipboard.writeText(gulbiLinksV127.join("\n"));toast("전체 링크를 복사했어요.");}catch(_){toast("복사하지 못했어요.");}}
-$("gulbiAddBtn")?.addEventListener("click",addGulbiLinksV127);
-$("gulbiCopyBtn")?.addEventListener("click",copyGulbiLinksV127);
-$("gulbiClearBtn")?.addEventListener("click",()=>{if(!gulbiLinksV127.length)return;if(confirm("모아둔 링크를 전부 비울까요?")){gulbiLinksV127=[];saveGulbiLinksV127();}});
-loadGulbiLinksV127();
-
 $("refreshInviteLeaderboardBtn")?.addEventListener("click",loadInviteLeaderboard);
 
 document.querySelectorAll(".tab").forEach((button) => {
