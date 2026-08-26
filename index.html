@@ -10,10 +10,10 @@
   <title>여우방 통합 프로그램</title>
 
   <link rel="canonical" href="https://dustns09060-eng.github.io/ys/" />
-  <link rel="manifest" href="manifest.json?v=1040" />
+  <link rel="manifest" href="manifest.json?v=1050" />
   <link rel="icon" href="favicon-v20.png?v=430" type="image/png" />
   <link rel="apple-touch-icon" href="icon-192-v20.png?v=430" />
-  <link rel="stylesheet" href="style.css?v=1040" />
+  <link rel="stylesheet" href="style.css?v=1060" />
 
   <meta property="og:locale" content="ko_KR" />
   <meta property="og:type" content="website" />
@@ -254,13 +254,14 @@
 <div id="memberRegisterForm" class="gate-form member-auth-form hidden">
         <div class="member-auth-title">
           <strong>기존회원 계정 등록</strong>
-          <span>이미 팔로우리스트에 등록된 회원만 계정을 만들 수 있어요.</span>
+          <span>회원정보에 등록된 기존회원만 최초 계정을 만들 수 있어요.<br>운영진에게 받은 1회용 최초등록코드가 필요합니다. 등록 후 코드는 즉시 폐기됩니다.</span>
         </div>
         <input id="memberRegisterNickname" type="text" autocomplete="nickname" placeholder="여우방 닉네임" />
         <input id="memberRegisterInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디" />
-        <input id="memberRegisterPassword" type="password" autocomplete="new-password" placeholder="비밀번호 (숫자 4~6자리)"  inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6">
-        <input id="memberRegisterPasswordConfirm" type="password" autocomplete="new-password" placeholder="비밀번호 확인"  inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6">
-        <button id="memberRegisterBtn" class="primary" type="button">계정 등록하고 시작하기</button>
+        <input id="memberRegisterCode" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="최초등록코드 8자리" maxlength="8" />
+        <input id="memberRegisterPassword" type="password" autocomplete="new-password" placeholder="최초 비밀번호 (숫자 4~6자리)" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6">
+        <input id="memberRegisterPasswordConfirm" type="password" autocomplete="new-password" placeholder="비밀번호 확인" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6">
+        <button id="memberRegisterBtn" class="primary" type="button">최초 계정 만들고 시작하기</button>
         <button id="backToMemberLoginBtn" class="text-btn" type="button">이미 계정이 있어요 · 로그인</button>
       </div>
 
@@ -574,6 +575,7 @@
       <span>승인일을 입장일로 계산하며, 7일이 지났는데 팔로우리스트 1번 시작 기록이 없으면 <b>내보내기 대상</b>으로 표시됩니다.</span></div>
       <div class="invite-status-tabs"><button class="invite-status-tab active" data-invite-filter="ALL" type="button">전체</button><button class="invite-status-tab" data-invite-filter="PENDING" type="button">승인 대기</button><button class="invite-status-tab" data-invite-filter="APPROVED" type="button">승인 완료</button><button class="invite-status-tab" data-invite-filter="REJECTED" type="button">거절</button><button class="invite-status-tab" data-invite-filter="CANCELLED" type="button">승인 취소</button></div><input id="inviteAdminSearch" class="invite-admin-search" placeholder="닉네임 / 인스타 아이디 검색"><div class="invite-admin-summary"><article><span>대기</span><strong id="invitePendingCount">0</strong></article><article><span>승인</span><strong id="inviteApprovedCount">0</strong></article><article><span>거절</span><strong id="inviteRejectedCount">0</strong></article><article><span>승인 취소</span><strong id="inviteCancelledCount">0</strong></article></div><div id="inviteAdminList" class="invite-admin-list"><p class="state-text">관리자 인증 후 초대 요청을 확인할 수 있습니다.</p></div></section>
     <section class="card invite-card"><div class="section-title-row"><div><h3>회원별 누적 현황</h3></div><button id="refreshInviteSummaryBtn" class="outline small" type="button">새로고침</button></div><div class="invite-summary-table"><div class="invite-summary-head"><span>번호 · 닉네임</span><span>초대</span><span>이전</span><span>누적</span></div><div id="inviteSummaryList" class="invite-summary-body"><p class="state-text">누적 현황을 불러오는 중...</p></div></div></section>
+    <section class="card invite-card"><div class="section-title-row"><div><h3>🏆 이번 달 앞번호 발표</h3><p class="subtext">월 초대 마감 후 발표할 때만 눌러주세요. 10명 이상 중 초대가 많은 순으로 31번부터 반영되며, 이미 1~30번인 회원은 그대로 유지됩니다.</p></div></div><button id="publishInvitePriorityBtn" class="primary" type="button">이번 달 앞번호 반영</button><p id="publishInvitePriorityMsg" class="state-text"></p></section>
   </div>
   <div id="inviteAdminLoginBox" class="invite-admin-login hidden"><div class="invite-admin-login-card"><h3>관리자 인증</h3><p class="subtext">초대관리 비밀번호를 입력해주세요.</p><input id="inviteAdminPassword" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="초대관리 비밀번호"><div class="invite-admin-login-actions"><button id="inviteAdminLoginBtn" class="primary" type="button">확인</button><button id="inviteAdminCancelBtn" class="outline" type="button">취소</button></div><p id="inviteAdminLoginMsg" class="state-text"></p></div></div>
 </section>
@@ -913,7 +915,8 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=1040"></script>
+  <script src="supabase-auth-v107.js?v=1150"></script>
+  <script src="app.js?v=1150"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
@@ -930,5 +933,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+  <script src="backend-adapter-v106.js?v=1150"></script>
 </body>
 </html>

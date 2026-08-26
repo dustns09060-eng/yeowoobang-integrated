@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "supabaseUrl": "https://budapzphwvgonbfbszdg.supabase.co",
+  "anonKey": "sb_publishable_VskXpXeltU_M3C8GLyCowA_0hItnIhY",
+  "functionsBase": "",
+  "note": "V115 배포용: Supabase 회원 인증 활성화. service_role 키는 절대 프론트엔드에 넣지 마세요."
+}

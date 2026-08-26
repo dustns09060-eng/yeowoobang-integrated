@@ -1,0 +1,6 @@
+{
+  "mode": "APPS_SCRIPT",
+  "supabaseUrl": "",
+  "functionsBase": "",
+  "note": "V106 전환 테스트가 끝날 때까지 mode는 APPS_SCRIPT로 유지하세요. DB 준비 완료 후 SUPABASE로 변경."
+}

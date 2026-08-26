@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
+
 *{box-sizing:border-box}:root{--orange:#ff6500;--text:#161616;--muted:#737986;--line:#e6e8eb;--bg:#f7f8fa;--white:#fff;--green:#19a85b;--blue:#1877e8;--red:#e83d46}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:700}.header{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;padding:14px 18px}.brand{display:flex;align-items:center;gap:12px}.brand-symbol{width:42px;height:42px;color:#59606c}.brand-symbol svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}.brand h1{margin:0;font-size:22px}.brand p{margin:3px 0 0;color:var(--orange);font-size:12px}.install,.outline{border:1px solid #d9dde3;background:#fff;border-radius:12px;padding:11px 14px;font-weight:900}.container{max-width:1180px;margin:auto;padding:16px 16px 118px}.view{display:none}.view.active{display:block}.card,.notice-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;margin:14px 0;box-shadow:0 8px 24px rgba(20,28,40,.05)}h2,h3{margin:0 0 8px}.subtext,.status,.state-text{color:var(--muted);font-size:14px}.section-title-row,.room-row,.notice-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.room-info{display:flex;align-items:center;gap:10px}.room-info span{color:var(--muted)}.small{padding:9px 12px}.file-input{display:flex;justify-content:center;align-items:center;min-height:72px;border:1px dashed #cfd4db;border-radius:14px;margin:18px 0;background:#fafbfc}.file-input input{display:none}.primary{width:100%;border:0;border-radius:13px;background:var(--orange);color:#fff;padding:16px;font-size:18px;font-weight:1000}.small-primary{width:auto;padding:13px 22px}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.stats-grid article{border:1px solid var(--line);border-radius:14px;padding:15px;background:#fff}.stats-grid span{display:block;color:var(--muted);font-size:13px}.stats-grid strong{display:block;margin-top:6px;font-size:23px}.compact strong{font-size:20px}.search-wrap{display:flex;align-items:center;gap:8px;border:1px solid #d9dde3;border-radius:12px;padding:0 13px;background:#fff;min-width:280px}.search-wrap input{width:100%;height:46px;border:0;outline:none;font:inherit}.standalone{max-width:520px;margin:14px 0}.group-tabs,.tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 12px}.group-tab,.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;white-space:nowrap;font-weight:900}.group-tab.active,.tab.active{border-color:var(--orange);color:var(--orange);background:#fff7f1}.follow-head,.follow-item{display:grid;grid-template-columns:80px 1fr 1.6fr 110px;gap:10px;align-items:center}.follow-head{padding:11px 12px;color:#6e7580;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13px}.follow-item{padding:12px;border-bottom:1px solid #eef0f2}.follow-item a,.id{color:#161616;text-decoration:none;font-weight:900}.insta-btn,.insta{display:inline-block;text-align:center;text-decoration:none;border-radius:999px;padding:8px 10px;background:#fff1e8;color:#e95800;font-size:13px}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.summary-box{border:1px solid var(--line);border-radius:15px;padding:18px;text-align:center}.summary-box strong{display:block;font-size:31px;margin-top:7px}.summary-box small{color:#666}.green strong{color:var(--green)}.orange strong{color:var(--orange)}.blue strong{color:var(--blue)}.gray strong{color:#737986}.rate{text-align:center;color:#5f6672}.rate strong{color:var(--orange)}.tools{display:flex;gap:10px;align-items:center}.tools .search-wrap{flex:1}.table-head,.item{display:grid;grid-template-columns:70px 1fr 1.5fr 1fr 90px;gap:8px;align-items:center}.table-head{padding:12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:#717783;font-size:13px}.item{padding:12px;border-bottom:1px solid #eef0f2}.badge{font-size:13px}.badge.mutual{color:var(--green)}.badge.onlyMe{color:var(--orange)}.badge.fansOnly{color:var(--blue)}.badge.neither{color:#777}.admin-login{display:flex;gap:10px;max-width:480px}.admin-login input,input[type=text],textarea{width:100%;border:1px solid #d9dde3;border-radius:12px;padding:13px;font:inherit;outline:none}.admin-actions{display:flex;gap:10px;margin:12px 0}textarea{min-height:120px;resize:vertical;margin:10px 0}.admin-notice-list{margin-top:16px}.notice-row{display:flex;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:13px;margin-top:8px}.notice-row button,#closeNoticeBtn{border:0;background:transparent;color:#d53b3b;font-weight:900}.notice-card{border-left:4px solid var(--orange)}.notice-item{padding:10px 0;border-top:1px solid #eee}.notice-item:first-child{border-top:0}.notice-item h4{margin:0 0 5px}.notice-item p{margin:0;color:#606773;white-space:pre-wrap}.hidden{display:none!important}.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:none;background:#151515;color:#fff;padding:11px 16px;border-radius:999px;z-index:99}.empty-state{text-align:center;padding:35px;color:#747b87}footer{display:flex;justify-content:space-between;max-width:1180px;margin:auto;padding:20px;color:#858b96;font-size:13px}hr{border:0;border-top:1px solid var(--line);margin:22px 0}@media(max-width:760px){.header{padding:12px}.brand h1{font-size:19px}.brand-symbol{width:34px;height:34px}.container{padding:10px}.card{padding:16px;border-radius:16px}.stats-grid,.summary-grid{grid-template-columns:1fr 1fr}.tools{flex-wrap:wrap}.tools .search-wrap{min-width:100%;order:-1}.follow-head,.follow-item{grid-template-columns:52px .8fr 1.4fr 74px;font-size:13px}.table-head{display:none}.item{grid-template-columns:36px 1fr 1fr;gap:6px}.item .badge{grid-column:2}.item .insta{grid-column:3;grid-row:1/3}.admin-login{flex-direction:column}.admin-actions{flex-direction:column}footer{padding:16px}.install{padding:9px 10px}.section-title-row{align-items:flex-start}}
 /* V17.1 모바일 결과 목록 겹침 수정 */
 .item-person{min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -1504,3 +1506,57 @@ button:disabled[title="계정정지 회원"]{
   user-select:none;
 }
 #followSecurityWatermarkV104.show{display:block}
+
+
+/* =========================================================
+   V105 - 둥글고 예쁜 한글 폰트
+   본문: Gowun Dodum / 제목·버튼: Jua
+   기존 기능·배치·색상은 그대로 유지
+   ========================================================= */
+:root{
+  --yw-font-body:"Gowun Dodum","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+  --yw-font-round:"Jua","Gowun Dodum","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+}
+
+html,body,
+input,select,textarea,
+table,.card,.modal,.sheet,.drawer{
+  font-family:var(--yw-font-body) !important;
+}
+
+/* 제목, 메뉴, 버튼은 조금 더 도톰하고 둥글게 */
+h1,h2,h3,h4,
+.brand,.brand span,
+.section-title,.section-title-row h2,.section-title-row h3,
+.nav-btn,.bottom-nav,
+button,.primary,.outline,.icon-btn,
+.tab,.chip,.badge,.lock-state,
+.summary-box strong,
+.invite-rank-card strong,
+.invite-rank-card .rank,
+.admin-mode-btn{
+  font-family:var(--yw-font-round) !important;
+  letter-spacing:-0.01em;
+}
+
+/* 입력값은 귀여움보다 가독성을 우선 */
+input,select,textarea{
+  font-weight:600;
+  letter-spacing:-0.015em;
+}
+
+/* 숫자·아이디가 뭉개지지 않도록 보정 */
+.summary-box strong,
+[class*="count"],
+[class*="number"],
+.member-id,
+.instagram-id,
+code{
+  font-variant-numeric:tabular-nums;
+}
+
+/* 작은 안내문은 너무 굵어지지 않게 */
+.subtext,.state-text,.meta,small,.muted{
+  font-family:var(--yw-font-body) !important;
+  font-weight:600;
+}

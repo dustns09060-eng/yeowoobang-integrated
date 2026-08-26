@@ -761,6 +761,18 @@ async function loginMemberFromGate() {
   try {
     btn.disabled = true;
     $("gateError").textContent = "";
+    // V107: Supabase가 활성화된 경우 먼저 서버 인증/회원상태를 검증합니다.
+    // 검증 후에는 기존 Apps Script 세션도 발급받아 기존 기능을 그대로 유지합니다.
+    if (window.YW_SUPABASE_AUTH_V107) {
+      const supabaseResult = await window.YW_SUPABASE_AUTH_V107.signIn(instagramId, password);
+      if (supabaseResult && !supabaseResult.skipped) {
+        const sm = supabaseResult.member || {};
+        if (String(sm.status || '').toLowerCase() !== 'active') {
+          throw new Error('현재 로그인할 수 없는 회원 상태입니다.');
+        }
+      }
+    }
+
     const result = await apiPost("memberLogin", { instagramId, password }, 15000);
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
@@ -855,15 +867,20 @@ function resetNewMemberInviteGate() {
 async function registerMemberFromGate() {
   const nickname = String($("memberRegisterNickname")?.value || "").trim();
   const instagramId = normalize($("memberRegisterInstagram")?.value || "");
+  const registrationCode = String($("memberRegisterCode")?.value || "").trim().toUpperCase().replace(/\s+/g, "");
   const password = $("memberRegisterPassword")?.value || "";
   const confirm = $("memberRegisterPasswordConfirm")?.value || "";
 
-  if (!nickname || !instagramId || !password || !confirm) {
+  if (!nickname || !instagramId || !registrationCode || !password || !confirm) {
     $("gateError").textContent = "모든 항목을 입력해 주세요.";
     return;
   }
+  if (!/^[A-Z2-9]{8}$/.test(registrationCode)) {
+    $("gateError").textContent = "운영진에게 받은 최초등록코드 8자리를 확인해 주세요.";
+    return;
+  }
   if (!/^\d{4,6}$/.test(password)) {
-    $("gateError").textContent = "비밀번호는 숫자 4~6자리로 설정해 주세요.";
+    $("gateError").textContent = "최초 비밀번호는 숫자 4~6자리로 설정해 주세요.";
     return;
   }
   if (password !== confirm) {
@@ -874,14 +891,30 @@ async function registerMemberFromGate() {
   const btn = $("memberRegisterBtn");
   try {
     btn.disabled = true;
+    btn.textContent = "회원 확인 중...";
     $("gateError").textContent = "";
-    const result = await apiPost("registerMemberAccount", { nickname, instagramId, password }, 20000);
+
+    // V111: Supabase에 기존회원 최초 계정을 먼저 생성/연결한다.
+    if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
+      await window.YW_SUPABASE_AUTH_V107.registerExistingMember(nickname, instagramId, registrationCode, password);
+    }
+
+    btn.textContent = "기존 기능 연결 중...";
+    let result;
+    try {
+      result = await apiPost("registerMemberAccount", { nickname, instagramId, password }, 20000);
+    } catch (registerError) {
+      // Apps Script 쪽 계정이 이미 만들어져 있다면 로그인으로 이어간다.
+      result = await apiPost("memberLogin", { instagramId, password }, 15000);
+    }
+
     await completeMemberLogin(result, false);
-    toast("계정 등록이 완료되었습니다. 🦊");
+    toast("최초 계정 등록이 완료되었습니다. 🦊");
   } catch (error) {
     $("gateError").textContent = error.message || "계정 등록에 실패했습니다.";
   } finally {
     btn.disabled = false;
+    btn.textContent = "최초 계정 만들고 시작하기";
   }
 }
 
@@ -1657,6 +1690,7 @@ function logoutInviteAdmin(){inviteAdminLoggedIn=false;inviteAdminPasswordValue=
 function inviteStatusText(s){return s==="APPROVED"?"승인 완료":s==="REJECTED"?"거절":s==="CANCELLED"?"승인 취소":"승인 대기"}
 function renderInviteAdminList(){const q=($("inviteAdminSearch")?.value||"").trim().toLowerCase();let a=inviteAdminItemsCache.slice();if(inviteAdminFilter!=="ALL")a=a.filter(x=>x.status===inviteAdminFilter);if(q)a=a.filter(x=>[x.inviteeName,x.inviteeInstagram,x.inviterName,x.inviterInstagram].join(" ").toLowerCase().includes(q));$("inviteAdminList").innerHTML=a.length?a.map(x=>`<div class="invite-admin-item ${x.expelTarget?"expel":""}"><strong>${escapeHtml(x.inviteeName)} · ${escapeHtml(x.inviteeInstagram)}</strong><div class="route">초대한 사람 → <b>${escapeHtml(x.inviterName)}</b> · ${escapeHtml(x.inviterInstagram)}</div><div class="meta">${escapeHtml(x.createdAt||"")} · ${inviteStatusText(x.status)}</div>${x.status==="APPROVED"?`<div class="joinMeta"><span class="invite-pill">입장 D+${Number(x.daysSinceJoin||0)}</span><span class="invite-pill ${x.followStarted?"good":x.expelTarget?"warn":""}">${x.followStarted?`1번 시작 완료 · ${escapeHtml(x.followStartedAt||"")}`:"1번 시작 전"}</span>${x.canCancel?`<span class="invite-pill">승인 취소 가능 · ${escapeHtml(x.cancelDeadline||"")}까지</span>`:'<span class="invite-pill warn">7일 경과 · 승인 취소 불가</span>'}</div>`:""}${x.status==="CANCELLED"?`<div class="joinMeta"><span class="invite-pill warn">취소일 · ${escapeHtml(x.cancelledAt||"")}</span>${x.cancelReason?`<span class="invite-pill">${escapeHtml(x.cancelReason)}</span>`:""}</div>`:""}${x.status==="PENDING"?`<div class="invite-admin-actions"><button class="outline success-outline" data-invite-approve="${escapeHtml(x.id)}">승인</button><button class="outline danger-outline" data-invite-reject="${escapeHtml(x.id)}">거절</button></div>`:""}${x.status==="APPROVED"&&x.canCancel?`<div class="invite-admin-actions"><button class="outline danger-outline" data-invite-cancel="${escapeHtml(x.id)}" data-invite-name="${escapeHtml(x.inviteeName)}">승인 취소</button></div>`:""}</div>`).join(""):'<p class="state-text">표시할 기록이 없습니다.</p>'}
 async function loadInviteAdmin(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteAdmin",{inviteAdminPassword:inviteAdminPasswordValue});inviteAdminItemsCache=d.items||[];$("invitePendingCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="PENDING").length;$("inviteApprovedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="APPROVED").length;$("inviteRejectedCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="REJECTED").length;if($("inviteCancelledCount"))$("inviteCancelledCount").textContent=inviteAdminItemsCache.filter(x=>x.status==="CANCELLED").length;if($("inviteExpelCount"))$("inviteExpelCount").textContent=inviteAdminItemsCache.filter(x=>x.expelTarget).length;renderInviteAdminList()}
+async function publishInvitePriorityV110(){if(!inviteAdminLoggedIn)return toast("초대관리 관리자 인증이 필요합니다.");if(!confirm("이번 달 초대 실적을 기준으로 앞번호를 확정 반영할까요?\n\n• 10명 이상만 대상\n• 초대 많은 순으로 31번부터\n• 현재 1~30번 회원은 이동하지 않음\n\n월 초대 마감/발표 시에만 실행해주세요."))return;const b=$("publishInvitePriorityBtn"),m=$("publishInvitePriorityMsg");if(b)b.disabled=true;if(m)m.textContent="반영 중...";try{const d=await apiPost("publishInvitePriorityV110",{inviteAdminPassword:inviteAdminPasswordValue},30000);const moved=(d.items||[]).length,fixed=(d.fixedItems||[]).length;if(m)m.textContent=`반영 완료 · 31번부터 ${moved}명 배치${fixed?` · 기존 1~30번 ${fixed}명 유지`:""}`;toast("이번 달 앞번호 발표 반영이 완료됐습니다.");await Promise.allSettled([loadInviteSummary(),loadRoomList(true)]);}catch(e){if(m)m.textContent=e.message||"반영 실패";toast(e.message||"반영하지 못했습니다.");}finally{if(b)b.disabled=false;}}
 async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await apiPost("getInviteSummary",{inviteAdminPassword:inviteAdminPasswordValue}),a=d.items||[];$("inviteSummaryList").innerHTML=a.length?a.map((x,i)=>`<div class="invite-summary-wrap"><button class="invite-summary-row invite-summary-button" type="button" data-admin-invite-detail="${i}"><span class="numNick"><span class="badgeNo">${escapeHtml(String(x.no||""))}</span>${escapeHtml(x.nickname||"")}</span><span>${x.invite||0}</span><span>${x.previous||0}</span><span class="total">${x.total||0} ▾</span></button><div id="adminInviteDetail${i}" class="invite-summary-detail hidden">${(x.invitees||[]).length?x.invitees.map(n=>`<span>${escapeHtml(n)}</span>`).join(""):'<p class="state-text">기록된 초대 회원 닉네임이 없습니다.</p>'}</div></div>`).join(""):'<p class="state-text">회원 데이터가 없습니다.</p>';$("inviteSummaryList").querySelectorAll("[data-admin-invite-detail]").forEach(b=>b.onclick=()=>$("adminInviteDetail"+b.dataset.adminInviteDetail)?.classList.toggle("hidden"));}
 
 let inviteRankModeV92="monthly";
@@ -2485,7 +2519,7 @@ async function deleteNotice(noticeId) {
 
 
 if ($("openSettingsSheetBtn")) $("openSettingsSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
-if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").onclick=startFollowFromOne;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminPassword"))$("inviteAdminPassword").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"")});if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]"),c=e.target.closest("[data-invite-cancel]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED");if(c)cancelInviteApproval(c.dataset.inviteCancel,c.dataset.inviteName||"")});
+if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").onclick=startFollowFromOne;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminPassword"))$("inviteAdminPassword").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"")});if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("publishInvitePriorityBtn"))$("publishInvitePriorityBtn").onclick=publishInvitePriorityV110;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]"),c=e.target.closest("[data-invite-cancel]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED");if(c)cancelInviteApproval(c.dataset.inviteCancel,c.dataset.inviteName||"")});
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
