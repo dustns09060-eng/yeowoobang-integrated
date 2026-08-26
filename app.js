@@ -730,7 +730,7 @@ async function bootstrapAuth() {
 }
 
 function chooseGeneralAccess() {
-  // V130: 일반모드에서는 이전 운영진 인증 상태/오류를 완전히 분리합니다.
+  // V131: 일반모드는 운영진 인증과 완전히 분리하고, 저장된 회원 세션이 있으면 즉시 복원합니다.
   adminLoggedIn = false;
   adminPasswordValue = "";
   adminModeToken = "";
@@ -743,11 +743,36 @@ function chooseGeneralAccess() {
     setGate("blocked");
     return;
   }
+
+  const saved = memberSession?.token ? memberSession : readMemberSessionStorage();
+  if (saved?.token && saved?.member) {
+    memberSession = saved;
+    accessGranted = true;
+    followGranted = true;
+    matchGranted = true;
+    setMemberHeader(saved.member);
+    hideGate();
+    showView("followView");
+    restoreFollowListCache();
+    void loadAfterAuth();
+    void loadMemberFollowProgress();
+    return;
+  }
   setGate("memberLogin");
 }
 
 function chooseAdminAccess() {
   setGate("operatorLogin");
+}
+
+// V131: 늦게 도착한 운영진 인증 오류가 일반회원 로그인 화면을 덮어쓰지 못하게 차단합니다.
+const gateErrorNodeV131 = $("gateError");
+if (gateErrorNodeV131 && window.MutationObserver) {
+  new MutationObserver(() => {
+    if (gateMode === "memberLogin" && /운영진|관리자/.test(gateErrorNodeV131.textContent || "")) {
+      gateErrorNodeV131.textContent = "";
+    }
+  }).observe(gateErrorNodeV131, { childList: true, characterData: true, subtree: true });
 }
 
 function readMemberSessionStorage() {
@@ -1159,7 +1184,8 @@ async function loginOperatorFromGate() {
   try {
     btn.disabled = true; $("gateError").textContent = "";
     const r = await apiPost("adminSimpleLogin", { instagram: instagramId, password }, 15000);
-    memberSession = null; clearMemberSessionStorage();
+    // V131: 운영진모드로 들어가도 기존 일반회원 세션은 지우지 않습니다.
+    // 운영진모드 종료 시 바로 일반모드/팔로우리스트로 복귀할 수 있습니다.
     await activateAdminMode(r, password);
     $("operatorPassword").value = "";
   } catch (e) {
