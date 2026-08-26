@@ -27,6 +27,7 @@ let matchGranted = false;
 let followGranted = false;
 let gateMode = "loading";
 let memberSession = null;
+let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새 로그인을 덮어쓰는 것 방지
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
@@ -703,15 +704,30 @@ async function bootstrapAuth() {
       if (memberSession?.token) void loadNotificationsV76();
     }, 1200);
 
-    // 기존 프로그램 세션 유효성은 백그라운드에서 확인합니다.
+    // V133: 기존 저장 세션 검증은 백그라운드에서 하되,
+    // 그 사이 사용자가 새로 로그인했다면 오래된 결과가 새 세션을 지우지 못하게 합니다.
+    const validatingTokenV133 = saved.token;
+    const validatingGenerationV133 = memberAuthGenerationV133;
     void (async () => {
       try {
-        const result = await apiPost("memberSession", { token: saved.token }, 9000);
+        const result = await apiPost("memberSession", { token: validatingTokenV133 }, 9000);
         if (!result?.token || !result?.member) throw new Error("SESSION_EXPIRED");
+
+        if (
+          memberAuthGenerationV133 !== validatingGenerationV133 ||
+          memberSession?.token !== validatingTokenV133
+        ) return;
+
         memberSession = { token: result.token, member: result.member };
         saveMemberSessionStorage(memberSession);
         setMemberHeader(result.member);
       } catch (_) {
+        // 새 로그인/새 세션으로 이미 바뀌었으면 이 오래된 실패는 무시
+        if (
+          memberAuthGenerationV133 !== validatingGenerationV133 ||
+          memberSession?.token !== validatingTokenV133
+        ) return;
+
         memberSession = null;
         clearMemberSessionStorage();
         try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
@@ -833,6 +849,8 @@ function setAdminHeader(profile) {
 async function completeMemberLogin(result, showToast = true) {
   if (!result?.token || !result?.member) throw new Error("로그인 정보를 확인할 수 없습니다.");
 
+  memberAuthGenerationV133++;
+  const loginGenerationV133 = memberAuthGenerationV133;
   memberSession = { token: result.token, member: result.member };
   saveMemberSessionStorage(memberSession);
   accessGranted = true;
@@ -856,10 +874,23 @@ async function completeMemberLogin(result, showToast = true) {
     if (memberSession?.token) void loadNotificationsV76();
   }, 1200);
 
+  // V133: 로그인 직후 예전 비동기 작업이 게이트를 다시 띄워도 현재 세션이 살아있으면 복구
+  window.setTimeout(() => {
+    if (
+      memberAuthGenerationV133 === loginGenerationV133 &&
+      memberSession?.token === result.token
+    ) {
+      hideGate();
+      if (!document.querySelector(".view.active")) showView("followView");
+    }
+  }, 700);
+
   if (showToast) toast(`${result.member.nickname || "회원"}님, 반가워요 🦊`);
 }
 
 async function loginMemberFromGate() {
+  // V133: 지금부터 시작하는 로그인보다 먼저 출발한 세션 검증은 결과를 무시
+  memberAuthGenerationV133++;
   const instagramId = normalize($("memberLoginInstagram")?.value || "");
   const password = $("memberLoginPassword")?.value || "";
   if (!instagramId || !password) {

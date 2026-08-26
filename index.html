@@ -17,7 +17,7 @@
 <link href="manifest.json?v=1050" rel="manifest"/>
 <link href="favicon-v20.png?v=430" rel="icon" type="image/png"/>
 <link href="icon-192-v20.png?v=430" rel="apple-touch-icon"/>
-<link href="style.css?v=1320" rel="stylesheet"/>
+<link href="style.css?v=1330" rel="stylesheet"/>
 <meta content="ko_KR" property="og:locale"/>
 <meta content="website" property="og:type"/>
 <meta content="여우방 통합 프로그램" property="og:site_name"/>
@@ -43,16 +43,7 @@
     #bootScreen .boot-retry{display:none;width:100%;margin-top:20px;border:0;border-radius:13px;background:#ff6500;color:#fff;padding:15px;font-size:17px;font-weight:900}
     #bootScreen.boot-slow .boot-retry{display:block}
     @keyframes bootSpin{to{transform:rotate(360deg)}}
-  
-/* V132 - 운영진모드 단순/직관 UI */
-.admin-simple-hidden{display:none !important}
-.admin-simple-intro{margin:0 0 16px;padding:16px 18px;border:1px solid var(--line,#eadfe3);border-radius:18px;background:var(--card,#fff)}
-.admin-simple-intro h3{margin:0 0 6px;font-size:18px}
-.admin-simple-intro p{margin:0;color:var(--muted,#777);font-size:13px;line-height:1.55}
-.admin-simple-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}
-.admin-simple-menu button{min-height:72px;border:1px solid var(--line,#eadfe3);border-radius:16px;background:var(--card,#fff);font-weight:900;font-size:15px;padding:12px;cursor:pointer}
-@media(max-width:560px){.admin-simple-menu{grid-template-columns:1fr}.admin-simple-menu button{min-height:60px}}
-</style>
+  </style>
 <style>
 /* V77 - 일반회원 / 운영진 분리 진입 */
 .access-role-grid{grid-template-columns:1fr 1fr!important}
@@ -585,20 +576,8 @@
 </section>
 <section class="card hidden" id="adminPanel">
 <div class="section-title-row">
-  <div><h2>운영진</h2><p class="subtext">필요한 기능만 바로 사용할 수 있어요.</p></div>
-  <button class="outline small" id="adminLogoutBtn" type="button">일반모드</button>
-</div>
-<div class="admin-simple-intro"><h3>🦊 운영진 메뉴</h3><p>자주 사용하는 기능만 남겼어요. 아래에서 바로 관리할 수 있습니다.</p></div>
-<div class="admin-simple-menu">
-  <button type="button" data-admin-jump="follow">👥 팔로우리스트 관리</button>
-  <button type="button" data-admin-jump="match">↔ 맞팔확인 관리</button>
-  <button type="button" data-admin-jump="request">🔔 개인 맞팔 요청</button>
-  <button type="button" data-admin-jump="invite">💌 초대별 관리</button>
-</div>
-<div class="admin-simple-hidden">
-<div class="section-title-row">
 <div><h2>운영진 기능</h2></div>
-<button class="outline small" id="adminLogoutBtnLegacy" type="button">로그아웃</button>
+<button class="outline small" id="adminLogoutBtn" type="button">로그아웃</button>
 </div>
 <div class="admin-actions">
 <button class="outline" id="openSheetBtn" type="button">구글시트 열기</button>
@@ -624,8 +603,7 @@
 
 
 <hr/>
-</div>
-<div class="setting-block v73-ops admin-simple-hidden">
+<div class="setting-block v73-ops">
 <div class="section-title-row"><div><h3>🧰 운영 안정화</h3><p class="subtext">자동 백업 · 변경이력</p></div><span class="lock-state unlocked" id="adminRoleBadge">방장</span></div>
 <div class="stats-grid compact admin-stats">
 <article><span>버전</span><strong id="v73Version">V102</strong></article>
@@ -644,7 +622,7 @@
 
 
 <hr/>
-<div class="setting-block admin-simple-hidden">
+<div class="setting-block">
 <div class="section-title-row">
 <div><h3>앱 잠금</h3></div>
 <span class="lock-state unlocked" id="appLockState">사용 가능</span>
@@ -655,7 +633,7 @@
 </div>
 </div>
 <hr/>
-<div class="setting-block admin-simple-hidden">
+<div class="setting-block">
 <h3>접속 비밀번호 변경</h3>
 <div class="setting-row">
 <input id="newAccessPassword" inputmode="numeric" placeholder="새 접속 비밀번호" type="password">
@@ -664,7 +642,7 @@
 </div>
 <hr/>
 <hr/>
-<div class="setting-block follow-lock-admin" data-admin-section="follow">
+<div class="setting-block follow-lock-admin">
 <div class="section-title-row">
 <div><h3>👥 팔로우리스트 잠금</h3><p class="subtext">회원의 팔로우리스트 이용만 따로 열고 닫을 수 있어요. 운영진은 잠금 중에도 확인할 수 있습니다.</p></div>
 <span class="lock-state unlocked" id="followLockState">사용 가능</span>
@@ -684,7 +662,7 @@
 <p class="subtext" id="followLockAdminMessage"></p>
 </div>
 <hr/>
-<div class="setting-block" data-admin-section="match">
+<div class="setting-block">
 <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 ZIP 맞팔분석 기능이 활성화됩니다.</p></div><span class="lock-state locked" id="matchLockState">기간 아님</span></div>
 <div class="admin-actions"><button class="outline danger-outline" id="lockMatchBtn" type="button">맞팔확인 기간 종료</button><button class="outline success-outline" id="unlockMatchBtn" type="button">맞팔확인 기간 시작</button></div>
 <div class="match-period-reserve">
@@ -701,21 +679,21 @@
 </div>
 </div>
 <hr/>
-<div class="setting-block" data-admin-section="request">
+<div class="setting-block">
 <div class="section-title-row"><div><h3>🔔 맞팔 요청 기간</h3><p class="subtext">개인→개인 맞팔 요청을 보낼 수 있는 기간을 별도로 설정합니다.</p></div><span class="lock-state locked" id="matchRequestAdminBadge">기간 아님</span></div>
 <div class="match-request-period-grid"><label>시작<input id="matchRequestStartAt" type="datetime-local"/></label><label>종료<input id="matchRequestEndAt" type="datetime-local"/></label></div>
 <button class="outline success-outline" id="saveMatchRequestPeriodBtn" type="button">맞팔 요청 기간 저장</button>
 </div>
 <hr/>
 <hr/>
-<div class="setting-block" data-admin-section="notice">
+<div class="setting-block">
 <h3>공지 관리</h3>
 <textarea id="noticeBody" placeholder="공지 내용을 입력하세요."></textarea>
 <button class="primary" id="saveNoticeBtn" type="button">공지 저장</button>
 <div class="admin-notice-list" id="adminNoticeList"></div>
 </div>
 <hr/>
-<div class="setting-block roster-audit-block admin-simple-hidden">
+<div class="setting-block roster-audit-block">
 <div class="section-title-row">
 <div>
 <h3>🛠️ 명단 자동 점검</h3>
@@ -739,7 +717,7 @@
 </div>
 </div>
 <hr/>
-<div class="setting-block admin-simple-hidden">
+<div class="setting-block">
 <div class="section-title-row">
 <div><h3>운영진 로그</h3><p class="subtext">최근 설정 변경과 공지 작업을 확인합니다.</p></div>
 <button class="outline small" id="refreshLogsBtn" type="button">새로고침</button>
@@ -845,8 +823,8 @@
 </section>
 </div>
 <div class="toast" id="toast"></div>
-<script src="supabase-auth-v107.js?v=1200"></script>
-<script src="app.js?v=1320"></script>
+<script src="supabase-auth-v107.js?v=1330"></script>
+<script src="app.js?v=1330"></script>
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
   const moreBtn = document.getElementById('moreMenuBtn');
@@ -861,21 +839,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-<script src="backend-adapter-v106.js?v=1150"></script>
-
-<script>
-// V132 운영진 빠른 메뉴
-document.addEventListener('click', function(e){
-  const b=e.target.closest('[data-admin-jump]'); if(!b) return;
-  const key=b.dataset.adminJump;
-  if(key==='invite'){
-    const nav=document.querySelector('.nav-btn[data-view="inviteView"]'); if(nav) nav.click();
-    setTimeout(()=>{ const tab=document.getElementById('inviteAdminTab'); if(tab) tab.click(); },120);
-    return;
-  }
-  const target=document.querySelector('[data-admin-section="'+key+'"]');
-  if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-});
-</script>
+<script src="backend-adapter-v106.js?v=1330"></script>
 </body>
 </html>
