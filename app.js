@@ -1,4 +1,4 @@
-/* V118 체감속도 최적화 + Supabase 세션브리지 */
+/* V120 재접속 즉시복원 + 로그인 체감속도 최적화 */
 const $ = (id) => document.getElementById(id);
 
 let roomList = [];
@@ -30,7 +30,7 @@ let memberSession = null;
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V118";
+const APP_VERSION = "V120";
 
 let config = {
   version: "V102",
@@ -683,14 +683,47 @@ async function bootstrapAuth() {
   }
 
   const saved = readMemberSessionStorage();
-  if (saved?.token && !publicConfig?.appLocked) {
-    try {
-      const result = await apiPost("memberSession", { token: saved.token }, 9000);
-      await completeMemberLogin(result, false);
-      return;
-    } catch (_) {
-      clearMemberSessionStorage();
-    }
+  if (saved?.token && saved?.member && !publicConfig?.appLocked) {
+    // V120: 이미 로그인된 회원은 서버 응답을 기다리지 않고 화면부터 즉시 복원합니다.
+    memberSession = saved;
+    accessGranted = true;
+    followGranted = true;
+    matchGranted = true;
+    adminLoggedIn = false;
+    try { sessionStorage.setItem("yeowoobangRole", "member"); } catch (_) {}
+    setAdminNavigation(false);
+    setMemberHeader(saved.member);
+    hideGate();
+    showView("followView");
+    restoreFollowListCache();
+
+    void loadAfterAuth();
+    void loadMemberFollowProgress();
+    window.setTimeout(() => {
+      if (memberSession?.token) void loadNotificationsV76();
+    }, 1200);
+
+    // 기존 프로그램 세션 유효성은 백그라운드에서 확인합니다.
+    void (async () => {
+      try {
+        const result = await apiPost("memberSession", { token: saved.token }, 9000);
+        if (!result?.token || !result?.member) throw new Error("SESSION_EXPIRED");
+        memberSession = { token: result.token, member: result.member };
+        saveMemberSessionStorage(memberSession);
+        setMemberHeader(result.member);
+      } catch (_) {
+        memberSession = null;
+        clearMemberSessionStorage();
+        try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+        accessGranted = false;
+        followGranted = false;
+        matchGranted = false;
+        showGate();
+        setGate("memberLogin");
+        $("gateError").textContent = "로그인 시간이 만료되었습니다. 다시 로그인해 주세요.";
+      }
+    })();
+    return;
   }
 
   setGate("role");
@@ -803,7 +836,9 @@ async function loginMemberFromGate() {
   const btn = $("memberLoginBtn");
   try {
     btn.disabled = true;
-    $("gateError").textContent = "";
+    btn.dataset.originalText = btn.dataset.originalText || btn.textContent || "로그인";
+    btn.textContent = "회원 확인 중…";
+    $("gateError").textContent = "안전하게 로그인하고 있어요. 잠시만 기다려 주세요.";
     // V107: Supabase가 활성화된 경우 먼저 서버 인증/회원상태를 검증합니다.
     // 검증 후에는 기존 Apps Script 세션도 발급받아 기존 기능을 그대로 유지합니다.
     let result;
@@ -813,6 +848,8 @@ async function loginMemberFromGate() {
       if (String(sm.status || '').toLowerCase() !== 'active') {
         throw new Error('현재 로그인할 수 없는 회원 상태입니다.');
       }
+      btn.textContent = "프로그램 여는 중…";
+      $("gateError").textContent = "회원 확인 완료 · 프로그램을 여는 중이에요.";
       result = await apiPost("supabaseMemberSessionV114", {
         accessToken: supabaseResult.access_token
       }, 20000);
@@ -826,6 +863,7 @@ async function loginMemberFromGate() {
     $("gateError").textContent = error.message || "로그인에 실패했습니다.";
   } finally {
     btn.disabled = false;
+    if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
   }
 }
 
@@ -2738,7 +2776,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 finishBootScreen();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=1180").catch(() => {});
+    navigator.serviceWorker.register("sw.js?v=1200").catch(() => {});
   }
 
   // V118: app.js에 API 주소가 내장되어 있으므로 config.json을 기다리지 않고 즉시 인증을 시작합니다.
