@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v148-final-audit";
+const CACHE = "yeowoobang-v149-label-fix";
 
 const STATIC_ASSETS = [
   "./",
