@@ -3327,3 +3327,11 @@ document.addEventListener("click", (e) => {
     logoutMember();
   }
 });
+
+// V143 복구: 더보기 로그아웃
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#moreLogoutBtn")) {
+    if (!confirm("로그아웃할까요?")) return;
+    if (typeof logoutMember === "function") logoutMember();
+  }
+});

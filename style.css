@@ -1786,3 +1786,12 @@ body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}
   .myinfo-page{padding:18px}
   .myinfo-fox{width:68px;height:68px}
 }
+
+
+/* V143 화면 복구 - 홈/내정보/공지/더보기 4칸 */
+.integrated-bottom-nav.home-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+#adminNavBtn{display:none!important}
+#homeView.view.active,#myPageView.view.active,#moreView.view.active{display:block}
+@media(min-width:900px){
+  #homeView .home-welcome-card,#homeView .home-menu-section,#myPageView .card,#moreView .card{max-width:980px;margin-left:auto;margin-right:auto}
+}
