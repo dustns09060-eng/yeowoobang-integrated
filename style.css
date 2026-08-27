@@ -1751,3 +1751,7 @@ body.dark .rank-card [style*="color"] {
 .home-shortcut.yellow{background:linear-gradient(145deg,#fffaf0,#ffedc2);grid-column:1/-1;min-height:140px}
 body.dark-mode .home-shortcut *,body.dark .home-shortcut *{color:inherit}
 @media(max-width:520px){.home-welcome-card{padding:18px}.home-welcome-card h2{font-size:23px}.home-fox{font-size:48px}.home-shortcut-grid{gap:10px}.home-shortcut{min-height:158px;padding:17px 14px}.home-shortcut strong{font-size:18px}}
+
+/* V136 - 중복 없는 하단 메뉴 */
+.integrated-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.integrated-bottom-nav .nav-btn { min-width: 0; }

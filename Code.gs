@@ -1,1252 +1,1438 @@
-const SPREADSHEET_ID = '1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY';
 
-const SHEETS = Object.freeze({
-  FOLLOW: '팔로우리스트',
-  MATCH: '맞팔확인용',
-  SETTINGS: '설정',
-  NOTICES: '공지',
-  LOG: '관리자로그',
-  INVITE_SUMMARY: '초대별',
-  INVITE_LOG: '초대등록기록',
-});
-
-const KEYS = Object.freeze({
-  ACCESS_PASSWORD: '접속비밀번호',
-  ADMIN_PASSWORD: '운영진비밀번호',
-  FOLLOW_LOCK: '팔로우리스트잠금',
-  FOLLOW_PASSWORD: '팔로우리스트잠금비밀번호',
-  MATCH_LOCK: '맞팔잠금',
-  MATCH_PASSWORD: '맞팔잠금비밀번호',
-  NOTICE: '공지',
-  APP_LOCK: '앱잠금',
-  APP_LOCK_PASSWORD: '앱잠금비밀번호',
-  UPDATED_AT: '마지막수정',
-  VERSION: '버전',
-  FORCE_UPDATE: '강제업데이트',
-  INVITE_ADMIN_PASSWORD: '초대관리비밀번호',
-});
-
-const DEFAULTS = Object.freeze({
-  접속비밀번호: '1234',
-  운영진비밀번호: '0702',
-  팔로우리스트잠금: 'FALSE',
-  팔로우리스트잠금비밀번호: '2132',
-  맞팔잠금: 'TRUE',
-  맞팔잠금비밀번호: '5678',
-  공지: '오늘 공지',
-  앱잠금: 'FALSE',
-  앱잠금비밀번호: '0000',
-  마지막수정: '',
-  버전: 'V35',
-  강제업데이트: 'FALSE',
-  초대관리비밀번호: '0906',
-});
-
-const ALLOWED_SETTINGS = new Set([
-  KEYS.ACCESS_PASSWORD,
-  KEYS.FOLLOW_LOCK,
-  KEYS.FOLLOW_PASSWORD,
-  KEYS.MATCH_LOCK,
-  KEYS.MATCH_PASSWORD,
-  KEYS.NOTICE,
-  KEYS.APP_LOCK,
-  KEYS.APP_LOCK_PASSWORD,
-  KEYS.VERSION,
-  KEYS.FORCE_UPDATE,
-]);
-
-const CACHE_KEYS = Object.freeze({
-  FOLLOW_LIST: 'YEOWOO_FOLLOW_LIST_V341',
-  MATCH_LIST: 'YEOWOO_MATCH_LIST_V341',
-  SETTINGS: 'YEOWOO_SETTINGS_V341',
-  NOTICES: 'YEOWOO_NOTICES_V341',
-});
-
-const CACHE_SECONDS = Object.freeze({
-  LIST: 300,
-  SETTINGS: 60,
-  NOTICES: 60,
-});
-
-function setupYeowoobang() {
-  const ss = spreadsheet_();
-  const follow = sheetOrCreate_(ss, SHEETS.FOLLOW);
-  const match = sheetOrCreate_(ss, SHEETS.MATCH);
-  const settings = sheetOrCreate_(ss, SHEETS.SETTINGS);
-  const notices = sheetOrCreate_(ss, SHEETS.NOTICES);
-  const log = sheetOrCreate_(ss, SHEETS.LOG);
-  const inviteSummary = sheetOrCreate_(ss, SHEETS.INVITE_SUMMARY);
-  const inviteLog = inviteLogSheet_(ss);
-
-  ensureListHeader_(follow);
-  ensureListHeader_(match);
-  settings.getRange('A:B').setNumberFormat('@');
-
-  const current = settingsMap_(settings);
-  Object.entries(DEFAULTS).forEach(([key, value]) => {
-    if (!(key in current)) settings.appendRow([key, value]);
-  });
-
-  const refreshed = settingsMap_(settings);
-  if (String(refreshed[KEYS.ADMIN_PASSWORD]) === '702') {
-    setSetting_(settings, KEYS.ADMIN_PASSWORD, '0702');
-  }
-
-  ensureHeaders_(notices, ['작성시간', '내용', '공지ID']);
-  fillMissingNoticeIds_(notices);
-  ensureHeaders_(log, ['작성시간', '작업', '내용']);
-  ensureHeaders_(inviteSummary, ['번호','닉네임','초대','이전','누적']);
-  ensureHeaders_(inviteLog, ['등록ID','등록시간','신규회원닉네임','신규회원아이디','초대자닉네임','초대자아이디','상태','승인시간','팔로우리스트시작일','팔로우리스트추가여부','승인취소시간','취소사유']);
-  setSetting_(settings, KEYS.UPDATED_AT, now_());
-
-  clearAllCaches_();
-  SpreadsheetApp.flush();
-
-  return {
-    ok: true,
-    message: '초기 설정 완료',
-    publicConfig: publicConfig_(),
-  };
-}
+const SHEET_ROOMS = '굴비방';
+const SHEET_LINKS = '참여링크';
+const SHEET_REQUESTS = '수정요청';
+const SHEET_ADMINS = '운영진';
+const SHEET_VOTES = '참여투표';
+const SHEET_POLLS = '투표목록';
+const SHEET_POLL_RESPONSES = '투표응답';
+const SHEET_PROGRESS = '진행현황';
 
 function doGet(e) {
-  try {
-    const action = param_(e, 'action') || 'publicConfig';
+  setupSheets_();
+  const t = HtmlService.createTemplateFromFile('Index');
+  t.room = (e && e.parameter && e.parameter.room) ? String(e.parameter.room).trim().toUpperCase() : '';
+  return t.evaluate()
+    .setTitle('모네 굴비엮기 · 좋아요')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+}
 
-    if (action === 'ping') {
-      return json_({ ok: true, service: 'yeowoobang-api', time: now_() });
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function setupSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  let rooms = ss.getSheetByName(SHEET_ROOMS);
+  if (!rooms) {
+    rooms = ss.insertSheet(SHEET_ROOMS);
+    rooms.getRange(1,1,1,10).setValues([[
+      'RoomCode','제목','최대인원','상태','방장PIN','생성일','마감안내','안내문구','생성자','수정일'
+    ]]);
+    rooms.setFrozenRows(1);
+  }
+  if (rooms.getMaxColumns() < 13) {
+    rooms.insertColumnsAfter(rooms.getMaxColumns(), 13 - rooms.getMaxColumns());
+  }
+  if (!String(rooms.getRange(1,11).getValue() || '').trim()) {
+    rooms.getRange(1,11).setValue('보관여부');
+  }
+  if (!String(rooms.getRange(1,12).getValue() || '').trim()) rooms.getRange(1,12).setValue('참여마감일시');
+  if (!String(rooms.getRange(1,13).getValue() || '').trim()) rooms.getRange(1,13).setValue('완료마감일시');
+
+  let links = ss.getSheetByName(SHEET_LINKS);
+  if (!links) {
+    links = ss.insertSheet(SHEET_LINKS);
+    links.getRange(1,1,1,10).setValues([[
+      'RoomCode','닉네임','인스타ID','링크','수정PIN','등록일','수정일','상태','순번','메모'
+    ]]);
+    links.setFrozenRows(1);
+  }
+
+  let requests = ss.getSheetByName(SHEET_REQUESTS);
+  if (!requests) {
+    requests = ss.insertSheet(SHEET_REQUESTS);
+    requests.getRange(1,1,1,15).setValues([[
+      'RequestID','RoomCode','인스타ID','기존닉네임','기존링크',
+      '요청닉네임','요청링크','요청일','상태','처리일',
+      '처리메모','처리담당자','처리담당슬롯','수정PIN확인','요청유형'
+    ]]);
+    requests.setFrozenRows(1);
+  }
+
+
+  let votes = ss.getSheetByName(SHEET_VOTES);
+  if (!votes) {
+    votes = ss.insertSheet(SHEET_VOTES);
+    votes.getRange(1,1,1,8).setValues([[
+      'RoomCode','인스타ID','닉네임','선택','투표일','수정일','상태','메모'
+    ]]);
+    votes.setFrozenRows(1);
+  }
+
+
+  let polls = ss.getSheetByName(SHEET_POLLS);
+  if (!polls) {
+    polls = ss.insertSheet(SHEET_POLLS);
+    polls.getRange(1,1,1,10).setValues([[
+      'PollID','RoomCode','제목','안내문구','선택지JSON','상태',
+      '생성일','마감일시','생성운영진','수정일'
+    ]]);
+    polls.setFrozenRows(1);
+  }
+
+  let pollResponses = ss.getSheetByName(SHEET_POLL_RESPONSES);
+  if (!pollResponses) {
+    pollResponses = ss.insertSheet(SHEET_POLL_RESPONSES);
+    pollResponses.getRange(1,1,1,9).setValues([[
+      'PollID','RoomCode','인스타ID','닉네임','선택',
+      '투표일','수정일','상태','메모'
+    ]]);
+    pollResponses.setFrozenRows(1);
+  }
+
+  let progress = ss.getSheetByName(SHEET_PROGRESS);
+  if (!progress) {
+    progress = ss.insertSheet(SHEET_PROGRESS);
+    progress.getRange(1,1,1,8).setValues([[
+      'RoomCode','인스타ID','닉네임','완료수','전체수','완료여부','수정일','상태'
+    ]]);
+    progress.setFrozenRows(1);
+  }
+
+  let admins = ss.getSheetByName(SHEET_ADMINS);
+  if (!admins) {
+    admins = ss.insertSheet(SHEET_ADMINS);
+    admins.getRange(1,1,1,5).setValues([[
+      '운영진ID','담당자명','로그인ID','PIN','사용여부'
+    ]]);
+    admins.setFrozenRows(1);
+
+    // 기존 모네담당자 시트가 있으면 2~3행의 실제 계정을 자동 이관
+    const oldAdmins = ss.getSheetByName('모네담당자');
+    if (oldAdmins && oldAdmins.getLastRow() >= 2) {
+      const rows = oldAdmins.getRange(2,1,Math.min(2, oldAdmins.getLastRow()-1),5).getValues();
+      rows.forEach(function(r, idx) {
+        const name = String(r[1] || '').trim();
+        const loginId = String(r[2] || '').trim();
+        const pin = String(r[3] || '').trim();
+        if (loginId && pin) {
+          admins.appendRow([
+            String(r[0] || ('ADMIN_' + (idx + 1))),
+            name,
+            loginId,
+            pin,
+            String(r[4] || 'TRUE')
+          ]);
+        }
+      });
     }
-    if (action === 'publicConfig') return json_(publicConfig_());
-    if (action === 'roomList' || action === 'followList') return json_(followList_());
-    if (action === 'matchList') return json_(matchList_());
-    if (action === 'notices') return json_({ ok: true, notices: notices_() });
-    if (action === 'stats') return json_(stats_());
-
-    return json_({ ok: false, error: '지원하지 않는 GET action입니다: ' + action });
-  } catch (err) {
-    return jsonError_(err);
   }
 }
 
-function doPost(e) {
-  try {
-    const body = body_(e);
-    const action = String(body.action || '').trim();
+/* ---------- 굴비방 ---------- */
 
-    if (action === 'verifyAccessPassword') return json_(verify_(KEYS.ACCESS_PASSWORD, body.password));
-    if (action === 'verifyFollowPassword') return json_(verify_(KEYS.FOLLOW_PASSWORD, body.password));
-    if (action === 'verifyMatchPassword') return json_(verify_(KEYS.MATCH_PASSWORD, body.password));
-    if (action === 'verifyAppLockPassword') return json_(verify_(KEYS.APP_LOCK_PASSWORD, body.password));
-    if (action === 'adminLogin') return json_(verify_(KEYS.ADMIN_PASSWORD, body.password));
-    if (action === 'inviteAdminLogin') return json_(verifyInviteAdmin_(body.password));
-    if (action === 'registerInvite') return json_(registerInvite_(body));
-    if (action === 'inviteMemberLookup') return json_(inviteMemberLookup_(body));
-    if (action === 'markFollowStarted') return json_(markFollowStarted_(body));
-    if (action === 'getInviteAdmin') { requireInviteAdmin_(body.inviteAdminPassword); return json_({ ok: true, items: inviteAdminItems_() }); }
-    if (action === 'getInviteSummary') { requireInviteAdmin_(body.inviteAdminPassword); return json_({ ok: true, items: inviteSummaryItems_() }); }
-    if (action === 'updateInviteStatus') { requireInviteAdmin_(body.inviteAdminPassword); return json_(updateInviteStatus_(body.id, body.status, body.reason)); }
-
-    requireAdmin_(body.adminPassword);
-
-    if (action === 'getAdminLogs') return json_({ ok: true, logs: adminLogs_() });
-    if (action === 'setAppLock') return json_(updateSettings_({ [KEYS.APP_LOCK]: boolString_(body.locked) }, '앱잠금 변경'));
-    if (action === 'setFollowLock') return json_(updateSettings_({ [KEYS.FOLLOW_LOCK]: boolString_(body.locked) }, '팔로우리스트잠금 변경'));
-    if (action === 'setMatchLock') return json_(updateSettings_({ [KEYS.MATCH_LOCK]: boolString_(body.locked) }, '맞팔잠금 변경'));
-    if (action === 'updateSettings') return json_(updateSettings_(parseSettings_(body.settings), '설정 변경'));
-    if (action === 'addNotice') return json_(addNotice_(body.content));
-    if (action === 'deleteNotice') return json_(deleteNotice_(body.noticeId));
-    if (action === 'clearNotices') return json_(clearNotices_());
-
-    if (action === 'clearListCaches') {
-      clearListCaches_();
-      log_('명단 캐시 삭제', '');
-      return json_({ ok: true, message: '팔로우리스트·맞팔명단 캐시를 삭제했습니다.' });
-    }
-
-    return json_({ ok: false, error: '지원하지 않는 POST action입니다: ' + action });
-  } catch (err) {
-    return jsonError_(err);
+function createRoom(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const title = clean_(data.title);
+  const maxPeople = Number(data.maxPeople || 9);
+  const hostPin = String(data.hostPin || '').trim();
+  const note = clean_(data.note || '');
+  const deadline = clean_(data.deadline || '');
+  const participationDeadlineRaw = String(data.participationDeadline || '').trim();
+  const completionDeadlineRaw = String(data.completionDeadline || '').trim();
+  let participationDeadline = '';
+  let completionDeadline = '';
+  if (participationDeadlineRaw) {
+    const d = new Date(participationDeadlineRaw);
+    if (isNaN(d.getTime())) throw new Error('참여 마감시간을 확인해주세요.');
+    participationDeadline = d;
   }
-}
+  if (completionDeadlineRaw) {
+    const d = new Date(completionDeadlineRaw);
+    if (isNaN(d.getTime())) throw new Error('완료 마감시간을 확인해주세요.');
+    completionDeadline = d;
+  }
+  if (participationDeadline && completionDeadline && completionDeadline <= participationDeadline) {
+    throw new Error('완료 마감시간은 참여 마감시간보다 늦게 설정해주세요.');
+  }
 
-function publicConfig_() {
-  const settings = getSettings_();
+  if (!title) throw new Error('굴비 제목을 입력해주세요.');
+  if (!Number.isFinite(maxPeople) || maxPeople < 2 || maxPeople > 1000) {
+    throw new Error('최대 인원은 2~1000명으로 설정해주세요.');
+  }
+  if (!/^\d{4}$/.test(hostPin)) throw new Error('방장 PIN은 숫자 4자리로 입력해주세요.');
+
+  const roomCode = makeRoomCode_();
+  const now = new Date();
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  sh.appendRow([roomCode, title, maxPeople, 'OPEN', hostPin, now, deadline, note, '', now, 'FALSE', participationDeadline, completionDeadline]);
+
   return {
     ok: true,
-    appLocked: bool_(settings[KEYS.APP_LOCK]),
-    followLocked: bool_(settings[KEYS.FOLLOW_LOCK]),
-    matchLocked: bool_(settings[KEYS.MATCH_LOCK]),
-    notice: String(settings[KEYS.NOTICE] || ''),
-    updatedAt: String(settings[KEYS.UPDATED_AT] || ''),
-    version: String(settings[KEYS.VERSION] || 'V35'),
-    forceUpdate: bool_(settings[KEYS.FORCE_UPDATE]),
-    securityVersion: securityVersion_(settings),
+    roomCode,
+    url: buildRoomUrl_(roomCode),
+    title,
+    maxPeople
   };
 }
 
-function followList_() {
-  return listFromSheet_(SHEETS.FOLLOW, CACHE_KEYS.FOLLOW_LIST, '팔로우리스트');
+
+
+function roomPhase_(room) {
+  if (!room) return 'CLOSED';
+  if (String(room.status || '').toUpperCase() === 'CLOSED') return 'CLOSED';
+  const now = Date.now();
+  const p = room.participationDeadline ? new Date(room.participationDeadline).getTime() : NaN;
+  const c = room.completionDeadline ? new Date(room.completionDeadline).getTime() : NaN;
+  if (!isNaN(c) && now >= c) return 'CLOSED';
+  if (!isNaN(p) && now >= p) return 'COMPLETION';
+  return 'PARTICIPATION';
 }
 
-function matchList_() {
-  return listFromSheet_(SHEETS.MATCH, CACHE_KEYS.MATCH_LIST, '맞팔확인용 명단');
+function phaseLabel_(phase) {
+  if (phase === 'PARTICIPATION') return '참여 중';
+  if (phase === 'COMPLETION') return '좋아요 완료 중';
+  return '마감';
 }
 
-function listFromSheet_(sheetName, cacheKey, label) {
-  const cache = CacheService.getScriptCache();
-  const cached = getLargeCache_(cacheKey);
+function getRoomList() {
+  setupSheets_();
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  const values = sh.getDataRange().getValues();
+  const items = [];
 
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached);
-      parsed.cached = true;
-      return parsed;
-    } catch (_) {
-      removeLargeCache_(cacheKey);
+  for (let i = values.length - 1; i >= 1; i--) {
+    const roomCode = normalizeRoomCode_(values[i][0]);
+    if (!roomCode) continue;
+    const archived = String(values[i][10] || '').toUpperCase() === 'TRUE';
+    if (archived) continue;
+
+    const room = findRoom_(roomCode);
+    const phase = roomPhase_(room);
+    const links = getLinks_(roomCode);
+    items.push({
+      roomCode: roomCode,
+      title: String(values[i][1] || ''),
+      maxPeople: Number(values[i][2] || 0),
+      status: String(values[i][3] || 'OPEN'),
+      phase: phase,
+      phaseLabel: phaseLabel_(phase),
+      createdAt: formatDate_(values[i][5]),
+      deadline: values[i][6] ? String(values[i][6]) : '',
+      participationDeadline: room && room.participationDeadline ? formatDate_(room.participationDeadline) : '',
+      completionDeadline: room && room.completionDeadline ? formatDate_(room.completionDeadline) : '',
+      count: links.length,
+      shareUrl: buildRoomUrl_(roomCode)
+    });
+  }
+
+  const rank = {PARTICIPATION:0, COMPLETION:1, CLOSED:2};
+  items.sort(function(a,b){
+    const d=(rank[a.phase]||0)-(rank[b.phase]||0);
+    if (d) return d;
+    return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+  });
+  return {ok:true,items:items};
+}
+
+
+function archiveRooms(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const codes = Array.isArray(data.roomCodes) ? data.roomCodes : [];
+  if (!codes.length) throw new Error('보관할 굴비를 선택해주세요.');
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  let count = 0;
+  codes.forEach(function(c) {
+    const room = findRoom_(normalizeRoomCode_(c));
+    if (!room) return;
+    sh.getRange(room.row,11).setValue('TRUE');
+    sh.getRange(room.row,10).setValue(new Date());
+    count++;
+  });
+  return {ok:true,count:count,message:count+'개의 굴비를 보관함으로 이동했어요.'};
+}
+
+function archiveRoom(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('굴비방을 찾을 수 없어요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  sh.getRange(room.row, 11).setValue('TRUE');
+  sh.getRange(room.row, 10).setValue(new Date());
+
+  return { ok:true, message:'굴비를 목록에서 보관했어요.', adminName:admin.name };
+}
+
+function getArchivedRoomList(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  const values = sh.getDataRange().getValues();
+  const items = [];
+
+  for (let i = values.length - 1; i >= 1; i--) {
+    const roomCode = normalizeRoomCode_(values[i][0]);
+    if (!roomCode) continue;
+
+    const archived = String(values[i][10] || '').toUpperCase() === 'TRUE';
+    if (!archived) continue;
+
+    const links = getLinks_(roomCode);
+    items.push({
+      roomCode: roomCode,
+      title: String(values[i][1] || ''),
+      maxPeople: Number(values[i][2] || 0),
+      status: String(values[i][3] || 'OPEN'),
+      createdAt: formatDate_(values[i][5]),
+      count: links.length,
+      shareUrl: buildRoomUrl_(roomCode)
+    });
+  }
+
+  return { ok:true, items:items };
+}
+
+function restoreRoom(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('굴비방을 찾을 수 없어요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  sh.getRange(room.row, 11).setValue('FALSE');
+  sh.getRange(room.row, 10).setValue(new Date());
+
+  return { ok:true, message:'굴비를 목록으로 복원했어요.', adminName:admin.name };
+}
+
+function getRoom(roomCode) {
+  setupSheets_();
+  roomCode = normalizeRoomCode_(roomCode);
+  if (!roomCode) throw new Error('굴비방 코드를 입력해주세요.');
+
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+  // 보관된 과거 굴비를 브라우저가 기억해 다시 여는 현상 방지
+  const roomSheet = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  const archived = String(roomSheet.getRange(room.row, 11).getValue() || '').toUpperCase() === 'TRUE';
+  if (archived) throw new Error('보관된 굴비방이에요. 굴비 목록에서 현재 방을 열어주세요.');
+
+  const links = getLinks_(roomCode);
+  return {
+    roomCode,
+    title: room.title,
+    maxPeople: room.maxPeople,
+    status: room.status,
+    phase: roomPhase_(room),
+    phaseLabel: phaseLabel_(roomPhase_(room)),
+    deadline: room.deadline,
+    participationDeadline: room.participationDeadline ? formatDate_(room.participationDeadline) : '',
+    completionDeadline: room.completionDeadline ? formatDate_(room.completionDeadline) : '',
+    note: room.note,
+    count: links.length,
+    links: links.map((x, i) => ({
+      no: i + 1,
+      nickname: x.nickname,
+      instagramId: x.instagramId,
+      url: x.url,
+      updatedAt: formatDate_(x.updatedAt || x.createdAt)
+    })),
+    shareUrl: buildRoomUrl_(roomCode)
+  };
+}
+
+function closeRoom(data) {
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const hostPin = String(data.hostPin || '').trim();
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+  if (String(room.hostPin) !== hostPin) throw new Error('방장 PIN이 맞지 않아요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  sh.getRange(room.row, 4).setValue('CLOSED');
+  sh.getRange(room.row, 10).setValue(new Date());
+  return { ok: true, message: '굴비방을 마감했어요.', room: getRoom(roomCode) };
+}
+
+function reopenRoom(data) {
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const hostPin = String(data.hostPin || '').trim();
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+  if (String(room.hostPin) !== hostPin) throw new Error('방장 PIN이 맞지 않아요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  sh.getRange(room.row, 4).setValue('OPEN');
+  sh.getRange(room.row, 10).setValue(new Date());
+  return { ok: true, message: '굴비방을 다시 열었어요.', room: getRoom(roomCode) };
+}
+
+
+/* ---------- 참여 투표 ---------- */
+
+function submitVote(data) {
+  setupSheets_();
+
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const nickname = clean_(data.nickname || '');
+  const choice = String(data.choice || '').trim();
+
+  if (!roomCode) throw new Error('굴비방 정보가 없어요.');
+  if (!instagramId) throw new Error('인스타 아이디를 입력해주세요.');
+  if (!['참여','벌칙','프패'].includes(choice)) throw new Error('투표 항목을 선택해주세요.');
+
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+  if (room.status !== 'OPEN') throw new Error('마감된 굴비방은 투표할 수 없어요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+  const now = new Date();
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      normalizeInstagramId_(values[i][1]) === instagramId
+    ) {
+      sh.getRange(i+1,3).setValue(nickname);
+      sh.getRange(i+1,4).setValue(choice);
+      sh.getRange(i+1,6).setValue(now);
+      sh.getRange(i+1,7).setValue('ACTIVE');
+      return {ok:true,message:'투표가 변경됐어요.',choice:choice};
     }
   }
 
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  sh.appendRow([roomCode,instagramId,nickname,choice,now,now,'ACTIVE','']);
+  return {ok:true,message:'투표가 완료됐어요.',choice:choice};
+}
 
-  try {
-    const cachedAfterLock = getLargeCache_(cacheKey);
-    if (cachedAfterLock) {
-      try {
-        const parsed = JSON.parse(cachedAfterLock);
-        parsed.cached = true;
-        return parsed;
-      } catch (_) {
-        removeLargeCache_(cacheKey);
+function getMyVote(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  if (!instagramId) return {ok:true,choice:''};
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      normalizeInstagramId_(values[i][1]) === instagramId &&
+      String(values[i][6] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      return {ok:true,choice:String(values[i][3] || '')};
+    }
+  }
+  return {ok:true,choice:''};
+}
+
+function getVoteSummary(roomCode) {
+  setupSheets_();
+  roomCode = normalizeRoomCode_(roomCode);
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+  const counts = {'참여':0,'벌칙':0,'프패':0};
+  let total = 0;
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      String(values[i][6] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      const c = String(values[i][3] || '');
+      if (counts.hasOwnProperty(c)) {
+        counts[c]++;
+        total++;
+      }
+    }
+  }
+
+  return {ok:true,total:total,counts:counts};
+}
+
+
+/* ---------- 운영진 투표 관리 ---------- */
+
+function getVoteAdminList(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+  const items = [];
+  const counts = {'참여':0,'벌칙':0,'프패':0};
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      String(values[i][6] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      const choice = String(values[i][3] || '');
+      if (counts.hasOwnProperty(choice)) counts[choice]++;
+      items.push({
+        instagramId: normalizeInstagramId_(values[i][1]),
+        nickname: String(values[i][2] || ''),
+        choice: choice,
+        votedAt: formatDate_(values[i][4]),
+        updatedAt: formatDate_(values[i][5])
+      });
+    }
+  }
+
+  return {ok:true,total:items.length,counts:counts,items:items};
+}
+
+function updateVoteByAdmin(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const choice = String(data.choice || '').trim();
+
+  if (!['참여','벌칙','프패'].includes(choice)) {
+    throw new Error('투표 항목이 올바르지 않아요.');
+  }
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      normalizeInstagramId_(values[i][1]) === instagramId &&
+      String(values[i][6] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      sh.getRange(i+1,4).setValue(choice);
+      sh.getRange(i+1,6).setValue(new Date());
+      sh.getRange(i+1,8).setValue('운영진 수정: ' + admin.name);
+      return {ok:true,message:'투표를 수정했어요.'};
+    }
+  }
+
+  throw new Error('해당 투표를 찾을 수 없어요.');
+}
+
+function deleteVoteByAdmin(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_VOTES);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      normalizeRoomCode_(values[i][0]) === roomCode &&
+      normalizeInstagramId_(values[i][1]) === instagramId &&
+      String(values[i][6] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      sh.getRange(i+1,7).setValue('DELETED');
+      sh.getRange(i+1,6).setValue(new Date());
+      sh.getRange(i+1,8).setValue('운영진 삭제: ' + admin.name);
+      return {ok:true,message:'투표를 삭제했어요.'};
+    }
+  }
+
+  throw new Error('해당 투표를 찾을 수 없어요.');
+}
+
+
+/* ---------- 운영진 자유 투표 ---------- */
+
+function createPollId_() {
+  return 'POLL' + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Seoul', 'yyyyMMddHHmmssSSS');
+}
+
+function parsePollOptions_(v) {
+  let arr = Array.isArray(v) ? v : [];
+  arr = arr.map(function(x){ return clean_(x); }).filter(function(x){ return !!x; });
+  const unique = [];
+  arr.forEach(function(x){ if (unique.indexOf(x) === -1) unique.push(x); });
+  if (unique.length < 2) throw new Error('투표 선택지는 2개 이상 입력해주세요.');
+  if (unique.length > 8) throw new Error('투표 선택지는 최대 8개까지 가능해요.');
+  return unique;
+}
+
+function pollDeadlinePassed_(deadline) {
+  if (!deadline) return false;
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return false;
+  return d.getTime() <= Date.now();
+}
+
+function createCustomPoll(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const title = clean_(data.title);
+  const notice = clean_(data.notice || '');
+  const options = parsePollOptions_(data.options);
+  const deadlineRaw = String(data.deadline || '').trim();
+
+  if (!roomCode || !findRoom_(roomCode)) throw new Error('굴비방을 찾을 수 없어요.');
+  if (!title) throw new Error('투표 제목을 입력해주세요.');
+
+  let deadline = '';
+  if (deadlineRaw) {
+    const d = new Date(deadlineRaw);
+    if (isNaN(d.getTime())) throw new Error('투표 마감시간을 확인해주세요.');
+    deadline = d;
+  }
+
+  const pollId = createPollId_();
+  const now = new Date();
+  SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS).appendRow([
+    pollId, roomCode, title, notice, JSON.stringify(options), 'OPEN',
+    now, deadline, admin.name, now
+  ]);
+
+  return {ok:true,pollId:pollId,message:'투표를 만들었어요.'};
+}
+
+function getCustomPolls(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId || '');
+
+  const psh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const rsh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLL_RESPONSES);
+  const pvals = psh.getDataRange().getValues();
+  const rvals = rsh.getDataRange().getValues();
+  const items = [];
+
+  for (let i = pvals.length - 1; i >= 1; i--) {
+    if (normalizeRoomCode_(pvals[i][1]) !== roomCode) continue;
+    let status = String(pvals[i][5] || 'OPEN');
+    const deadline = pvals[i][7];
+    if (status === 'OPEN' && pollDeadlinePassed_(deadline)) {
+      status = 'CLOSED';
+      psh.getRange(i+1,6).setValue('CLOSED');
+      psh.getRange(i+1,10).setValue(new Date());
+    }
+    if (status === 'DELETED') continue;
+
+    let options = [];
+    try { options = JSON.parse(String(pvals[i][4] || '[]')); } catch(e) {}
+    if (!Array.isArray(options)) options = [];
+
+    const counts = {};
+    options.forEach(function(o){ counts[o] = 0; });
+    let total = 0;
+    let myChoice = '';
+
+    for (let j = 1; j < rvals.length; j++) {
+      if (
+        String(rvals[j][0] || '') === String(pvals[i][0] || '') &&
+        String(rvals[j][7] || 'ACTIVE') === 'ACTIVE'
+      ) {
+        const c = String(rvals[j][4] || '');
+        if (counts.hasOwnProperty(c)) counts[c]++;
+        total++;
+        if (instagramId && normalizeInstagramId_(rvals[j][2]) === instagramId) myChoice = c;
       }
     }
 
-    const sh = sheet_(sheetName);
-    const lastRow = sh.getLastRow();
-
-    if (lastRow < 2) {
-      const emptyResult = {
-        ok: true,
-        label,
-        count: 0,
-        members: [],
-        updatedAt: now_(),
-        cached: false,
-      };
-      putLargeCache_(cacheKey, JSON.stringify(emptyResult), CACHE_SECONDS.LIST);
-      return emptyResult;
-    }
-
-    const rows = sh.getRange(2, 1, lastRow - 1, 3).getDisplayValues();
-    const members = [];
-
-    rows.forEach((row, index) => {
-      const no = String(row[0] || '').trim();
-      const name = String(row[1] || '').trim();
-      const id = instaId_(row[2]);
-
-      if (!name || !id) return;
-
-      members.push({
-        no: no || String(index + 1),
-        name,
-        id,
-        instagramUrl: 'https://www.instagram.com/' + encodeURIComponent(id) + '/',
-      });
-    });
-
-    const result = {
-      ok: true,
-      label,
-      count: members.length,
-      members,
-      updatedAt: now_(),
-      cached: false,
-    };
-
-    try {
-      putLargeCache_(cacheKey, JSON.stringify(result), CACHE_SECONDS.LIST);
-    } catch (err) {
-      console.warn('명단 캐시 저장 실패(' + sheetName + '): ' + err);
-    }
-
-    return result;
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function notices_() {
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_KEYS.NOTICES);
-
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch (_) {
-      cache.remove(CACHE_KEYS.NOTICES);
-    }
-  }
-
-  const sh = sheet_(SHEETS.NOTICES);
-  const lastRow = sh.getLastRow();
-
-  if (lastRow < 2) {
-    cache.put(CACHE_KEYS.NOTICES, JSON.stringify([]), CACHE_SECONDS.NOTICES);
-    return [];
-  }
-
-  const result = sh.getRange(2, 1, lastRow - 1, 3)
-    .getDisplayValues()
-    .map((row) => ({
-      createdAt: String(row[0] || ''),
-      content: String(row[1] || ''),
-      noticeId: String(row[2] || ''),
-    }))
-    .filter((item) => item.content)
-    .reverse();
-
-  cache.put(CACHE_KEYS.NOTICES, JSON.stringify(result), CACHE_SECONDS.NOTICES);
-  return result;
-}
-
-function stats_() {
-  const follow = followList_();
-  const match = matchList_();
-  const settings = getSettings_();
-
-  return {
-    ok: true,
-    roomCount: follow.count,
-    followCount: follow.count,
-    matchCount: match.count,
-    noticeCount: notices_().length,
-    appLocked: bool_(settings[KEYS.APP_LOCK]),
-    followLocked: bool_(settings[KEYS.FOLLOW_LOCK]),
-    matchLocked: bool_(settings[KEYS.MATCH_LOCK]),
-    updatedAt: String(settings[KEYS.UPDATED_AT] || ''),
-    version: String(settings[KEYS.VERSION] || ''),
-  };
-}
-
-function verify_(key, input) {
-  const settings = getSettings_();
-  return {
-    ok: safeEqual_(String(settings[key] || ''), String(input == null ? '' : input)),
-    updatedAt: String(settings[KEYS.UPDATED_AT] || ''),
-    version: String(settings[KEYS.VERSION] || ''),
-    securityVersion: securityVersion_(settings),
-  };
-}
-
-
-function registerInvite_(body) {
-  const inviteeName = cleanInvite_(body.inviteeName);
-  const inviteeInstagram = normInviteId_(body.inviteeInstagram);
-  const inviterName = cleanInvite_(body.inviterName);
-  const inviterInstagram = normInviteId_(body.inviterInstagram);
-  if (!inviteeName || !inviteeInstagram || !inviterName || !inviterInstagram) {
-    throw new Error('모든 정보를 입력해 주세요.');
-  }
-  if (inviteeInstagram === inviterInstagram) throw new Error('본인을 초대자로 등록할 수 없습니다.');
-
-  const follow = sheet_(SHEETS.FOLLOW);
-  if (!findFollowMember_(follow, inviterName, inviterInstagram)) {
-    throw new Error('초대자 정보가 팔로우리스트와 일치하지 않습니다.');
-  }
-
-  const log = inviteLogSheet_();
-  const rows = log.getLastRow() >= 2 ? log.getRange(2,1,log.getLastRow()-1,8).getValues() : [];
-  if (rows.some(r => normInviteId_(r[3]) === inviteeInstagram && String(r[6]) !== 'REJECTED')) {
-    throw new Error('이미 초대 등록 요청을 한 인스타 아이디입니다.');
-  }
-
-  log.appendRow([Utilities.getUuid(), new Date(), inviteeName, inviteeInstagram, inviterName, inviterInstagram, 'PENDING', '']);
-
-  // 신청 단계에서는 팔로우리스트에 추가하지 않습니다.
-  // 운영진이 승인한 시점에만 팔로우리스트 추가 + 초대 실적 반영이 이루어집니다.
-  return {
-    ok:true,
-    message:'초대 등록 요청이 완료되었습니다. 운영진 승인 후 팔로우리스트와 초대 실적에 반영됩니다.'
-  };
-}
-
-function inviteMemberLookup_(body) {
-  const name = cleanInvite_(body.name);
-  const instagram = normInviteId_(body.instagram);
-  if (!name || !instagram) throw new Error('닉네임과 인스타 아이디를 입력해 주세요.');
-  const sh = inviteLogSheet_();
-  const items = [];
-  if (sh && sh.getLastRow() >= 2) {
-    const rows = sh.getRange(2,1,sh.getLastRow()-1,Math.max(9,sh.getLastColumn())).getValues();
-    rows.forEach(r => {
-      if (normInviteId_(r[3]) === instagram && cleanInvite_(r[2]) === name) items.push({
-        inviterName:String(r[4]||''), inviterInstagram:String(r[5]||''),
-        createdAt:formatInviteDate_(r[1]), status:String(r[6]||'PENDING'),
-        approvedAt:formatInviteDate_(r[7]),
-        followStartedAt:formatInviteDate_(r[8]),
-        followStarted:!!r[8],
-        canStart:String(r[6]||'PENDING').toUpperCase() === 'APPROVED'
-      });
+    items.push({
+      pollId: String(pvals[i][0] || ''),
+      title: String(pvals[i][2] || ''),
+      notice: String(pvals[i][3] || ''),
+      options: options,
+      status: status,
+      createdAt: formatDate_(pvals[i][6]),
+      deadline: pvals[i][7] ? formatDate_(pvals[i][7]) : '',
+      total: total,
+      counts: counts,
+      myChoice: myChoice
     });
   }
-  return { ok:true, member:true, items:items.reverse() };
+
+  return {ok:true,items:items};
 }
 
-function markFollowStarted_(body) {
-  const name = cleanInvite_(body.name);
-  const instagram = normInviteId_(body.instagram);
-  if (!name || !instagram) throw new Error('먼저 신규회원 정보를 입력해 주세요.');
+function submitCustomPollVote(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const pollId = String(data.pollId || '').trim();
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const nickname = clean_(data.nickname || '');
+  const choice = clean_(data.choice);
 
-  // 현재 시트명이 '초대등록기한'이어도 자동으로 찾아서 사용합니다.
-  const sh = inviteLogSheet_();
-  if (sh.getLastRow() < 2) throw new Error('먼저 초대자 등록 요청을 완료해 주세요.');
+  if (!instagramId) throw new Error('인스타 아이디를 입력해주세요.');
 
-  const width = Math.max(9, sh.getLastColumn());
-  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues();
-  let target = 0;
+  const psh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const pvals = psh.getDataRange().getValues();
+  let pollRow = -1;
+  let options = [];
+  let status = '';
+  let deadline = '';
 
-  // 운영진 승인이 완료된 신규회원만 팔로우리스트 시작이 가능합니다.
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const sameMember = cleanInvite_(rows[i][2]) === name && normInviteId_(rows[i][3]) === instagram;
-    const approved = String(rows[i][6] || 'PENDING').toUpperCase() === 'APPROVED';
-    if (sameMember && approved) {
-      target = i + 2;
+  for (let i = 1; i < pvals.length; i++) {
+    if (
+      String(pvals[i][0] || '') === pollId &&
+      normalizeRoomCode_(pvals[i][1]) === roomCode
+    ) {
+      pollRow = i + 1;
+      status = String(pvals[i][5] || 'OPEN');
+      deadline = pvals[i][7];
+      try { options = JSON.parse(String(pvals[i][4] || '[]')); } catch(e) {}
       break;
     }
   }
 
-  if (!target) throw new Error('운영진 승인 후 팔로우리스트를 시작할 수 있습니다.');
-
-  let startedAt = sh.getRange(target, 9).getValue();
-  if (!startedAt) {
-    startedAt = new Date();
-    sh.getRange(target, 9).setValue(startedAt);
+  if (pollRow < 0) throw new Error('투표를 찾을 수 없어요.');
+  if (status !== 'OPEN' || pollDeadlinePassed_(deadline)) {
+    if (status === 'OPEN') psh.getRange(pollRow,6).setValue('CLOSED');
+    throw new Error('마감된 투표예요.');
+  }
+  if (!Array.isArray(options) || options.indexOf(choice) === -1) {
+    throw new Error('투표 선택지를 다시 확인해주세요.');
   }
 
-  return {
-    ok: true,
-    followStarted: true,
-    followStartedAt: formatInviteDate_(startedAt),
-    message: '팔로우리스트 1번부터 시작으로 기록되었습니다.'
-  };
-}
-
-function inviteAdminItems_() {
-  const sh = inviteLogSheet_();
-  if (!sh || sh.getLastRow() < 2) return [];
+  const rsh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLL_RESPONSES);
+  const rvals = rsh.getDataRange().getValues();
   const now = new Date();
-  return sh.getRange(2,1,sh.getLastRow()-1,Math.max(12,sh.getLastColumn())).getValues().map(r => {
-    const status = String(r[6]||'PENDING').toUpperCase();
-    const approvedAt = r[7] ? new Date(r[7]) : null;
-    const daysSinceApproval = approvedAt ? Math.max(0, Math.floor((now - approvedAt) / 86400000)) : 0;
-    return {
-      id:String(r[0]||''),
-      createdAt:formatInviteDate_(r[1]),
-      inviteeName:String(r[2]||''),
-      inviteeInstagram:String(r[3]||''),
-      inviterName:String(r[4]||''),
-      inviterInstagram:String(r[5]||''),
-      status:status,
-      approvedAt:formatInviteDate_(r[7]),
-      followStartedAt:formatInviteDate_(r[8]),
-      followStarted:!!r[8],
-      followAdded:String(r[9]||'').toUpperCase()==='TRUE',
-      cancelledAt:formatInviteDate_(r[10]),
-      cancelReason:String(r[11]||''),
-      daysSinceJoin:daysSinceApproval,
-      canCancel:status==='APPROVED' && !!approvedAt && (now - approvedAt) <= 7*86400000,
-      cancelDeadline:approvedAt ? formatInviteDate_(new Date(approvedAt.getTime()+7*86400000)) : '',
-      expelTarget:status==='APPROVED' && !!approvedAt && daysSinceApproval>=7
-    };
-  }).reverse();
+
+  for (let i = 1; i < rvals.length; i++) {
+    if (
+      String(rvals[i][0] || '') === pollId &&
+      normalizeInstagramId_(rvals[i][2]) === instagramId
+    ) {
+      rsh.getRange(i+1,4).setValue(nickname);
+      rsh.getRange(i+1,5).setValue(choice);
+      rsh.getRange(i+1,7).setValue(now);
+      rsh.getRange(i+1,8).setValue('ACTIVE');
+      return {ok:true,message:'투표가 변경됐어요.',choice:choice};
+    }
+  }
+
+  rsh.appendRow([pollId,roomCode,instagramId,nickname,choice,now,now,'ACTIVE','']);
+  return {ok:true,message:'투표가 완료됐어요.',choice:choice};
 }
 
-function updateInviteStatus_(id, status, reason) {
-  status = String(status || '').toUpperCase();
-  if (status === 'CANCELED' || status === 'DELETE' || status === 'REVOKED') status = 'CANCELLED';
-  if (!['APPROVED','REJECTED','CANCELLED'].includes(status)) throw new Error('올바르지 않은 상태입니다.');
+function getPollAdminOverview(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const roomCode = normalizeRoomCode_(data.roomCode);
 
-  const lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-  try {
-    const log = inviteLogSheet_();
-    if (log.getLastRow() < 2) throw new Error('초대 요청이 없습니다.');
-    const ids = log.getRange(2,1,log.getLastRow()-1,1).getValues();
-    let row = 0;
-    for (let i=0;i<ids.length;i++) if (String(ids[i][0]) === String(id)) { row=i+2; break; }
-    if (!row) throw new Error('초대 요청을 찾을 수 없습니다.');
+  const psh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const rsh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLL_RESPONSES);
+  const pvals = psh.getDataRange().getValues();
+  const rvals = rsh.getDataRange().getValues();
+  const polls = [];
 
-    const v = log.getRange(row,1,1,Math.max(12,log.getLastColumn())).getValues()[0];
-    const currentStatus = String(v[6]||'PENDING').toUpperCase();
-    const inviteeName = cleanInvite_(v[2]);
-    const inviteeInstagram = normInviteId_(v[3]);
-    const inviterName = cleanInvite_(v[4]);
+  for (let i = pvals.length - 1; i >= 1; i--) {
+    if (normalizeRoomCode_(pvals[i][1]) !== roomCode) continue;
+    const status = String(pvals[i][5] || 'OPEN');
+    if (status === 'DELETED') continue;
 
-    if (status === 'APPROVED' || status === 'REJECTED') {
-      if (currentStatus !== 'PENDING') throw new Error('이미 처리된 요청입니다.');
+    let options = [];
+    try { options = JSON.parse(String(pvals[i][4] || '[]')); } catch(e) {}
+    if (!Array.isArray(options)) options = [];
+    const counts = {};
+    options.forEach(function(o){ counts[o] = 0; });
+    const responses = [];
 
-      if (status === 'APPROVED') {
-        const follow = sheet_(SHEETS.FOLLOW);
-        let added = false;
-        if (!findFollowByInstagram_(follow, inviteeInstagram)) {
-          appendFollowMember_(follow, inviteeName, inviteeInstagram);
-          added = true;
-        }
-        ensureInviteSummaryMember_(inviterName);
-        incrementInviteSummary_(inviterName, inviteeName);
-        clearListCaches_();
-        log.getRange(row,8).setValue(new Date());
-        log.getRange(row,10).setValue(added ? 'TRUE' : 'FALSE');
-        log.getRange(row,11,1,2).clearContent();
+    for (let j = 1; j < rvals.length; j++) {
+      if (
+        String(rvals[j][0] || '') === String(pvals[i][0] || '') &&
+        String(rvals[j][7] || 'ACTIVE') === 'ACTIVE'
+      ) {
+        const c = String(rvals[j][4] || '');
+        if (counts.hasOwnProperty(c)) counts[c]++;
+        responses.push({
+          instagramId: normalizeInstagramId_(rvals[j][2]),
+          nickname: String(rvals[j][3] || ''),
+          choice: c,
+          updatedAt: formatDate_(rvals[j][6] || rvals[j][5])
+        });
       }
-
-      log.getRange(row,7).setValue(status);
-      log_('초대 ' + (status === 'APPROVED' ? '승인' : '거절'), inviteeName + ' ← ' + inviterName);
-      SpreadsheetApp.flush();
-      return { ok:true, status:status };
     }
 
-    // 승인 취소: 승인 후 7일 이내에만 가능하며 승인 때 반영된 내용을 모두 되돌립니다.
-    if (currentStatus !== 'APPROVED') throw new Error('승인 완료된 요청만 승인 취소할 수 있습니다.');
-    const approvedAt = v[7] ? new Date(v[7]) : null;
-    if (!approvedAt || isNaN(approvedAt.getTime())) throw new Error('승인 시간을 확인할 수 없습니다.');
-    if ((new Date() - approvedAt) > 7*86400000) throw new Error('승인 후 7일이 지나 승인 취소할 수 없습니다.');
+    polls.push({
+      pollId:String(pvals[i][0] || ''),
+      title:String(pvals[i][2] || ''),
+      notice:String(pvals[i][3] || ''),
+      options:options,
+      status:status,
+      deadline:pvals[i][7] ? formatDate_(pvals[i][7]) : '',
+      counts:counts,
+      total:responses.length,
+      responses:responses
+    });
+  }
+  return {ok:true,polls:polls};
+}
 
-    const follow = sheet_(SHEETS.FOLLOW);
-    removeFollowMember_(follow, inviteeInstagram);
-    decrementInviteSummary_(inviterName, inviteeName);
-    clearListCaches_();
+function setCustomPollStatus(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const pollId = String(data.pollId || '').trim();
+  const status = String(data.status || '').trim().toUpperCase();
+  if (['OPEN','CLOSED'].indexOf(status) === -1) throw new Error('투표 상태가 올바르지 않아요.');
 
-    log.getRange(row,7).setValue('CANCELLED');
-    log.getRange(row,9).clearContent();
-    log.getRange(row,11).setValue(new Date());
-    log.getRange(row,12).setValue(cleanInvite_(reason || '7일 이내 퇴장'));
-    log_('초대 승인취소', inviteeName + ' ← ' + inviterName + ' / ' + cleanInvite_(reason || '7일 이내 퇴장'));
-    SpreadsheetApp.flush();
-    return { ok:true, status:'CANCELLED', message:'승인 취소가 완료되었습니다. 팔로우리스트와 초대 실적도 함께 되돌렸습니다.' };
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0] || '') === pollId) {
+      sh.getRange(i+1,6).setValue(status);
+      sh.getRange(i+1,10).setValue(new Date());
+      return {ok:true,message:status === 'OPEN' ? '투표를 다시 열었어요.' : '투표를 마감했어요.'};
+    }
+  }
+  throw new Error('투표를 찾을 수 없어요.');
+}
+
+function deleteCustomPoll(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const pollId = String(data.pollId || '').trim();
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (String(vals[i][0] || '') === pollId) {
+      sh.getRange(i+1,6).setValue('DELETED');
+      sh.getRange(i+1,10).setValue(new Date());
+      return {ok:true,message:'투표를 삭제했어요.'};
+    }
+  }
+  throw new Error('투표를 찾을 수 없어요.');
+}
+
+function updateCustomPollResponse(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const pollId = String(data.pollId || '').trim();
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const choice = clean_(data.choice);
+
+  const psh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLLS);
+  const pvals = psh.getDataRange().getValues();
+  let options = [];
+  for (let i = 1; i < pvals.length; i++) {
+    if (String(pvals[i][0] || '') === pollId) {
+      try { options = JSON.parse(String(pvals[i][4] || '[]')); } catch(e) {}
+      break;
+    }
+  }
+  if (!Array.isArray(options) || options.indexOf(choice) === -1) throw new Error('선택지가 올바르지 않아요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLL_RESPONSES);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (
+      String(vals[i][0] || '') === pollId &&
+      normalizeInstagramId_(vals[i][2]) === instagramId &&
+      String(vals[i][7] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      sh.getRange(i+1,5).setValue(choice);
+      sh.getRange(i+1,7).setValue(new Date());
+      sh.getRange(i+1,9).setValue('운영진 수정');
+      return {ok:true,message:'투표 응답을 수정했어요.'};
+    }
+  }
+  throw new Error('투표 응답을 찾을 수 없어요.');
+}
+
+function deleteCustomPollResponse(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const pollId = String(data.pollId || '').trim();
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_POLL_RESPONSES);
+  const vals = sh.getDataRange().getValues();
+
+  for (let i = 1; i < vals.length; i++) {
+    if (
+      String(vals[i][0] || '') === pollId &&
+      normalizeInstagramId_(vals[i][2]) === instagramId &&
+      String(vals[i][7] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      sh.getRange(i+1,8).setValue('DELETED');
+      sh.getRange(i+1,7).setValue(new Date());
+      sh.getRange(i+1,9).setValue('운영진 삭제');
+      return {ok:true,message:'투표 응답을 삭제했어요.'};
+    }
+  }
+  throw new Error('투표 응답을 찾을 수 없어요.');
+}
+
+/* ---------- 참여 링크 ---------- */
+
+function addMyLink(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const nickname = clean_(data.nickname);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const url = normalizeInstagramUrl_(data.url);
+
+  if (!nickname) throw new Error('닉네임을 입력해주세요.');
+  if (!instagramId) throw new Error('인스타 아이디를 입력해주세요.');
+  if (!url) throw new Error('인스타 게시물/릴스 링크를 확인해주세요.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const room = findRoom_(roomCode);
+    if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+    if (room.status !== 'OPEN') throw new Error('마감된 굴비방이라 새 링크를 등록할 수 없어요.');
+    if (roomPhase_(room) !== 'PARTICIPATION') throw new Error('링크 등록 시간이 마감됐어요.');
+
+    const existing = findLink_(roomCode, instagramId);
+    if (existing && existing.status === 'ACTIVE') {
+      throw new Error('이 인스타 아이디는 이미 링크를 등록했어요.');
+    }
+
+    const current = getLinks_(roomCode);
+    if (current.some(function(x){ return String(x.url || '') === String(url || ''); })) {
+      throw new Error('이미 등록된 게시물 링크예요.');
+    }
+    if (current.length >= room.maxPeople) throw new Error('참여 인원이 모두 찼어요.');
+
+    const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_LINKS);
+    const now = new Date();
+    sh.appendRow([roomCode, nickname, instagramId, url, '', now, now, 'ACTIVE', current.length + 1, '']);
+
+    return { ok: true, message: '링크가 등록됐어요.', room: getRoom(roomCode) };
   } finally {
     lock.releaseLock();
   }
 }
 
-function removeFollowMember_(sh, instagram) {
-  if (!sh || sh.getLastRow() < 2) return false;
-  const target = normInviteId_(instagram);
-  const rows = sh.getRange(2,3,sh.getLastRow()-1,1).getValues();
-  for (let i=0;i<rows.length;i++) {
-    if (normInviteId_(rows[i][0]) === target) {
-      // A열 번호는 유지하고 회원 정보(B/C열)만 비웁니다.
-      sh.getRange(i+2,2,1,2).clearContent();
-      return true;
+function verifyMyLink(data) {
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+
+  const found = findLink_(roomCode, instagramId);
+  if (!found || found.status !== 'ACTIVE') throw new Error('등록된 참여 정보를 찾을 수 없어요.');
+
+  return {
+    ok: true,
+    nickname: found.nickname,
+    instagramId: found.instagramId,
+    url: found.url,
+    pending: hasPendingRequest_(roomCode, instagramId)
+  };
+}
+
+/* 참여취소 기능 없음. 링크 수정만 운영진 승인 요청 */
+
+function requestUpdateMyLink(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const nickname = clean_(data.nickname);
+  const url = normalizeInstagramUrl_(data.url);
+
+  if (!nickname) throw new Error('닉네임을 입력해주세요.');
+  if (!url) throw new Error('인스타 게시물/릴스 링크를 확인해주세요.');
+
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+  if (room.status !== 'OPEN') throw new Error('마감된 굴비방은 수정 요청을 할 수 없어요.');
+
+  const found = findLink_(roomCode, instagramId);
+  if (!found || found.status !== 'ACTIVE') throw new Error('등록된 참여 정보를 찾을 수 없어요.');
+  if (hasPendingRequest_(roomCode, instagramId)) throw new Error('이미 운영진 승인 대기 중인 수정 요청이 있어요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const now = new Date();
+  sh.appendRow([
+    makeRequestId_(), roomCode, instagramId, found.nickname, found.url,
+    nickname, url, now, 'PENDING', '', '', '', '', 'OK', 'UPDATE'
+  ]);
+
+  return { ok: true, message: '링크 수정 요청이 접수됐어요. 모네 담당자 승인 후 반영됩니다.' };
+}
+
+function getMyRequestStatus(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+
+  const found = findLink_(roomCode, instagramId);
+  if (!found) throw new Error('등록된 참여 정보를 찾을 수 없어요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const values = sh.getDataRange().getValues();
+  const items = [];
+
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (
+      String(values[i][1]).trim().toUpperCase() === roomCode &&
+      normalizeInstagramId_(values[i][2]) === instagramId
+    ) {
+      items.push({
+        requestId: String(values[i][0]),
+        requestedAt: formatDate_(values[i][7]),
+        status: String(values[i][8]),
+        processedAt: formatDate_(values[i][9]),
+        note: String(values[i][10] || '')
+      });
+      if (items.length >= 5) break;
     }
+  }
+  return { ok: true, items };
+}
+
+
+/* ---------- 참여 인증 ---------- */
+
+/*
+  올바른 게시물/릴스 링크를 정상 등록한 참여자만
+  프로그램 안에서 다른 참여자의 링크 '열기' 버튼을 사용할 수 있게 하는 인증.
+*/
+function verifyParticipantAccess(data) {
+  setupSheets_();
+
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+
+  const room = findRoom_(roomCode);
+  if (!room) throw new Error('존재하지 않는 굴비방이에요.');
+
+  const found = findLink_(roomCode, instagramId);
+  if (!found || found.status !== 'ACTIVE') {
+    throw new Error('먼저 본인의 정상적인 게시물/릴스 링크를 등록해주세요.');
+  }
+
+  const normalized = normalizeInstagramUrl_(found.url);
+  if (!normalized) {
+    throw new Error('등록된 링크가 정상적인 인스타 게시물 링크가 아닙니다. 먼저 링크 수정 요청을 해주세요.');
+  }
+
+  return { ok: true, instagramId: found.instagramId, nickname: found.nickname };
+}
+
+
+/* ---------- 개인 진행 저장 / 운영 현황 ---------- */
+
+function saveProgressSummary(data) {
+  setupSheets_();
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const instagramId = normalizeInstagramId_(data.instagramId);
+  const nickname = clean_(data.nickname || '');
+  const done = Math.max(0, Number(data.done || 0));
+  const total = Math.max(0, Number(data.total || 0));
+  if (!roomCode || !instagramId) return {ok:false};
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_PROGRESS);
+  const vals = sh.getDataRange().getValues();
+  const now = new Date();
+  const completed = total > 0 && done >= total ? 'TRUE' : 'FALSE';
+
+  for (let i = 1; i < vals.length; i++) {
+    if (normalizeRoomCode_(vals[i][0]) === roomCode && normalizeInstagramId_(vals[i][1]) === instagramId) {
+      sh.getRange(i+1,3,1,6).setValues([[nickname,done,total,completed,now,'ACTIVE']]);
+      return {ok:true};
+    }
+  }
+  sh.appendRow([roomCode,instagramId,nickname,done,total,completed,now,'ACTIVE']);
+  return {ok:true};
+}
+
+function getRoomDashboard(data) {
+  setupSheets_();
+  verifyAdminToken_(data.token);
+  const roomCode = normalizeRoomCode_(data.roomCode);
+  const links = getLinks_(roomCode);
+  const linkIds = {};
+  links.forEach(function(x){ linkIds[normalizeInstagramId_(x.instagramId)] = true; });
+
+  const psh = SpreadsheetApp.getActive().getSheetByName(SHEET_PROGRESS);
+  const vals = psh.getDataRange().getValues();
+  let completed = 0;
+  const unfinished = [];
+  const completedIds = {};
+
+  for (let i = 1; i < vals.length; i++) {
+    if (
+      normalizeRoomCode_(vals[i][0]) === roomCode &&
+      String(vals[i][7] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      const id = normalizeInstagramId_(vals[i][1]);
+      if (String(vals[i][5] || '').toUpperCase() === 'TRUE') {
+        completedIds[id] = true;
+      }
+    }
+  }
+  Object.keys(completedIds).forEach(function(id){ if (linkIds[id]) completed++; });
+  links.forEach(function(x){
+    const id = normalizeInstagramId_(x.instagramId);
+    if (!completedIds[id]) unfinished.push({nickname:x.nickname,instagramId:id});
+  });
+
+  return {
+    ok:true,
+    registered:links.length,
+    completed:completed,
+    unfinished:unfinished.length,
+    unfinishedList:unfinished
+  };
+}
+
+/* ---------- 운영진 알림/승인 ---------- */
+
+/* 공개되는 건 '대기 건수'뿐. 10초마다 화면에서 갱신해 알림 배지로 표시 */
+function getPendingRequestCount() {
+  setupSheets_();
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const values = sh.getDataRange().getValues();
+  let count = 0;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][8]) === 'PENDING') count++;
+  }
+  return { ok: true, count };
+}
+
+/* 모네 담당자 2명만 로그인 가능 */
+function adminLogin(data) {
+  setupSheets_();
+  const admin = verifyMonetAdmin_(data.loginId, data.pin);
+  return {
+    ok: true,
+    slot: admin.slot,
+    name: admin.name,
+    token: makeAdminToken_(admin)
+  };
+}
+
+function getPendingRequests(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const values = sh.getDataRange().getValues();
+  const items = [];
+
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][8]) !== 'PENDING') continue;
+
+    const roomCode = normalizeRoomCode_(values[i][1]);
+    const room = findRoom_(roomCode);
+
+    items.push({
+      requestId: String(values[i][0]),
+      roomCode,
+      roomTitle: room ? room.title : '',
+      instagramId: normalizeInstagramId_(values[i][2]),
+      oldNickname: String(values[i][3] || ''),
+      oldUrl: String(values[i][4] || ''),
+      newNickname: String(values[i][5] || ''),
+      newUrl: String(values[i][6] || ''),
+      requestedAt: formatDate_(values[i][7])
+    });
+  }
+
+  return { ok: true, adminName: admin.name, items };
+}
+
+function processRequest(data) {
+  setupSheets_();
+  const admin = verifyAdminToken_(data.token);
+  const requestId = String(data.requestId || '').trim();
+  const decision = String(data.decision || '').trim().toUpperCase();
+  const note = clean_(data.note || '');
+
+  if (!['APPROVE','REJECT'].includes(decision)) throw new Error('처리 방식이 올바르지 않아요.');
+
+  const reqSh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const values = reqSh.getDataRange().getValues();
+
+  let row = -1;
+  let req = null;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === requestId) {
+      row = i + 1;
+      req = values[i];
+      break;
+    }
+  }
+
+  if (!req) throw new Error('수정 요청을 찾을 수 없어요.');
+  if (String(req[8]) !== 'PENDING') throw new Error('이미 처리된 요청이에요.');
+
+  if (decision === 'APPROVE') {
+    const roomCode = normalizeRoomCode_(req[1]);
+    const instagramId = normalizeInstagramId_(req[2]);
+    const found = findLink_(roomCode, instagramId);
+
+    if (!found || found.status !== 'ACTIVE') throw new Error('현재 참여 정보를 찾을 수 없어 승인할 수 없어요.');
+
+    const linkSh = SpreadsheetApp.getActive().getSheetByName(SHEET_LINKS);
+    linkSh.getRange(found.row, 2).setValue(String(req[5] || found.nickname));
+    linkSh.getRange(found.row, 4).setValue(String(req[6] || found.url));
+    linkSh.getRange(found.row, 7).setValue(new Date());
+
+    reqSh.getRange(row, 9).setValue('APPROVED');
+  } else {
+    reqSh.getRange(row, 9).setValue('REJECTED');
+  }
+
+  reqSh.getRange(row, 10).setValue(new Date());
+  reqSh.getRange(row, 11).setValue(note);
+  reqSh.getRange(row, 12).setValue(admin.name);
+  reqSh.getRange(row, 13).setValue(admin.slot);
+
+  return {
+    ok: true,
+    message: decision === 'APPROVE' ? '링크 수정을 승인했어요.' : '링크 수정 요청을 거절했어요.'
+  };
+}
+
+/* ---------- 내부 ---------- */
+
+function verifyMonetAdmin_(loginId, pin) {
+  const id = String(loginId || '').trim().toLowerCase();
+  const p = String(pin || '').trim();
+  if (!id || !p) throw new Error('운영진 로그인ID와 PIN을 입력해주세요.');
+
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ADMINS);
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('등록된 운영진이 없어요.');
+
+  const values = sh.getRange(2,1,lastRow-1,5).getValues();
+
+  for (let i = 0; i < values.length; i++) {
+    const slot = String(values[i][0] || '').trim();
+    const name = String(values[i][1] || '').trim();
+    const savedId = String(values[i][2] || '').trim().toLowerCase();
+    const savedPin = String(values[i][3] || '').trim();
+    const enabled = String(values[i][4] || 'TRUE').toUpperCase() !== 'FALSE';
+
+    if (enabled && savedId && savedPin && savedId === id && savedPin === p) {
+      return { slot: slot || ('ADMIN_' + (i + 1)), name: name || savedId, loginId: savedId, pin: savedPin };
+    }
+  }
+
+  throw new Error('운영진 정보가 맞지 않아요.');
+}
+
+/*
+  Apps Script 웹앱에서 간단히 유지하는 세션 토큰.
+  민감한 외부 서비스용 인증이 아니라 내부 승인화면 진입 제한용.
+*/
+function makeAdminToken_(admin) {
+  const ts = Date.now();
+  const raw = [admin.slot, admin.loginId, ts].join('|');
+  const sig = Utilities.base64EncodeWebSafe(
+    Utilities.computeHmacSha256Signature(raw, admin.pin)
+  );
+  return Utilities.base64EncodeWebSafe(raw) + '.' + sig;
+}
+
+function verifyAdminToken_(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 2) throw new Error();
+
+    const raw = Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0])).getDataAsString();
+    const [slot, loginId, tsText] = raw.split('|');
+    const ts = Number(tsText);
+    if (!slot || !loginId || !ts) throw new Error();
+
+    if (Date.now() - ts > 12 * 60 * 60 * 1000) throw new Error('SESSION_EXPIRED');
+
+    const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ADMINS);
+    const lastRow = sh.getLastRow();
+    if (lastRow < 2) throw new Error();
+
+    const values = sh.getRange(2,1,lastRow-1,5).getValues();
+
+    for (let i = 0; i < values.length; i++) {
+      const rSlot = String(values[i][0] || '').trim();
+      const name = String(values[i][1] || '').trim();
+      const rId = String(values[i][2] || '').trim().toLowerCase();
+      const pin = String(values[i][3] || '').trim();
+      const enabled = String(values[i][4] || 'TRUE').toUpperCase() !== 'FALSE';
+
+      if (enabled && rSlot === slot && rId === loginId && pin) {
+        const sig = Utilities.base64EncodeWebSafe(
+          Utilities.computeHmacSha256Signature(raw, pin)
+        );
+        if (sig !== parts[1]) throw new Error();
+        return { slot:rSlot, name:name || rId, loginId:rId };
+      }
+    }
+  } catch (e) {
+    if (String(e && e.message) === 'SESSION_EXPIRED') {
+      throw new Error('운영진 로그인 시간이 만료됐어요. 다시 로그인해주세요.');
+    }
+  }
+  throw new Error('운영진 로그인이 필요해요.');
+}
+
+function findRoom_(roomCode) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_ROOMS);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toUpperCase() === roomCode) {
+      return {
+        row: i + 1,
+        roomCode: String(values[i][0]),
+        title: String(values[i][1]),
+        maxPeople: Number(values[i][2]),
+        status: String(values[i][3]),
+        hostPin: String(values[i][4]),
+        createdAt: values[i][5],
+        deadline: values[i][6] ? String(values[i][6]) : '',
+        note: values[i][7] ? String(values[i][7]) : '',
+        participationDeadline: values[i][11] || '',
+        completionDeadline: values[i][12] || ''
+      };
+    }
+  }
+  return null;
+}
+
+function findLink_(roomCode, instagramId) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_LINKS);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      String(values[i][0]).trim().toUpperCase() === roomCode &&
+      normalizeInstagramId_(values[i][2]) === instagramId
+    ) {
+      return {
+        row: i + 1,
+        nickname: String(values[i][1]),
+        instagramId: normalizeInstagramId_(values[i][2]),
+        url: String(values[i][3]),
+        editPin: String(values[i][4]),
+        createdAt: values[i][5],
+        updatedAt: values[i][6],
+        status: String(values[i][7] || 'ACTIVE'),
+        order: Number(values[i][8] || i)
+      };
+    }
+  }
+  return null;
+}
+
+function getLinks_(roomCode) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_LINKS);
+  const values = sh.getDataRange().getValues();
+  const out = [];
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      String(values[i][0]).trim().toUpperCase() === roomCode &&
+      String(values[i][7] || 'ACTIVE') === 'ACTIVE'
+    ) {
+      out.push({
+        nickname: String(values[i][1]),
+        instagramId: normalizeInstagramId_(values[i][2]),
+        url: String(values[i][3]),
+        createdAt: values[i][5],
+        updatedAt: values[i][6],
+        order: Number(values[i][8] || i)
+      });
+    }
+  }
+
+  out.sort((a,b) => a.order - b.order);
+  return out;
+}
+
+function hasPendingRequest_(roomCode, instagramId) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_REQUESTS);
+  const values = sh.getDataRange().getValues();
+
+  for (let i = 1; i < values.length; i++) {
+    if (
+      String(values[i][1]).trim().toUpperCase() === roomCode &&
+      normalizeInstagramId_(values[i][2]) === instagramId &&
+      String(values[i][8]) === 'PENDING'
+    ) return true;
   }
   return false;
 }
 
-function decrementInviteSummary_(inviterName, inviteeName) {
-  const sh = sheet_(SHEETS.INVITE_SUMMARY);
-  const row = findInviteSummaryRow_(sh, inviterName);
-  if (!row) throw new Error('초대별 시트에서 초대자를 찾을 수 없습니다.');
-
-  const current = Number(sh.getRange(row,3).getValue()||0);
-  const previous = Number(sh.getRange(row,4).getValue()||0);
-  const next = Math.max(0, current-1);
-  sh.getRange(row,3).setValue(next);
-  sh.getRange(row,5).setValue(next+previous);
-
-  const start = 7;
-  const last = Math.max(start, sh.getLastColumn());
-  const width = Math.max(1, last-start+1);
-  const vals = sh.getRange(row,start,1,width).getValues()[0];
-  const target = cleanInvite_(inviteeName);
-  const filtered = vals.filter(v => cleanInvite_(v) && cleanInvite_(v) !== target);
-  const out = filtered.concat(Array(width-filtered.length).fill(''));
-  sh.getRange(row,start,1,width).setValues([out]);
-}
-
-function findFollowMember_(sh, name, instagram) {
-  if (!sh || sh.getLastRow() < 2) return null;
-  const target = normInviteId_(instagram);
-  const rows = sh.getRange(2,1,sh.getLastRow()-1,3).getValues();
-  return rows.find(r => cleanInvite_(r[1]) === cleanInvite_(name) && normInviteId_(r[2]) === target) || null;
-}
-function findFollowByInstagram_(sh, instagram) {
-  if (!sh || sh.getLastRow() < 2) return null;
-  const target = normInviteId_(instagram);
-  const rows = sh.getRange(2,1,sh.getLastRow()-1,3).getValues();
-  return rows.find(r => normInviteId_(r[2]) === target) || null;
-}
-function appendFollowMember_(sh, name, instagram) {
-  if (!sh) throw new Error('팔로우리스트 시트를 찾을 수 없습니다.');
-
-  const cleanName = cleanInvite_(name);
-  const cleanInstagram = normInviteId_(instagram);
-  if (!cleanName || !cleanInstagram) throw new Error('신규회원 정보가 올바르지 않습니다.');
-
-  // A열 번호가 미리 3000번까지 채워져 있어도 appendRow()를 쓰지 않습니다.
-  // B/C열에서 실제 회원 정보가 비어 있는 첫 행을 찾아 그 자리에 넣습니다.
-  const lastRow = Math.max(2, sh.getLastRow());
-  const rows = sh.getRange(2, 1, lastRow - 1, 3).getValues();
-
-  let targetRow = 0;
-  let lastMemberNo = 0;
-
-  for (let i = 0; i < rows.length; i++) {
-    const no = Number(rows[i][0]) || 0;
-    const memberName = cleanInvite_(rows[i][1]);
-    const memberInstagram = normInviteId_(rows[i][2]);
-
-    if (memberName || memberInstagram) {
-      if (no > lastMemberNo) lastMemberNo = no;
-      continue;
-    }
-
-    if (!targetRow) targetRow = i + 2;
+function makeRoomCode_() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    if (!findRoom_(code)) return code;
   }
-
-  if (!targetRow) targetRow = lastRow + 1;
-
-  // 해당 행 A열에 기존 번호가 있으면 그대로 사용하고,
-  // 번호가 비어 있을 때만 마지막 실제 회원 번호 + 1을 기록합니다.
-  const existingNo = Number(sh.getRange(targetRow, 1).getValue()) || 0;
-  const nextNo = existingNo || (lastMemberNo + 1);
-  sh.getRange(targetRow, 1, 1, 3).setValues([[nextNo, cleanName, cleanInstagram]]);
-  SpreadsheetApp.flush();
-  return targetRow;
-}
-function ensureInviteSummaryMember_(nickname) {
-  const sh = sheet_(SHEETS.INVITE_SUMMARY);
-  let row = findInviteSummaryRow_(sh,nickname);
-  if (row) return row;
-  const follow = sheet_(SHEETS.FOLLOW);
-  const found = findFollowByName_(follow,nickname);
-  sh.appendRow([found ? found[0] : '', cleanInvite_(nickname), 0, 0, 0]);
-  return sh.getLastRow();
-}
-function findFollowByName_(sh,name) {
-  if (!sh || sh.getLastRow()<2) return null;
-  const rows=sh.getRange(2,1,sh.getLastRow()-1,3).getValues();
-  return rows.find(r=>cleanInvite_(r[1])===cleanInvite_(name))||null;
-}
-function findInviteSummaryRow_(sh,nickname) {
-  if (!sh || sh.getLastRow()<2) return 0;
-  const names=sh.getRange(2,2,sh.getLastRow()-1,1).getValues();
-  for(let i=0;i<names.length;i++) if(cleanInvite_(names[i][0])===cleanInvite_(nickname)) return i+2;
-  return 0;
-}
-function incrementInviteSummary_(inviterName, inviteeName) {
-  const sh=sheet_(SHEETS.INVITE_SUMMARY);
-  const row=findInviteSummaryRow_(sh,inviterName);
-  if(!row) throw new Error('초대별 시트에서 초대자를 찾을 수 없습니다.');
-  const current=Number(sh.getRange(row,3).getValue()||0);
-  const previous=Number(sh.getRange(row,4).getValue()||0);
-  sh.getRange(row,3).setValue(current+1);
-  sh.getRange(row,5).setValue(current+1+previous);
-
-  // F열은 기존 시트의 구분용 빈 칸으로 유지하고, 초대받은 회원 닉네임은 G열부터 기록합니다.
-  const start=7,last=Math.max(start,sh.getLastColumn()),width=Math.max(1,last-start+1);
-  const vals=sh.getRange(row,start,1,width).getValues()[0];
-  if (!vals.some(v=>cleanInvite_(v)===cleanInvite_(inviteeName))) {
-    const empty=vals.findIndex(v=>!String(v||'').trim());
-    if(empty>=0) sh.getRange(row,start+empty).setValue(inviteeName);
-    else sh.getRange(row,last+1).setValue(inviteeName);
-  }
-}
-function normInviteId_(value) {
-  let s=String(value||'').trim().toLowerCase();
-  s=s.replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/[/?#].*$/,'').replace(/^@+/,'').replace(/\s+/g,'');
-  return s?'@'+s:'';
-}
-function cleanInvite_(value) { return String(value||'').trim().replace(/\s+/g,' ').slice(0,100); }
-function formatInviteDate_(value) {
-  if (!value) return '';
-  const d=value instanceof Date?value:new Date(value);
-  return Utilities.formatDate(d,'Asia/Seoul','yyyy-MM-dd HH:mm:ss');
+  throw new Error('방 코드 생성에 실패했어요. 다시 시도해주세요.');
 }
 
-function inviteSummaryItems_() {
-  const sh=sheet_(SHEETS.INVITE_SUMMARY);
-  if(!sh||sh.getLastRow()<2) return [];
-  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(r=>({no:r[0],nickname:String(r[1]||''),invite:Number(r[2]||0),previous:Number(r[3]||0),total:Number(r[4]||0)}));
-}
-function verifyInviteAdmin_(password) { return verify_(KEYS.INVITE_ADMIN_PASSWORD,password); }
-function requireInviteAdmin_(password) { if(!verifyInviteAdmin_(password).ok) throw new Error('초대관리 비밀번호가 올바르지 않습니다.'); }
-
-function requireAdmin_(password) {
-  if (!verify_(KEYS.ADMIN_PASSWORD, password).ok) {
-    throw new Error('운영진 비밀번호가 올바르지 않습니다.');
-  }
-}
-
-function changePassword_(key, password, title) {
-  const value = String(password == null ? '' : password).trim();
-  validatePassword_(value);
-  return updateSettings_({ [key]: value }, title);
-}
-
-function updateSettings_(updates, title) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-
-  try {
-    const sh = sheet_(SHEETS.SETTINGS);
-    const changed = {};
-    const lockKeys = [KEYS.APP_LOCK, KEYS.FOLLOW_LOCK, KEYS.MATCH_LOCK];
-    const passwordKeys = [KEYS.ACCESS_PASSWORD, KEYS.FOLLOW_PASSWORD, KEYS.MATCH_PASSWORD, KEYS.APP_LOCK_PASSWORD];
-
-    Object.entries(updates || {}).forEach(([key, raw]) => {
-      if (!ALLOWED_SETTINGS.has(key)) return;
-
-      let value = String(raw == null ? '' : raw).trim();
-      if (lockKeys.includes(key)) value = boolString_(value);
-      if (passwordKeys.includes(key)) validatePassword_(value);
-
-      setSetting_(sh, key, value);
-      changed[key] = passwordKeys.includes(key) ? '****' : value;
-    });
-
-    const time = now_();
-    setSetting_(sh, KEYS.UPDATED_AT, time);
-    clearSettingsCache_();
-    log_(title, JSON.stringify(changed));
-    SpreadsheetApp.flush();
-
-    return {
-      ok: true,
-      changed: Object.keys(changed),
-      updatedAt: time,
-      publicConfig: publicConfig_(),
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function addNotice_(content) {
-  const text = String(content == null ? '' : content).trim();
-  if (!text) throw new Error('공지 내용을 입력해주세요.');
-  if (text.length > 1000) throw new Error('공지 내용은 1,000자 이하로 입력해주세요.');
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-
-  try {
-    const id = Utilities.getUuid();
-    const time = now_();
-
-    sheet_(SHEETS.NOTICES).appendRow([time, text, id]);
-
-    const settings = sheet_(SHEETS.SETTINGS);
-    setSetting_(settings, KEYS.NOTICE, text);
-    setSetting_(settings, KEYS.UPDATED_AT, time);
-
-    clearNoticeCache_();
-    clearSettingsCache_();
-
-    log_('공지 작성', text.slice(0, 100));
-    SpreadsheetApp.flush();
-
-    return {
-      ok: true,
-      noticeId: id,
-      createdAt: time,
-      notices: notices_(),
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function deleteNotice_(noticeId) {
-  const id = String(noticeId || '').trim();
-  if (!id) throw new Error('삭제할 공지 ID가 없습니다.');
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-
-  try {
-    const sh = sheet_(SHEETS.NOTICES);
-    const lastRow = sh.getLastRow();
-    let found = false;
-
-    if (lastRow >= 2) {
-      const ids = sh.getRange(2, 3, lastRow - 1, 1).getDisplayValues();
-
-      for (let index = ids.length - 1; index >= 0; index--) {
-        if (String(ids[index][0]) === id) {
-          sh.deleteRow(index + 2);
-          found = true;
-          break;
-        }
-      }
-    }
-
-    if (!found) throw new Error('삭제할 공지를 찾지 못했습니다.');
-
-    clearNoticeCache_();
-    const list = notices_();
-    const latest = list.length ? list[0].content : '';
-
-    const settings = sheet_(SHEETS.SETTINGS);
-    const time = now_();
-
-    setSetting_(settings, KEYS.NOTICE, latest);
-    setSetting_(settings, KEYS.UPDATED_AT, time);
-
-    clearSettingsCache_();
-    log_('공지 삭제', id);
-    SpreadsheetApp.flush();
-
-    return { ok: true, notices: list, updatedAt: time };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function clearNotices_() {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-
-  try {
-    const sh = sheet_(SHEETS.NOTICES);
-    const lastRow = sh.getLastRow();
-
-    if (lastRow >= 2) sh.deleteRows(2, lastRow - 1);
-
-    const settings = sheet_(SHEETS.SETTINGS);
-    const time = now_();
-
-    setSetting_(settings, KEYS.NOTICE, '');
-    setSetting_(settings, KEYS.UPDATED_AT, time);
-
-    clearNoticeCache_();
-    clearSettingsCache_();
-
-    log_('공지 전체 삭제', '');
-    SpreadsheetApp.flush();
-
-    return { ok: true, notices: [], updatedAt: time };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function adminLogs_() {
-  const sh = sheet_(SHEETS.LOG);
-  const lastRow = sh.getLastRow();
-
-  if (lastRow < 2) return [];
-
-  const count = Math.min(100, lastRow - 1);
-
-  return sh.getRange(lastRow - count + 1, 1, count, 3)
-    .getDisplayValues()
-    .map((row) => ({
-      createdAt: String(row[0] || ''),
-      action: String(row[1] || ''),
-      detail: String(row[2] || ''),
-    }))
-    .reverse();
-}
-
-function fillMissingNoticeIds_(sh) {
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return;
-
-  const values = sh.getRange(2, 1, lastRow - 1, 3).getDisplayValues();
-
-  values.forEach((row, index) => {
-    const content = String(row[1] || '').trim();
-    const noticeId = String(row[2] || '').trim();
-
-    if (content && !noticeId) {
-      sh.getRange(index + 2, 3).setValue(Utilities.getUuid());
-    }
-  });
-}
-
-function securityVersion_(settings) {
-  const source = [
-    settings[KEYS.ACCESS_PASSWORD],
-    settings[KEYS.ADMIN_PASSWORD],
-    settings[KEYS.FOLLOW_LOCK],
-    settings[KEYS.FOLLOW_PASSWORD],
-    settings[KEYS.MATCH_LOCK],
-    settings[KEYS.MATCH_PASSWORD],
-    settings[KEYS.APP_LOCK],
-    settings[KEYS.APP_LOCK_PASSWORD],
-  ].map((value) => String(value || '')).join('|');
-
-  const digest = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    source,
-    Utilities.Charset.UTF_8
-  );
-
-  return digest
-    .map((byte) => ('0' + ((byte + 256) % 256).toString(16)).slice(-2))
-    .join('')
-    .slice(0, 24);
-}
-
-function onEdit(e) {
-  try {
-    if (!e || !e.range) return;
-
-    const sh = e.range.getSheet();
-    const sheetName = sh.getName();
-
-    if (sheetName === SHEETS.SETTINGS) {
-      const key = String(sh.getRange(e.range.getRow(), 1).getDisplayValue() || '').trim();
-
-      if (key && key !== KEYS.UPDATED_AT) {
-        setSetting_(sh, KEYS.UPDATED_AT, now_());
-        clearSettingsCache_();
-
-        const passwordKeys = [
-          KEYS.ACCESS_PASSWORD,
-          KEYS.ADMIN_PASSWORD,
-          KEYS.FOLLOW_PASSWORD,
-          KEYS.MATCH_PASSWORD,
-          KEYS.APP_LOCK_PASSWORD,
-        ];
-
-        const value = passwordKeys.includes(key) ? '****' : String(e.value || '');
-        log_('시트 직접 수정', key + ': ' + value);
-      }
-    } else if (sheetName === SHEETS.NOTICES && e.range.getRow() >= 2) {
-      fillMissingNoticeIds_(sh);
-
-      const settings = sheet_(SHEETS.SETTINGS);
-      setSetting_(settings, KEYS.UPDATED_AT, now_());
-
-      clearNoticeCache_();
-      clearSettingsCache_();
-
-      log_('공지 시트 수정', '행 ' + e.range.getRow());
-    } else if (sheetName === SHEETS.FOLLOW) {
-      clearFollowCache_();
-
-      const settings = sheet_(SHEETS.SETTINGS);
-      setSetting_(settings, KEYS.UPDATED_AT, now_());
-      clearSettingsCache_();
-    } else if (sheetName === SHEETS.MATCH) {
-      clearMatchCache_();
-
-      const settings = sheet_(SHEETS.SETTINGS);
-      setSetting_(settings, KEYS.UPDATED_AT, now_());
-      clearSettingsCache_();
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-// 초대 등록 시트는 기존 파일에서 '초대등록기한'으로 만들어진 경우가 있어
-// 두 이름을 모두 지원합니다. 기존 시트가 있으면 새 시트를 만들지 않습니다.
-function inviteLogSheet_(ss) {
-  ss = ss || spreadsheet_();
-  const names = [SHEETS.INVITE_LOG, '초대등록기한'];
-  let sh = null;
-
-  for (let i = 0; i < names.length; i++) {
-    sh = ss.getSheetByName(names[i]);
-    if (sh) break;
-  }
-
-  if (!sh) sh = ss.insertSheet(SHEETS.INVITE_LOG);
-
-  // 기존 영문 헤더가 있어도 위치 기준으로 동작하므로 덮어쓰지 않습니다.
-  // 비어 있는 헤더만 채우고, 9번째 시작일 열이 없으면 추가합니다.
-  ensureHeaders_(sh, [
-    '등록ID','등록시간','신규회원닉네임','신규회원아이디',
-    '초대자닉네임','초대자아이디','상태','승인시간','팔로우리스트시작일',
-    '팔로우리스트추가여부','승인취소시간','취소사유'
-  ]);
-
-  return sh;
-}
-
-function spreadsheet_() {
-  if (!SPREADSHEET_ID || SPREADSHEET_ID === '여기에_구글시트_ID_입력') {
-    throw new Error('SPREADSHEET_ID를 입력해주세요.');
-  }
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
-}
-
-function sheet_(name) {
-  const sh = spreadsheet_().getSheetByName(name);
-  if (!sh) throw new Error("'" + name + "' 시트를 찾지 못했습니다.");
-  return sh;
-}
-
-function sheetOrCreate_(ss, name) {
-  return ss.getSheetByName(name) || ss.insertSheet(name);
-}
-
-function getSettings_() {
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_KEYS.SETTINGS);
-
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch (_) {
-      cache.remove(CACHE_KEYS.SETTINGS);
-    }
-  }
-
-  const settings = settingsMap_(sheet_(SHEETS.SETTINGS));
-  cache.put(CACHE_KEYS.SETTINGS, JSON.stringify(settings), CACHE_SECONDS.SETTINGS);
-  return settings;
-}
-
-function settingsMap_(sh) {
-  const lastRow = sh.getLastRow();
-  if (lastRow < 1) return {};
-
-  const values = sh.getRange(1, 1, lastRow, 2).getDisplayValues();
-  const out = {};
-
-  values.forEach(([keyValue, value]) => {
-    const key = String(keyValue || '').trim();
-    if (key) out[key] = String(value || '');
-  });
-
-  return out;
-}
-
-function setSetting_(sh, key, value) {
-  sh.getRange('A:B').setNumberFormat('@');
-
-  const lastRow = Math.max(sh.getLastRow(), 1);
-  const keys = sh.getRange(1, 1, lastRow, 1).getDisplayValues();
-
-  for (let index = 0; index < keys.length; index++) {
-    if (String(keys[index][0]).trim() === key) {
-      sh.getRange(index + 1, 2).setNumberFormat('@').setValue(String(value));
-      return;
-    }
-  }
-
-  sh.appendRow([key, String(value)]);
-  sh.getRange(sh.getLastRow(), 2).setNumberFormat('@');
-}
-
-function ensureListHeader_(sh) {
-  const row = sh.getRange(1, 1, 1, 3).getDisplayValues()[0];
-  const expected = ['번호', '닉네임', '아이디'];
-
-  expected.forEach((header, index) => {
-    if (!String(row[index] || '').trim()) {
-      sh.getRange(1, index + 1).setValue(header);
-    }
-  });
-}
-
-function ensureHeaders_(sh, headers) {
-  const row = sh.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
-  const empty = row.every((value) => !String(value || '').trim());
-
-  if (sh.getLastRow() === 0 || empty) {
-    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
-  } else {
-    headers.forEach((header, index) => {
-      if (!String(row[index] || '').trim()) {
-        sh.getRange(1, index + 1).setValue(header);
-      }
-    });
-  }
-}
-
-function log_(action, detail) {
-  sheet_(SHEETS.LOG).appendRow([
-    now_(),
-    String(action || ''),
-    String(detail || ''),
-  ]);
-}
-
-function body_(e) {
-  const out = {};
-
-  if (e && e.parameter) {
-    Object.keys(e.parameter).forEach((key) => {
-      out[key] = e.parameter[key];
-    });
-  }
-
-  const raw = e && e.postData && e.postData.contents
-    ? String(e.postData.contents)
-    : '';
-
-  const contentType = e && e.postData && e.postData.type
-    ? String(e.postData.type).toLowerCase()
-    : '';
-
-  if (raw && contentType.includes('application/json')) {
-    Object.assign(out, JSON.parse(raw));
-  }
-
-  if (typeof out.settings === 'string') {
-    out.settings = JSON.parse(out.settings);
-  }
-
-  return out;
-}
-
-function parseSettings_(value) {
-  if (!value) return {};
-  if (typeof value === 'object') return value;
-
-  try {
-    return JSON.parse(String(value));
-  } catch (_) {
-    throw new Error('settings JSON 형식이 올바르지 않습니다.');
-  }
-}
-
-function param_(e, key) {
-  return e && e.parameter ? e.parameter[key] : '';
-}
-
-function json_(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function jsonError_(err) {
-  console.error(err);
-  return json_({
-    ok: false,
-    error: err && err.message ? err.message : String(err),
-  });
-}
-
-function instaId_(value) {
-  const text = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//, '')
-    .replace(/^instagram\.com\//, '')
-    .replace(/^_u\//, '')
-    .replace(/^@+/, '')
-    .replace(/[?#].*$/, '')
-    .replace(/\/+$/, '')
-    .trim();
-
-  return /^[a-z0-9._]{1,30}$/.test(text) ? text : '';
-}
-
-function validatePassword_(password) {
-  if (!password) throw new Error('비밀번호를 입력해주세요.');
-  if (password.length < 4 || password.length > 30) {
-    throw new Error('비밀번호는 4~30자로 입력해주세요.');
-  }
-}
-
-function bool_(value) {
-  return String(value || '').trim().toUpperCase() === 'TRUE';
-}
-
-function boolString_(value) {
-  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
-
-  return ['TRUE', '1', 'ON', 'YES', 'Y']
-    .includes(String(value || '').trim().toUpperCase())
-    ? 'TRUE'
-    : 'FALSE';
-}
-
-function safeEqual_(a, b) {
-  a = String(a || '');
-  b = String(b || '');
-
-  if (a.length !== b.length) return false;
-
-  let diff = 0;
-  for (let index = 0; index < a.length; index++) {
-    diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
-
-  return diff === 0;
-}
-
-function now_() {
-  return Utilities.formatDate(
+function makeRequestId_() {
+  return 'RQ' + Utilities.formatDate(
     new Date(),
     Session.getScriptTimeZone() || 'Asia/Seoul',
-    'yyyy-MM-dd HH:mm:ss'
+    'yyyyMMddHHmmssSSS'
   );
 }
 
-function clearFollowCache_() {
-  removeLargeCache_(CACHE_KEYS.FOLLOW_LIST);
+function buildRoomUrl_(roomCode) {
+  let base = '';
+  try { base = ScriptApp.getService().getUrl() || ''; } catch (e) {}
+  return base ? `${base}?room=${encodeURIComponent(roomCode)}` : `?room=${encodeURIComponent(roomCode)}`;
 }
 
-function clearMatchCache_() {
-  removeLargeCache_(CACHE_KEYS.MATCH_LIST);
+function normalizeRoomCode_(v) {
+  return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
 }
 
-function clearListCaches_() {
-  removeLargeCache_(CACHE_KEYS.FOLLOW_LIST);
-  removeLargeCache_(CACHE_KEYS.MATCH_LIST);
+function normalizeInstagramId_(v) {
+  return String(v || '').trim().replace(/^@/,'').toLowerCase();
 }
 
-function clearSettingsCache_() {
-  CacheService.getScriptCache().remove(CACHE_KEYS.SETTINGS);
+function normalizeInstagramUrl_(v) {
+  // Apps Script 서버에서는 브라우저의 URL 객체에 의존하지 않고
+  // 정규식으로 직접 파싱한다. (클라이언트에서 정상으로 보이는데
+  // 서버 저장 단계에서 거절되는 문제 방지)
+  let s = String(v || '').trim();
+  if (!s) return '';
+
+  s = s.replace(/\s+/g, '');
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+
+  // www / m / instagram.com 허용, p / reel / reels / tv 허용
+  // 뒤의 ?igsi, ?igsh 등 공유 파라미터와 #fragment는 모두 무시
+  const m = s.match(/^https?:\/\/(?:www\.|m\.)?instagram\.com\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)(?:\/)?(?:[?#].*)?$/i);
+  if (!m) return '';
+
+  const shortcode = m[2];
+  if (!shortcode || shortcode.length < 5) return '';
+
+  // 모네방 룰: 모든 게시물/릴스 주소를 /p/ 형식으로 통일
+  return 'https://www.instagram.com/p/' + shortcode + '/';
 }
 
-function clearNoticeCache_() {
-  CacheService.getScriptCache().remove(CACHE_KEYS.NOTICES);
+function clean_(v) {
+  return String(v || '').trim().replace(/[<>]/g,'');
 }
 
-function clearAllCaches_() {
-  removeLargeCache_(CACHE_KEYS.FOLLOW_LIST);
-  removeLargeCache_(CACHE_KEYS.MATCH_LIST);
-  const cache = CacheService.getScriptCache();
-  cache.remove(CACHE_KEYS.SETTINGS);
-  cache.remove(CACHE_KEYS.NOTICES);
-}
-
-
-// CacheService 한 항목의 용량 제한을 피하기 위해 큰 명단 JSON을 여러 조각으로 저장합니다.
-function putLargeCache_(key, text, seconds) {
-  const cache = CacheService.getScriptCache();
-  removeLargeCache_(key);
-  const chunkSize = 80000;
-  const chunks = [];
-  for (let i = 0; i < text.length; i += chunkSize) {
-    chunks.push(text.slice(i, i + chunkSize));
+function formatDate_(d) {
+  if (!d) return '';
+  try {
+    return Utilities.formatDate(
+      new Date(d),
+      Session.getScriptTimeZone() || 'Asia/Seoul',
+      'MM/dd HH:mm'
+    );
+  } catch (e) {
+    return '';
   }
-  const values = {};
-  chunks.forEach((chunk, index) => {
-    values[key + '_PART_' + index] = chunk;
-  });
-  if (chunks.length) cache.putAll(values, seconds);
-  cache.put(key + '_COUNT', String(chunks.length), seconds);
-}
-
-function getLargeCache_(key) {
-  const cache = CacheService.getScriptCache();
-  const count = Number(cache.get(key + '_COUNT') || 0);
-  if (!count) return null;
-  const keys = Array.from({ length: count }, (_, i) => key + '_PART_' + i);
-  const values = cache.getAll(keys);
-  const parts = keys.map(k => values[k]);
-  if (parts.some(part => typeof part !== 'string')) {
-    removeLargeCache_(key);
-    return null;
-  }
-  return parts.join('');
-}
-
-function removeLargeCache_(key) {
-  const cache = CacheService.getScriptCache();
-  const count = Number(cache.get(key + '_COUNT') || 0);
-  const keys = [key + '_COUNT'];
-  for (let i = 0; i < count; i++) keys.push(key + '_PART_' + i);
-  cache.removeAll(keys);
 }

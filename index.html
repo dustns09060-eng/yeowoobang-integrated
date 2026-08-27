@@ -17,7 +17,7 @@
 <link href="manifest.json?v=1050" rel="manifest"/>
 <link href="favicon-v20.png?v=430" rel="icon" type="image/png"/>
 <link href="icon-192-v20.png?v=430" rel="apple-touch-icon"/>
-<link href="style.css?v=1350" rel="stylesheet"/>
+<link href="style.css?v=1380" rel="stylesheet"/>
 <meta content="ko_KR" property="og:locale"/>
 <meta content="website" property="og:type"/>
 <meta content="여우방 통합 프로그램" property="og:site_name"/>
@@ -323,7 +323,7 @@
         <span class="home-shortcut-icon">🔄</span><strong>맞팔확인</strong><small>맞팔 확인 프로그램</small><b>바로가기 →</b>
       </button>
       <button class="home-shortcut green" id="homePumasiBtn" type="button">
-        <span class="home-shortcut-icon">🤝</span><strong>품앗이</strong><small>품앗이 참여 및 관리</small><b>바로가기 →</b>
+        <span class="home-shortcut-icon">🤝</span><strong>품앗이</strong><small>모네 굴비엮기</small><b>바로가기 →</b>
       </button>
       <button class="home-shortcut purple" data-home-view="inviteView" type="button">
         <span class="home-shortcut-icon">💌</span><strong>초대별</strong><small>초대 현황 및 혜택 확인</small><b>바로가기 →</b>
@@ -767,12 +767,10 @@
 <span>© 2026 YEOWOOBANG</span>
 </footer>
 <nav aria-label="주요 메뉴" class="bottom-nav integrated-bottom-nav">
-<button class="nav-btn" data-view="homeView" type="button"><span class="nav-icon">⌂</span><span>홈</span></button>
-<button class="nav-btn active" data-view="followView" type="button"><span class="nav-icon">☷</span><span>팔로우리스트</span></button>
-<button class="nav-btn" data-view="matchView" type="button"><span class="nav-icon">↔</span><span>맞팔확인</span></button>
-<button class="nav-btn" data-view="inviteView" type="button"><span class="nav-icon">💌</span><span>초대별</span></button>
-<button class="nav-btn" data-view="noticeView" id="noticeNavBtn" type="button"><span class="nav-icon">🔔</span><span>공지</span></button>
-<button class="nav-btn hidden" data-view="adminView" id="adminNavBtn" type="button"><span class="nav-icon">⚙</span><span>운영진</span></button>
+  <button class="nav-btn active" data-view="homeView" type="button"><span class="nav-icon">⌂</span><span>홈</span></button>
+  <button class="nav-btn nav-action" id="bottomMyPageBtn" type="button"><span class="nav-icon">👤</span><span>내정보</span></button>
+  <button class="nav-btn nav-action" id="bottomInquiryBtn" type="button"><span class="nav-icon">💬</span><span>문의</span></button>
+  <button class="nav-btn nav-action" id="bottomMoreBtn" type="button"><span class="nav-icon">☰</span><span>더보기</span></button>
 </nav>
 <div aria-labelledby="notificationTitle" aria-modal="true" class="account-modal hidden" id="notificationModal" role="dialog">
 <section class="account-modal-card notification-modal-card">
@@ -859,7 +857,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase-auth-v107.js?v=1330"></script>
-<script src="app.js?v=1350"></script>
+<script src="app.js?v=1380"></script>
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
   const moreBtn = document.getElementById('moreMenuBtn');
