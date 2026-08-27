@@ -1623,7 +1623,7 @@ async function loadRoomList(show = false) {
 
     // 맞팔분석 기준 명단도 같은 최신 회원명단으로 즉시 동기화
     matchRoomList = roomList
-      .filter(item => String(item.status || "ACTIVE") !== "SUSPENDED" && validUsername(normalize(item.id || "")))
+      .filter(item => validUsername(normalize(item.id || "")))
       .map(item => ({ no:item.no, name:item.name, id:normalize(item.id || "") }));
     if ($("roomState") && matchRoomList.length) $("roomState").textContent = `${matchRoomList.length}명`;
 
@@ -2094,9 +2094,8 @@ async function loadMatchRoomList(showToast = false, force = false) {
 
     matchRoomList = roomList
       .filter(item => {
-        const status = String(item?.status || "ACTIVE");
         const id = normalize(item?.id || "");
-        return status !== "SUSPENDED" && Boolean(id && validUsername(id));
+        return Boolean(id && validUsername(id));
       })
       .map(item => ({
         no: item.no,
