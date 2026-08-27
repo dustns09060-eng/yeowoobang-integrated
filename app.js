@@ -2067,6 +2067,13 @@ function isOperatorMode_() {
 }
 
 function showView(id) {
+  if (id === "myPageView") {
+    const m = memberSession?.member || {};
+    setTimeout(() => {
+      if ($("myPageNickname")) $("myPageNickname").textContent = m.nickname || adminProfile?.name || "회원";
+      if ($("myPageInstagram")) $("myPageInstagram").textContent = m.instagram_username ? `@${String(m.instagram_username).replace(/^@/,"")}` : "";
+    }, 0);
+  }
   if (id === "homeView" && $("homeMemberName")) {
     $("homeMemberName").textContent = memberSession?.member?.nickname || adminProfile?.name || "회원";
   }
@@ -3263,3 +3270,32 @@ function updateFollowWatermarkV104(){
   wm.textContent=Array(16).fill(`@${id} · ${stamp}`).join("     ");
   wm.classList.add("show");
 }
+
+
+// V139 하단 실제 메뉴
+document.addEventListener("click", async (e) => {
+  const util = e.target.closest("[data-util-view]");
+  if (util) { showView(util.dataset.utilView); return; }
+
+  if (e.target.closest("#myPageLogoutBtn")) {
+    if (!confirm("로그아웃할까요?")) return;
+    memberAuthGenerationV133++;
+    memberSession = null;
+    clearMemberSessionStorage();
+    try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+    accessGranted=false; followGranted=false; matchGranted=false;
+    showGate(); setGate("memberLogin"); toast("로그아웃되었습니다."); return;
+  }
+
+  if (e.target.closest("#inquiryCopyBtn")) {
+    const text=`[여우방 프로그램 문의]\n닉네임: ${memberSession?.member?.nickname||""}\n인스타 아이디: ${memberSession?.member?.instagram_username||""}\n사용 기기:\n문제 발생 메뉴:\n문의 내용:`;
+    try { await navigator.clipboard.writeText(text); toast("문의 양식을 복사했어요."); }
+    catch (_) { toast("문의 양식을 복사하지 못했어요."); }
+    return;
+  }
+
+  if (e.target.closest("#moreThemeBtn")) {
+    const btn = $("themeToggle") || $("themeToggleBtn") || $("darkModeBtn");
+    if (btn) btn.click(); else document.body.classList.toggle("dark-mode");
+  }
+});

@@ -1755,3 +1755,14 @@ body.dark-mode .home-shortcut *,body.dark .home-shortcut *{color:inherit}
 /* V136 - 중복 없는 하단 메뉴 */
 .integrated-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 .integrated-bottom-nav .nav-btn { min-width: 0; }
+
+/* V139 싹정리 */
+.home-welcome-card{justify-content:flex-start!important}
+.utility-page-card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;margin-bottom:18px}
+.utility-page-card h2{font-size:27px;margin:4px 0 18px}.utility-desc{color:var(--muted);margin:-10px 0 18px}
+.profile-summary{display:flex;align-items:center;gap:14px;padding:18px;border-radius:20px;background:var(--soft);margin-bottom:16px}
+.profile-avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#fff;font-size:28px}.profile-summary p{margin:4px 0 0;color:var(--muted)}
+.utility-list{display:grid;gap:10px}.utility-list button{width:100%;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:18px;padding:16px;display:grid;grid-template-columns:38px 1fr 20px;align-items:center;gap:8px;text-align:left}
+.utility-list button>span{font-size:23px}.utility-list button div{display:flex;flex-direction:column;gap:4px}.utility-list button small{color:var(--muted);font-size:12px}.utility-list button>b{font-size:24px;color:var(--muted)}
+.utility-tip{margin-top:16px;padding:15px;border-radius:16px;background:var(--soft);color:var(--muted);font-size:13px}.integrated-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}

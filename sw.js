@@ -1,11 +1,11 @@
 /* V117 */
-const CACHE = "yeowoobang-v138-pumasi-exec";
+const CACHE = "yeowoobang-v139-cleanup";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=1380",
-  "./app.js?v=1380",
+  "./style.css?v=1390",
+  "./app.js?v=1390",
   "./supabase-auth-v107.js?v=1330",
   "./supabase-auth-v107.json?v=1200",
   "./config.json?v=1200",
