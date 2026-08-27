@@ -1461,12 +1461,8 @@ function updateMatchAnalysisUi() {
 }
 
 async function loadMatchVoteStatus() {
-  if (!memberSession?.token || adminLoggedIn) { updateMatchVoteUi(); return; }
-  try {
-    const data = await apiPost("getMatchVoteStatus", {token:memberSession.token}, 12000);
-    window.__matchVoteStatus = data;
-  } catch (e) { window.__matchVoteStatus = {open:Boolean(publicConfig?.matchVoteOpen), error:e.message}; }
-  updateMatchVoteUi();
+  // 맞팔 확인 투표 기능 제거됨
+  updateMatchAnalysisUi();
 }
 
 function updateMatchVoteUi() {
@@ -1484,10 +1480,9 @@ function updateMatchVoteUi() {
   updateMatchAnalysisUi();
 }
 
-async function submitMatchVote(status){
-  if(!memberSession?.token) return toast("회원 로그인이 필요합니다.");
-  try{const data=await apiPost("submitMatchVote",{token:memberSession.token,status},12000);toast(data.message||"저장되었습니다.");await loadMatchVoteStatus();}
-  catch(e){toast(e.message||"제출에 실패했습니다.");}
+async function submitMatchVote(status) {
+  // 맞팔 확인 투표 기능 제거됨
+  return;
 }
 
 function sheetUrl() {
@@ -1625,6 +1620,13 @@ async function loadRoomList(show = false) {
     if (!roomList.length) throw new Error("팔로우리스트를 불러오지 못했습니다.");
 
     saveFollowListCache(roomList);
+
+    // 맞팔분석 기준 명단도 같은 최신 회원명단으로 즉시 동기화
+    matchRoomList = roomList
+      .filter(item => String(item.status || "ACTIVE") !== "SUSPENDED" && validUsername(normalize(item.id || "")))
+      .map(item => ({ no:item.no, name:item.name, id:normalize(item.id || "") }));
+    if ($("roomState") && matchRoomList.length) $("roomState").textContent = `${matchRoomList.length}명`;
+
     setSheetState("정상");
     updateFollowStats();
     renderGroupTabs();
@@ -2064,13 +2066,61 @@ function showView(id) {
     prefillMatchRequestIdentity();
     loadMatchRequestConfig().catch(()=>{});
     const canAnalyze = isMatchPeriodOpen() && (Boolean(memberSession?.token) || adminLoggedIn);
-    if (canAnalyze && !matchRoomList.length) {
-      loadMatchRoomList(false).catch(() => {});
+    if (canAnalyze) {
+      loadMatchRoomList(false, false).catch(() => {});
     }
   }
 
   if (id === "inviteView") loadInviteLeaderboard().catch(()=>{});
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+
+async function loadMatchRoomList(showToast = false, force = false) {
+  const roomState = $("roomState");
+
+  try {
+    if (roomState) roomState.textContent = "불러오는 중";
+
+    // 맞팔분석 기준 명단은 회원에게 허용된 현재 팔로우리스트와 동일하게 사용합니다.
+    // 명단이 아직 없거나 강제 새로고침이면 서버에서 먼저 최신 팔로우리스트를 불러옵니다.
+    if (force || !roomList.length) {
+      await loadRoomList(Boolean(showToast && force));
+    }
+
+    if (!roomList.length) {
+      throw new Error("단톡방 명단을 불러오지 못했습니다.");
+    }
+
+    matchRoomList = roomList
+      .filter(item => {
+        const status = String(item?.status || "ACTIVE");
+        const id = normalize(item?.id || "");
+        return status !== "SUSPENDED" && Boolean(id && validUsername(id));
+      })
+      .map(item => ({
+        no: item.no,
+        name: String(item.name || "").trim(),
+        id: normalize(item.id || "")
+      }));
+
+    if (!matchRoomList.length) {
+      throw new Error("맞팔분석에 사용할 회원 명단이 없습니다.");
+    }
+
+    if (roomState) roomState.textContent = `${matchRoomList.length}명`;
+    if ($("status")) {
+      $("status").textContent = `단톡방 명단 ${matchRoomList.length}명 불러오기 완료 · 인스타그램 ZIP 파일을 선택해 주세요.`;
+    }
+    if (showToast) toast(`단톡방 명단 ${matchRoomList.length}명 불러오기 완료`);
+    return matchRoomList;
+  } catch (error) {
+    matchRoomList = [];
+    if (roomState) roomState.textContent = "불러오기 실패";
+    if ($("status")) $("status").textContent = `명단 오류: ${error.message || "불러오지 못했습니다."}`;
+    if (showToast) toast(error.message || "단톡방 명단을 불러오지 못했습니다.");
+    throw error;
+  }
 }
 
 function findFiles(zip) {
