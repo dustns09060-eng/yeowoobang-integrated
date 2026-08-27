@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v150-final-check";
+const CACHE = "yeowoobang-v151-invite-two-column";
 
 const STATIC_ASSETS = [
   "./",

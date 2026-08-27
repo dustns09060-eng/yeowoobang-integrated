@@ -166,6 +166,27 @@
 </style>
 
   <!-- YEOWOOBANG HOME NAV FINAL V79: 입장하기/운영진 text-only + 홈/내정보/공지/더보기 -->
+
+<style id="inviteTopTwoGridV151">
+#inviteView .invite-top-two-grid{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+ gap:10px!important;
+ align-items:stretch;
+ margin-bottom:14px;
+}
+#inviteView .invite-top-two-grid>.invite-card{margin:0!important;min-width:0;height:100%}
+@media(max-width:700px){
+ #inviteView .invite-top-two-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+ #inviteView .invite-top-two-grid>.invite-card{padding:14px 11px!important}
+ #inviteView .invite-top-two-grid h3{font-size:18px!important;line-height:1.25}
+ #inviteView .invite-top-two-grid label{font-size:12px!important}
+ #inviteView .invite-top-two-grid input{font-size:12px!important;padding:10px 7px!important}
+ #inviteView .invite-top-two-grid button{font-size:12px!important;padding:11px 6px!important}
+ #inviteView .invite-top-two-grid p{font-size:11px!important;line-height:1.45}
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -466,13 +487,15 @@
     <div class="invite-mode-tabs"><button id="inviteMemberTab" class="invite-mode-tab active" type="button">회원 화면</button><button id="inviteAdminTab" class="invite-mode-tab" type="button">관리자</button></div>
   </div>
   <div id="inviteMemberMode">
-    <section class="card invite-card"><h3>내 정보</h3><div class="invite-form-grid"><label class="invite-field"><span>내 닉네임</span><input id="inviteeName" placeholder="예: 여우방"></label><label class="invite-field"><span>내 인스타 아이디</span><input id="inviteeInstagram" placeholder="예: @yeowoobang"></label></div><button id="inviteCheckMeBtn" class="primary invite-submit" type="button">내 정보 확인</button><div class="invite-help-box">회원명단에 등록된 닉네임과 인스타 아이디가 서로 일치해야 등록할 수 있어요.</div>
+    <div class="invite-top-two-grid">
+<section class="card invite-card"><h3>내 정보</h3><div class="invite-form-grid"><label class="invite-field"><span>내 닉네임</span><input id="inviteeName" placeholder="예: 여우방"></label><label class="invite-field"><span>내 인스타 아이디</span><input id="inviteeInstagram" placeholder="예: @yeowoobang"></label></div><button id="inviteCheckMeBtn" class="primary invite-submit" type="button">내 정보 확인</button><div class="invite-help-box">회원명단에 등록된 닉네임과 인스타 아이디가 서로 일치해야 등록할 수 있어요.</div>
       <div class="invite-start-box">
         <div><strong>입장 후 7일 이내 팔로우리스트 1번부터 시작해주세요.</strong>
         <p>내 정보 확인 후 버튼을 누르면 시작 여부와 시작일이 자동 기록됩니다.</p></div>
         <button id="inviteStartFollowBtn" class="outline" type="button" disabled>팔로우리스트 1번부터 시작</button>
       </div></section>
-    <section class="card invite-card"><h3>나를 초대한 사람</h3><div class="invite-form-grid"><label class="invite-field"><span>초대한 사람 닉네임</span><input id="inviterName" placeholder="초대한 분 닉네임"></label><label class="invite-field"><span>초대한 사람 인스타 아이디</span><input id="inviterInstagram" placeholder="예: @instagram_id"></label></div><button id="inviteRegisterBtn" class="primary invite-submit" type="button">초대자 등록 요청</button><p id="inviteRegisterMsg" class="state-text"></p><div class="invite-help-box">등록 후 관리자 승인이 완료되면 초대한 사람의 초대 실적에 1명이 반영됩니다. 같은 인스타 계정은 한 번만 등록할 수 있어요.</div></section>
+<section class="card invite-card"><h3>나를 초대한 사람</h3><div class="invite-form-grid"><label class="invite-field"><span>초대한 사람 닉네임</span><input id="inviterName" placeholder="초대한 분 닉네임"></label><label class="invite-field"><span>초대한 사람 인스타 아이디</span><input id="inviterInstagram" placeholder="예: @instagram_id"></label></div><button id="inviteRegisterBtn" class="primary invite-submit" type="button">초대자 등록 요청</button><p id="inviteRegisterMsg" class="state-text"></p><div class="invite-help-box">등록 후 관리자 승인이 완료되면 초대한 사람의 초대 실적에 1명이 반영됩니다. 같은 인스타 계정은 한 번만 등록할 수 있어요.</div></section>
+</div>
     <section class="card invite-card"><h3>내 등록 상태</h3><div class="invite-my-stats"><article><span>등록 요청</span><strong id="inviteMyRequestCount">0</strong></article><article><span>승인 완료</span><strong id="inviteMyApprovedCount">0</strong></article><article><span>승인 대기</span><strong id="inviteMyPendingCount">0</strong></article></div><div class="invite-my-table"><div class="invite-my-head"><span>나를 초대한 사람</span><span>인스타 아이디</span><span>등록일</span><span>상태</span></div><div id="inviteMyList" class="invite-my-body"><p class="state-text">내 정보를 확인하면 등록 상태가 표시됩니다.</p></div></div></section>
     
     <section class="card invite-card invite-rank-card">
