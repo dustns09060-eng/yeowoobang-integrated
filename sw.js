@@ -1,12 +1,12 @@
 /* V117 */
-const CACHE = "yeowoobang-v151-invite-two-column";
+const CACHE = "yeowoobang-v152-invite-priority";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./style.css?v=1500",
-  "./app.js?v=1500",
-  "./pumasi-config.js?v=1500",
+  "./app.js?v=1520",
+  "./pumasi-config.js?v=1520",
   "./supabase-auth-v107.js?v=1330",
   "./supabase-auth-v107.json?v=1200",
   "./backend-adapter-v106.js?v=1330",

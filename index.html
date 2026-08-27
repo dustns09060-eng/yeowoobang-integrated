@@ -187,6 +187,16 @@
 }
 </style>
 
+
+<style id="invitePriorityV152">
+.invite-priority-admin-card{border:1px solid rgba(255,92,140,.24)!important}
+.invite-priority-rule{margin:12px 0 14px;padding:13px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--line)}
+.invite-priority-rule strong{display:block;margin-bottom:7px}
+.invite-priority-rule p{margin:4px 0;font-size:12px;line-height:1.5;color:var(--muted)}
+#publishInvitePriorityBtn{width:100%}
+#publishInvitePriorityMsg{margin:9px 0 0;text-align:center}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -563,7 +573,25 @@
   </div>
   <div id="inviteAdminMode" class="hidden">
     <section class="card invite-admin-topbar"><div><h3>관리자 화면</h3><p class="subtext">초대 승인과 회원별 누적 현황을 관리합니다.</p></div><button id="inviteAdminLogoutBtn" class="outline" type="button">관리자 나가기</button></section>
-    <section class="card invite-card"><div class="section-title-row"><div><h3>초대 승인 관리</h3></div><button id="refreshInviteAdminBtn" class="outline small" type="button">새로고침</button></div><div class="invite-admin-policy"><strong>입장 7일 관리</strong>
+    
+      <section id="invitePriorityAdminCard" class="card invite-card invite-priority-admin-card">
+        <div class="section-title-row">
+          <div>
+            <h3>🔢 초대별 순번 확정</h3>
+            <p class="subtext">이번 달 초대 실적을 기준으로 팔로우리스트 앞번호를 확정 반영합니다.</p>
+          </div>
+        </div>
+        <div class="invite-priority-rule">
+          <strong>순번 적용 기준</strong>
+          <p>• 이번 달 초대 10명 이상 대상</p>
+          <p>• 초대 인원이 많은 순서대로 31번부터 배치</p>
+          <p>• 기존 팔로우리스트 1~30번은 그대로 유지</p>
+        </div>
+        <button id="publishInvitePriorityBtn" class="primary" type="button">이번 달 앞번호 확정 반영</button>
+        <p id="publishInvitePriorityMsg" class="subtext">월 초대 마감/발표 시 운영진이 한 번만 실행해주세요.</p>
+      </section>
+
+<section class="card invite-card"><div class="section-title-row"><div><h3>초대 승인 관리</h3></div><button id="refreshInviteAdminBtn" class="outline small" type="button">새로고침</button></div><div class="invite-admin-policy"><strong>입장 7일 관리</strong>
       <span>승인일을 입장일로 계산하며, 7일이 지났는데 팔로우리스트 1번 시작 기록이 없으면 <b>내보내기 대상</b>으로 표시됩니다.</span></div>
       <div class="invite-status-tabs"><button class="invite-status-tab active" data-invite-filter="ALL" type="button">전체</button><button class="invite-status-tab" data-invite-filter="PENDING" type="button">승인 대기</button><button class="invite-status-tab" data-invite-filter="APPROVED" type="button">승인 완료</button><button class="invite-status-tab" data-invite-filter="REJECTED" type="button">거절</button><button class="invite-status-tab" data-invite-filter="CANCELLED" type="button">승인 취소</button></div><input id="inviteAdminSearch" class="invite-admin-search" placeholder="닉네임 / 인스타 아이디 검색"><div class="invite-admin-summary"><article><span>대기</span><strong id="invitePendingCount">0</strong></article><article><span>승인</span><strong id="inviteApprovedCount">0</strong></article><article><span>거절</span><strong id="inviteRejectedCount">0</strong></article><article><span>승인 취소</span><strong id="inviteCancelledCount">0</strong></article></div><div id="inviteAdminList" class="invite-admin-list"><p class="state-text">관리자 인증 후 초대 요청을 확인할 수 있습니다.</p></div></section>
     <section class="card invite-card"><div class="section-title-row"><div><h3>회원별 누적 현황</h3></div><button id="refreshInviteSummaryBtn" class="outline small" type="button">새로고침</button></div><div class="invite-summary-table"><div class="invite-summary-head"><span>번호 · 닉네임</span><span>초대</span><span>이전</span><span>누적</span></div><div id="inviteSummaryList" class="invite-summary-body"><p class="state-text">누적 현황을 불러오는 중...</p></div></div></section>
@@ -949,8 +977,8 @@
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="pumasi-config.js?v=1500"></script>
-  <script src="app.js?v=1500"></script>
+  <script src="pumasi-config.js?v=1520"></script>
+  <script src="app.js?v=1520"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
