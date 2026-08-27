@@ -695,7 +695,7 @@ async function bootstrapAuth() {
     setAdminNavigation(false);
     setMemberHeader(saved.member);
     hideGate();
-    showView("followView");
+    showView("homeView");
     restoreFollowListCache();
 
     void loadAfterAuth();
@@ -768,7 +768,7 @@ function chooseGeneralAccess() {
     matchGranted = true;
     setMemberHeader(saved.member);
     hideGate();
-    showView("followView");
+    showView("homeView");
     restoreFollowListCache();
     void loadAfterAuth();
     void loadMemberFollowProgress();
