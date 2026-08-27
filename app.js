@@ -867,7 +867,7 @@ async function completeMemberLogin(result, showToast = true) {
   hideGate();
 
   // V118: 메인 화면을 먼저 보여주고, 네트워크 작업은 뒤에서 병렬 처리합니다.
-  showView("followView");
+  showView("homeView");
   void loadAfterAuth();
   void loadMemberFollowProgress();
   window.setTimeout(() => {
@@ -881,7 +881,7 @@ async function completeMemberLogin(result, showToast = true) {
       memberSession?.token === result.token
     ) {
       hideGate();
-      if (!document.querySelector(".view.active")) showView("followView");
+      if (!document.querySelector(".view.active")) showView("homeView");
     }
   }, 700);
 
@@ -1515,12 +1515,6 @@ function sheetUrl() {
   return `https://docs.google.com/spreadsheets/d/${config.sheetId}/edit`;
 }
 
-// V135: 운영진 모드의 '구글시트 열기'는 실제 공용 팔로우리스트 원본을 엽니다.
-function adminFollowSheetUrlV135() {
-  const followSheetId = "1NAgOFZfmrKlzIM4uyArZ11FssYQqDSiSOS5iYySA1hA";
-  return `https://docs.google.com/spreadsheets/d/${followSheetId}/edit`;
-}
-
 function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -2072,7 +2066,11 @@ function isOperatorMode_() {
   return Boolean(adminLoggedIn || adminPasswordValue || adminNavVisible || savedRole === "admin");
 }
 
-function showView(id) {document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
+function showView(id) {
+  if (id === "homeView" && $("homeMemberName")) {
+    $("homeMemberName").textContent = memberSession?.member?.nickname || adminProfile?.name || "회원";
+  }
+  document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === id));
 
   if (id === "followView") {
@@ -2710,6 +2708,17 @@ async function deleteNotice(noticeId) {
 
 if ($("openSettingsSheetBtn")) $("openSettingsSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
 if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member");if($("inviteAdminTab"))$("inviteAdminTab").onclick=()=>{if(inviteAdminLoggedIn){setInviteMode("admin");Promise.allSettled([loadInviteAdmin(),loadInviteSummary()])}else openInviteAdminLogin()};if($("inviteCheckMeBtn"))$("inviteCheckMeBtn").onclick=checkInviteMe;if($("inviteStartFollowBtn"))$("inviteStartFollowBtn").onclick=startFollowFromOne;if($("inviteRegisterBtn"))$("inviteRegisterBtn").onclick=registerInviteIntegrated;if($("inviteAdminPassword"))$("inviteAdminPassword").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"")});if($("inviteAdminLoginBtn"))$("inviteAdminLoginBtn").onclick=loginInviteAdmin;if($("inviteAdminCancelBtn"))$("inviteAdminCancelBtn").onclick=closeInviteAdminLogin;if($("inviteAdminLogoutBtn"))$("inviteAdminLogoutBtn").onclick=logoutInviteAdmin;if($("refreshInviteAdminBtn"))$("refreshInviteAdminBtn").onclick=loadInviteAdmin;if($("refreshInviteSummaryBtn"))$("refreshInviteSummaryBtn").onclick=loadInviteSummary;if($("publishInvitePriorityBtn"))$("publishInvitePriorityBtn").onclick=publishInvitePriorityV110;if($("inviteAdminSearch"))$("inviteAdminSearch").oninput=renderInviteAdminList;document.querySelectorAll("[data-invite-filter]").forEach(b=>b.onclick=()=>{inviteAdminFilter=b.dataset.inviteFilter;document.querySelectorAll("[data-invite-filter]").forEach(x=>x.classList.toggle("active",x===b));renderInviteAdminList()});document.addEventListener("click",e=>{const a=e.target.closest("[data-invite-approve]"),r=e.target.closest("[data-invite-reject]"),c=e.target.closest("[data-invite-cancel]");if(a)changeInviteStatus(a.dataset.inviteApprove,"APPROVED");if(r)changeInviteStatus(r.dataset.inviteReject,"REJECTED");if(c)cancelInviteApproval(c.dataset.inviteCancel,c.dataset.inviteName||"")});
+document.querySelectorAll("[data-home-view]").forEach((button) => {
+  button.onclick = () => showView(button.dataset.homeView);
+});
+if ($("homePumasiBtn")) {
+  $("homePumasiBtn").onclick = () => {
+    const configured = window.YEOWOOBANG_PUMASI_URL || "";
+    if (configured) window.location.href = configured;
+    else toast("품앗이 연결 주소를 등록하면 바로 이동할 수 있어요.");
+  };
+}
+
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
@@ -2816,7 +2825,7 @@ document.querySelectorAll(".tab").forEach((button) => {
 $("adminLoginBtn").onclick = adminLogin;
 $("adminPassword").onkeydown = (event) => { if (event.key === "Enter") adminLogin(); };
 $("adminLogoutBtn").onclick = adminLogout;
-$("openSheetBtn").onclick = () => window.open(adminFollowSheetUrlV135(), "_blank");
+$("openSheetBtn").onclick = () => window.open(sheetUrl(), "_blank");
 $("adminRefreshBtn").onclick = async () => {
   await Promise.allSettled([refreshPublicConfig(false), loadRoomList(true), loadMatchRoomList(true, true), loadNotices(false), loadAdminLogs(), loadInviteAdmin()]);
   renderRosterAudit();

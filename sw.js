@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v135-admin-follow-sheet-link";
+const CACHE = "yeowoobang-v135-integrated-home";
 
 const STATIC_ASSETS = [
   "./",
