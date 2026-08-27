@@ -2072,6 +2072,14 @@ function showView(id) {
     setTimeout(() => {
       if ($("myPageNickname")) $("myPageNickname").textContent = m.nickname || adminProfile?.name || "회원";
       if ($("myPageInstagram")) $("myPageInstagram").textContent = m.instagram_username ? `@${String(m.instagram_username).replace(/^@/,"")}` : "";
+      const nick = m.nickname || adminProfile?.name || "회원";
+      const insta = m.instagram_username ? `@${String(m.instagram_username).replace(/^@/,"")}` : "-";
+      const isAdmin = !!(adminProfile || m.is_admin || m.role === "admin" || m.role === "operator");
+      if ($("myInfoNickname")) $("myInfoNickname").textContent = nick;
+      if ($("myInfoInstagram")) $("myInfoInstagram").textContent = insta;
+      if ($("myInfoRole")) $("myInfoRole").textContent = isAdmin ? "운영진" : "일반회원";
+      if ($("myPageRole")) $("myPageRole").textContent = isAdmin ? "운영진" : "회원";
+      if ($("myInfoAdminBtn")) $("myInfoAdminBtn").style.display = isAdmin ? "" : "none";
     }, 0);
   }
   if (id === "homeView" && $("homeMemberName")) {
@@ -3297,5 +3305,21 @@ document.addEventListener("click", async (e) => {
   if (e.target.closest("#moreThemeBtn")) {
     const btn = $("themeToggle") || $("themeToggleBtn") || $("darkModeBtn");
     if (btn) btn.click(); else document.body.classList.toggle("dark-mode");
+  }
+});
+
+
+// V141 내정보 + 내메뉴 통합
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#myInfoThemeBtn")) {
+    const btn = $("themeToggle") || $("themeToggleBtn") || $("darkModeBtn");
+    if (btn) btn.click();
+    else document.body.classList.toggle("dark-mode");
+    return;
+  }
+  if (e.target.closest("#myInfoAdminBtn")) {
+    const btn = $("adminModeBtn") || $("operatorModeBtn") || $("adminSwitchBtn");
+    if (btn) btn.click();
+    else toast("상단 운영진모드 버튼을 이용해주세요.");
   }
 });

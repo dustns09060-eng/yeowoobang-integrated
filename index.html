@@ -17,7 +17,7 @@
 <link href="manifest.json?v=1050" rel="manifest"/>
 <link href="favicon-v20.png?v=430" rel="icon" type="image/png"/>
 <link href="icon-192-v20.png?v=430" rel="apple-touch-icon"/>
-<link href="style.css?v=1400" rel="stylesheet"/>
+<link href="style.css?v=1410" rel="stylesheet"/>
 <meta content="ko_KR" property="og:locale"/>
 <meta content="website" property="og:type"/>
 <meta content="여우방 통합 프로그램" property="og:site_name"/>
@@ -333,9 +333,36 @@
     </div>
   </section>
 </section>
-<section class="view" id="myPageView"><section class="utility-page-card"><p class="home-eyebrow">👤 회원 메뉴</p><h2>내정보</h2><div class="profile-summary"><div class="profile-avatar">🦊</div><div><strong id="myPageNickname">회원</strong><p id="myPageInstagram"></p></div></div><div class="utility-list"><button type="button" id="myPageLogoutBtn"><span>🚪</span><div><strong>로그아웃</strong><small>현재 계정에서 로그아웃합니다.</small></div><b>›</b></button></div></section></section>
-<section class="view" id="inquiryView"><section class="utility-page-card"><p class="home-eyebrow">💬 도움</p><h2>문의</h2><p class="utility-desc">프로그램 이용 중 문제가 있으면 운영진에게 문의해주세요.</p><div class="utility-list"><button type="button" id="inquiryCopyBtn"><span>📋</span><div><strong>문의 양식 복사</strong><small>기기·메뉴·오류내용을 적을 양식을 복사해요.</small></div><b>›</b></button><button type="button" data-util-view="noticeView"><span>🔔</span><div><strong>공지 확인</strong><small>문의 전 최신 공지를 확인해요.</small></div><b>›</b></button></div><div class="utility-tip">💡 오류 화면 캡처를 함께 보내주시면 확인이 쉬워요.</div></section></section>
-<section class="view" id="moreView"><section class="utility-page-card"><p class="home-eyebrow">☰ 여우방</p><h2>더보기</h2><div class="utility-list"><button type="button" data-util-view="noticeView"><span>🔔</span><div><strong>공지사항</strong><small>여우방 공지를 확인해요.</small></div><b>›</b></button><button type="button" id="moreThemeBtn"><span>🌙</span><div><strong>화면 모드 변경</strong><small>라이트/다크 모드를 전환해요.</small></div><b>›</b></button><button type="button" data-util-view="myPageView"><span>👤</span><div><strong>내정보</strong><small>회원정보와 로그아웃</small></div><b>›</b></button><button type="button" data-util-view="inquiryView"><span>💬</span><div><strong>문의</strong><small>프로그램 이용 문의</small></div><b>›</b></button></div></section></section>
+<section class="view" id="myPageView">
+<section class="utility-page-card myinfo-page">
+  <p class="home-eyebrow">👤 회원 메뉴</p>
+  <h2>내정보</h2>
+  <div class="profile-summary myinfo-profile">
+    <img class="myinfo-fox" src="app-logo-v20.png" alt="여우방">
+    <div><strong id="myPageNickname">회원</strong><p id="myPageInstagram"></p><span id="myPageRole" class="role-chip">회원</span></div>
+  </div>
+  <div class="myinfo-details">
+    <div><span>닉네임</span><strong id="myInfoNickname">-</strong></div>
+    <div><span>인스타 아이디</span><strong id="myInfoInstagram">-</strong></div>
+    <div><span>회원 구분</span><strong id="myInfoRole">일반회원</strong></div>
+  </div>
+  <div class="utility-list myinfo-actions">
+    <button type="button" id="myInfoThemeBtn"><span>🌙</span><div><strong>화면 모드</strong><small>라이트 / 다크 모드를 변경해요.</small></div><b>›</b></button>
+    <button type="button" id="myInfoAdminBtn"><span>⚙️</span><div><strong>운영진모드</strong><small>운영진 인증이 된 계정만 사용할 수 있어요.</small></div><b>›</b></button>
+    <button type="button" id="myPageLogoutBtn"><span>🚪</span><div><strong>로그아웃</strong><small>현재 계정에서 로그아웃합니다.</small></div><b>›</b></button>
+  </div>
+</section>
+</section>
+<section class="view" id="moreView">
+<section class="utility-page-card">
+  <p class="home-eyebrow">☰ 여우방</p>
+  <h2>더보기</h2>
+  <div class="utility-list">
+    <button type="button" data-util-view="noticeView"><span>🔔</span><div><strong>공지사항</strong><small>여우방 공지를 확인해요.</small></div><b>›</b></button>
+    <button type="button" data-util-view="myPageView"><span>👤</span><div><strong>내정보 · 설정</strong><small>회원정보와 화면 설정을 확인해요.</small></div><b>›</b></button>
+  </div>
+</section>
+</section>
 <section class="notice-card hidden" id="noticeCard">
 <div class="notice-head">
 <strong>📢 공지</strong>
@@ -771,7 +798,7 @@
 <nav aria-label="주요 메뉴" class="bottom-nav integrated-bottom-nav">
 <button class="nav-btn active" data-view="homeView" type="button"><span class="nav-icon">⌂</span><span>홈</span></button>
 <button class="nav-btn" data-view="myPageView" type="button"><span class="nav-icon">👤</span><span>내정보</span></button>
-<button class="nav-btn" data-view="inquiryView" type="button"><span class="nav-icon">💬</span><span>문의</span></button>
+<button class="nav-btn" data-view="noticeView" type="button"><span class="nav-icon">🔔</span><span>공지</span></button>
 <button class="nav-btn" data-view="moreView" type="button"><span class="nav-icon">☰</span><span>더보기</span></button>
 </nav>
 <div aria-labelledby="notificationTitle" aria-modal="true" class="account-modal hidden" id="notificationModal" role="dialog">
@@ -859,8 +886,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase-auth-v107.js?v=1330"></script>
-<script src="pumasi-config.js?v=1400"></script>
-<script src="app.js?v=1400"></script>
+<script src="pumasi-config.js?v=1410"></script>
+<script src="app.js?v=1410"></script>
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
   const moreBtn = document.getElementById('moreMenuBtn');

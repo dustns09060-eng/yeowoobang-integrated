@@ -1766,3 +1766,12 @@ body.dark-mode .home-shortcut *,body.dark .home-shortcut *{color:inherit}
 .utility-list button>span{font-size:23px}.utility-list button div{display:flex;flex-direction:column;gap:4px}.utility-list button small{color:var(--muted);font-size:12px}.utility-list button>b{font-size:24px;color:var(--muted)}
 .utility-tip{margin-top:16px;padding:15px;border-radius:16px;background:var(--soft);color:var(--muted);font-size:13px}.integrated-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}
+
+/* V141 - 여우 이미지 통일 / 내정보+내메뉴 통합 */
+.myinfo-profile{align-items:center}
+.myinfo-fox{width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,143,177,.35);background:#fff}
+.role-chip{display:inline-flex;margin-top:7px;padding:4px 9px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:11px;font-weight:800}
+.myinfo-details{display:grid;gap:8px;margin:0 0 16px}
+.myinfo-details>div{display:flex;justify-content:space-between;gap:15px;padding:14px 15px;border:1px solid var(--line);border-radius:15px;background:var(--card)}
+.myinfo-details span{color:var(--muted);font-size:13px}.myinfo-details strong{font-size:14px;text-align:right}
+.integrated-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
