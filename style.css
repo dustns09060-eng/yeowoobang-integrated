@@ -1795,3 +1795,19 @@ body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}
 @media(min-width:900px){
   #homeView .home-welcome-card,#homeView .home-menu-section,#myPageView .card,#moreView .card{max-width:980px;margin-left:auto;margin-right:auto}
 }
+
+/* V145 폭스바겐 진입 제거 + 초대랭킹/혜택/달성현황 복구 */
+#foxView{display:none!important}
+.invite-ranking-repair{display:grid;gap:14px;margin-bottom:18px}
+.invite-rank-tabs{display:flex;gap:8px;margin:12px 0}
+.invite-rank-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.invite-rank-summary>div,.invite-benefit-card{padding:13px;border:1px solid var(--line);border-radius:15px;background:var(--soft);display:grid;gap:5px}
+.invite-rank-summary small,.invite-benefit-card small{color:var(--muted);font-size:11px;font-weight:800}
+.invite-rank-summary strong,.invite-benefit-card strong{font-size:16px}
+.invite-benefit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.invite-progress-track{height:12px;border-radius:999px;background:var(--soft);overflow:hidden;margin:14px 0 9px}
+.invite-progress-bar{height:100%;width:0;border-radius:inherit;background:var(--accent);transition:width .25s ease}
+.invite-progress-copy{display:flex;justify-content:space-between;gap:12px;align-items:center}
+@media(max-width:700px){
+  .invite-rank-summary,.invite-benefit-grid{grid-template-columns:1fr}
+}

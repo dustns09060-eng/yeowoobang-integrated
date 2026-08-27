@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v144-no-fox-pumasi";
+const CACHE = "yeowoobang-v145-repair";
 
 const STATIC_ASSETS = [
   "./",
