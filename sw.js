@@ -1,5 +1,5 @@
 /* V117 */
-const CACHE = "yeowoobang-v142-myinfo-unified";
+const CACHE = "yeowoobang-v143-index-repair";
 
 const STATIC_ASSETS = [
   "./",
