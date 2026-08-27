@@ -1,24 +1,20 @@
 {
-  "name": "여우방 통합 프로그램 V115",
+  "name": "여우방 통합 프로그램",
   "short_name": "여우방",
-  "start_url": "./?v=1150",
-  "scope": "./",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#f7f8fa",
-  "theme_color": "#ffffff",
+  "background_color": "#fff8fb",
+  "theme_color": "#ff6f9d",
   "icons": [
     {
-      "src": "icon-192-v20.png?v=1150",
+      "src": "icon-192-v20.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "icon-512-v20.png?v=1150",
+      "src": "icon-512-v20.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ],
-  "description": ""
+  ]
 }
