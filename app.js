@@ -1087,27 +1087,6 @@ function closeMemberDrawer() {
 function openAccountModal(id) { closeMemberDrawer(); $(id)?.classList.remove("hidden"); document.body.classList.add("account-modal-open"); }
 function closeAccountModal(id) { $(id)?.classList.add("hidden"); if (!document.querySelector('.account-modal:not(.hidden)')) document.body.classList.remove("account-modal-open"); }
 
-async function openMyPage() {
-  if (!memberSession?.token) return;
-  openAccountModal("myPageModal");
-  ["myPageNickname","myPageInsta","myPageJoinDate","myPageMemberId"].forEach(id => { if($(id)) $(id).textContent = "불러오는 중..."; });
-  try {
-    const data = await apiPost("getMyPage", {token:memberSession.token}, 15000);
-    const m=data.member||{}, f=data.follow||{}, mt=data.match||{};
-    $("myPageName").textContent=m.nickname||"회원";
-    $("myPageInstagram").textContent=m.instagramId?`@${m.instagramId}`:"";
-    $("myPageNickname").textContent=m.nickname||"-";
-    $("myPageInsta").textContent=m.instagramId?`@${m.instagramId}`:"-";
-    $("myPageJoinDate").textContent=m.joinDate||"등록 전";
-    $("myPageMemberId").textContent=m.memberId??"-";
-    $("myPageFollowText").textContent=f.started?`1번 시작 완료`:(f.status||"시작 상태 확인");
-    $("myPageFollowPercent").textContent=f.startedAt?`시작일 ${f.startedAt}`:`전체 ${Number(f.total||0).toLocaleString()}명`;
-    $("myPageFollowBar").style.width=f.started?"100%":"0%";
-    $("myPageMatchText").textContent=mt.submitted?`${mt.status} 제출`:(mt.open?"아직 미제출":"기간 아님");
-    $("myPageMatchDate").textContent=mt.submittedAt?`최근 제출 ${mt.submittedAt}`:`${mt.title||"맞팔확인"}`;
-  } catch(e) { toast(e.message||"마이페이지를 불러오지 못했습니다."); }
-}
-
 async function changeMemberPasswordFromUi() {
   const currentPassword=$("currentMemberPassword")?.value||"";
   const newPassword=$("newMemberPassword")?.value||"";
@@ -2068,19 +2047,7 @@ function isOperatorMode_() {
 
 function showView(id) {
   if (id === "myPageView") {
-    const m = memberSession?.member || {};
-    setTimeout(() => {
-      if ($("myPageNickname")) $("myPageNickname").textContent = m.nickname || adminProfile?.name || "회원";
-      if ($("myPageInstagram")) $("myPageInstagram").textContent = m.instagram_username ? `@${String(m.instagram_username).replace(/^@/,"")}` : "";
-      const nick = m.nickname || adminProfile?.name || "회원";
-      const insta = m.instagram_username ? `@${String(m.instagram_username).replace(/^@/,"")}` : "-";
-      const isAdmin = !!(adminProfile || m.is_admin || m.role === "admin" || m.role === "operator");
-      if ($("myInfoNickname")) $("myInfoNickname").textContent = nick;
-      if ($("myInfoInstagram")) $("myInfoInstagram").textContent = insta;
-      if ($("myInfoRole")) $("myInfoRole").textContent = isAdmin ? "운영진" : "일반회원";
-      if ($("myPageRole")) $("myPageRole").textContent = isAdmin ? "운영진" : "회원";
-      if ($("myInfoAdminBtn")) $("myInfoAdminBtn").style.display = isAdmin ? "" : "none";
-    }, 0);
+    setTimeout(() => loadUnifiedMyInfoV142().catch(() => {}), 0);
   }
   if (id === "homeView" && $("homeMemberName")) {
     $("homeMemberName").textContent = memberSession?.member?.nickname || adminProfile?.name || "회원";
@@ -2774,7 +2741,6 @@ if ($("backFromNewMemberInviteBtn")) $("backFromNewMemberInviteBtn").onclick = (
 if ($("newMemberInviterInstagram")) $("newMemberInviterInstagram").onkeydown = (event) => {
   if (event.key === "Enter") registerNewMemberInviteFromGate();
 };
-$("memberMenuBtn").onclick = openMemberDrawer;
 if ($("adminModeBtn")) $("adminModeBtn").onclick = openAdminModeModal;
 if ($("adminModeCancelBtn")) $("adminModeCancelBtn").onclick = closeAdminModeModal;
 if ($("adminModeConfirmBtn")) $("adminModeConfirmBtn").onclick = enterAdminModeFromMember;
@@ -2919,17 +2885,7 @@ finishBootScreen();
 });
 
 
-$("memberDrawerBackdrop")?.addEventListener("click", closeMemberDrawer);
-$("memberDrawerCloseBtn")?.addEventListener("click", closeMemberDrawer);
-$("openMyPageBtn")?.addEventListener("click", openMyPage);
-$("openPasswordChangeBtn")?.addEventListener("click",()=>openAccountModal("passwordChangeModal"));
-$("myPagePasswordBtn")?.addEventListener("click",()=>{closeAccountModal("myPageModal");openAccountModal("passwordChangeModal");});
 $("changeMemberPasswordBtn")?.addEventListener("click",changeMemberPasswordFromUi);
-$("drawerNoticeBtn")?.addEventListener("click",()=>{closeMemberDrawer();showView("noticeView");});
-$("openFaqBtn")?.addEventListener("click",()=>openAccountModal("faqModal"));
-$("openInquiryBtn")?.addEventListener("click",()=>openAccountModal("inquiryModal"));
-$("drawerLogoutBtn")?.addEventListener("click",()=>{closeMemberDrawer();logoutMember();});
-$("inquiryInstagramBtn")?.addEventListener("click",()=>window.open("https://www.instagram.com/tlso_94/","_blank","noopener"));
 document.querySelectorAll("[data-close-account-modal]").forEach(btn=>btn.addEventListener("click",()=>closeAccountModal(btn.dataset.closeAccountModal)));
 document.querySelectorAll(".account-modal").forEach(modal=>modal.addEventListener("click",e=>{if(e.target===modal)closeAccountModal(modal.id)}));
 
@@ -2961,7 +2917,6 @@ async function searchAdminMembersV72(){
     box.querySelectorAll('[data-v72-member]').forEach(b=>b.onclick=async()=>{if(!confirm(`이 계정을 ${b.dataset.v72Status} 상태로 변경할까요?`))return;try{await apiPost('setMemberAccountStatus',{adminPassword:adminPasswordValue,memberId:b.dataset.v72Member,status:b.dataset.v72Status},12000);toast('계정 상태를 변경했습니다.');await searchAdminMembersV72();await loadAdminDashboardV72();}catch(e){toast(e.message||'변경 실패');}});
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검색 실패')}</p>`;}
 }
-$('openActivityBtn')?.addEventListener('click',()=>{closeMemberDrawer();openActivityHistory();});
 $('adminMemberSearchBtn')?.addEventListener('click',searchAdminMembersV72);
 $('adminMemberSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')searchAdminMembersV72();});
 
@@ -3309,8 +3264,52 @@ document.addEventListener("click", async (e) => {
 });
 
 
-// V141 내정보 + 내메뉴 통합
+
+
+// V142 내정보 완전 통합
+async function loadUnifiedMyInfoV142() {
+  const local = memberSession?.member || {};
+  const nick = local.nickname || adminProfile?.name || "회원";
+  const rawInsta = local.instagram_username || local.instagramId || "";
+  const insta = rawInsta ? `@${String(rawInsta).replace(/^@/,"")}` : "-";
+  const isAdmin = !!(adminProfile || local.is_admin || local.role === "admin" || local.role === "operator");
+
+  if ($("myInfoProfileName")) $("myInfoProfileName").textContent = nick;
+  if ($("myInfoProfileInstagram")) $("myInfoProfileInstagram").textContent = insta === "-" ? "" : insta;
+  if ($("myInfoRoleChip")) $("myInfoRoleChip").textContent = isAdmin ? "운영진" : "회원";
+  if ($("myInfoNickname")) $("myInfoNickname").textContent = nick;
+  if ($("myInfoInstagram")) $("myInfoInstagram").textContent = insta;
+  if ($("myInfoRole")) $("myInfoRole").textContent = isAdmin ? "운영진" : "일반회원";
+  if ($("myInfoAdminBtn")) $("myInfoAdminBtn").style.display = isAdmin ? "" : "none";
+
+  if (!memberSession?.token) {
+    if ($("myInfoMemberId")) $("myInfoMemberId").textContent = "-";
+    if ($("myInfoFollowStatus")) $("myInfoFollowStatus").textContent = "로그인 필요";
+    return;
+  }
+
+  try {
+    const data = await apiPost("getMyPage", {token: memberSession.token}, 15000);
+    const m = data.member || {}, f = data.follow || {};
+    if ($("myInfoMemberId")) $("myInfoMemberId").textContent = m.memberId ?? "-";
+    if ($("myInfoFollowStatus")) {
+      $("myInfoFollowStatus").textContent = f.started ? "기존회원" : (f.status || "시작 상태 확인");
+    }
+  } catch (_) {
+    if ($("myInfoMemberId")) $("myInfoMemberId").textContent = local.memberId ?? "-";
+    if ($("myInfoFollowStatus")) $("myInfoFollowStatus").textContent = "확인 필요";
+  }
+}
+
 document.addEventListener("click", (e) => {
+  if (e.target.closest("#myInfoActivityBtn")) {
+    openActivityHistory();
+    return;
+  }
+  if (e.target.closest("#myInfoPasswordBtn")) {
+    openAccountModal("passwordChangeModal");
+    return;
+  }
   if (e.target.closest("#myInfoThemeBtn")) {
     const btn = $("themeToggle") || $("themeToggleBtn") || $("darkModeBtn");
     if (btn) btn.click();
@@ -3320,6 +3319,11 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#myInfoAdminBtn")) {
     const btn = $("adminModeBtn") || $("operatorModeBtn") || $("adminSwitchBtn");
     if (btn) btn.click();
-    else toast("상단 운영진모드 버튼을 이용해주세요.");
+    else openAccountModal("adminModeModal");
+    return;
+  }
+  if (e.target.closest("#myPageLogoutBtn")) {
+    if (!confirm("로그아웃할까요?")) return;
+    logoutMember();
   }
 });

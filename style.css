@@ -1775,3 +1775,14 @@ body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}
 .myinfo-details>div{display:flex;justify-content:space-between;gap:15px;padding:14px 15px;border:1px solid var(--line);border-radius:15px;background:var(--card)}
 .myinfo-details span{color:var(--muted);font-size:13px}.myinfo-details strong{font-size:14px;text-align:right}
 .integrated-bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+
+/* V142 내정보 완전 통합 */
+.integrated-bottom-nav{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.myinfo-page{max-width:760px;margin-left:auto;margin-right:auto}
+.myinfo-section-title{font-size:14px;margin:22px 0 10px;color:var(--text)}
+.myinfo-page .utility-list + .myinfo-section-title{margin-top:24px}
+.myinfo-page .myinfo-details>div{min-height:50px;align-items:center}
+@media (max-width:700px){
+  .myinfo-page{padding:18px}
+  .myinfo-fox{width:68px;height:68px}
+}

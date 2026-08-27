@@ -1,12 +1,12 @@
 /* V117 */
-const CACHE = "yeowoobang-v141-fox-myinfo";
+const CACHE = "yeowoobang-v142-myinfo-unified";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=1410",
-  "./app.js?v=1410",
-  "./pumasi-config.js?v=1410",
+  "./style.css?v=1420",
+  "./app.js?v=1420",
+  "./pumasi-config.js?v=1420",
   "./supabase-auth-v107.js?v=1330",
   "./supabase-auth-v107.json?v=1200",
   "./backend-adapter-v106.js?v=1330",

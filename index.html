@@ -17,7 +17,7 @@
 <link href="manifest.json?v=1050" rel="manifest"/>
 <link href="favicon-v20.png?v=430" rel="icon" type="image/png"/>
 <link href="icon-192-v20.png?v=430" rel="apple-touch-icon"/>
-<link href="style.css?v=1410" rel="stylesheet"/>
+<link href="style.css?v=1420" rel="stylesheet"/>
 <meta content="ko_KR" property="og:locale"/>
 <meta content="website" property="og:type"/>
 <meta content="여우방 통합 프로그램" property="og:site_name"/>
@@ -292,11 +292,6 @@
 <button aria-label="알림센터" class="install notification-btn hidden" id="notificationBtn" type="button">🔔<span class="notification-badge hidden" id="notificationBadge">0</span></button>
 <button class="install admin-mode-switch hidden" id="adminModeBtn" type="button">⚙️ 운영진</button>
 <button aria-label="화면 모드 변경" class="install theme-toggle" id="themeToggleBtn" type="button">🌙</button>
-<button aria-label="더보기" class="install header-more-btn" id="moreMenuBtn" type="button">⋯</button>
-<div class="header-more-menu hidden" id="headerMoreMenu">
-<button id="installBtn" type="button">📱 앱 설치</button>
-<button class="hidden" id="memberMenuBtn" type="button">👤 내 메뉴</button>
-</div>
 </div>
 </header>
 <main class="container">
@@ -337,30 +332,43 @@
 <section class="utility-page-card myinfo-page">
   <p class="home-eyebrow">👤 회원 메뉴</p>
   <h2>내정보</h2>
+
   <div class="profile-summary myinfo-profile">
     <img class="myinfo-fox" src="app-logo-v20.png" alt="여우방">
-    <div><strong id="myPageNickname">회원</strong><p id="myPageInstagram"></p><span id="myPageRole" class="role-chip">회원</span></div>
+    <div>
+      <strong id="myInfoProfileName">회원</strong>
+      <p id="myInfoProfileInstagram"></p>
+      <span id="myInfoRoleChip" class="role-chip">회원</span>
+    </div>
   </div>
+
+  <h3 class="myinfo-section-title">기본 정보</h3>
   <div class="myinfo-details">
     <div><span>닉네임</span><strong id="myInfoNickname">-</strong></div>
     <div><span>인스타 아이디</span><strong id="myInfoInstagram">-</strong></div>
     <div><span>회원 구분</span><strong id="myInfoRole">일반회원</strong></div>
+    <div><span>회원 ID</span><strong id="myInfoMemberId">-</strong></div>
+    <div><span>팔로우리스트 시작 상태</span><strong id="myInfoFollowStatus">확인 중...</strong></div>
   </div>
-  <div class="utility-list myinfo-actions">
-    <button type="button" id="myInfoThemeBtn"><span>🌙</span><div><strong>화면 모드</strong><small>라이트 / 다크 모드를 변경해요.</small></div><b>›</b></button>
-    <button type="button" id="myInfoAdminBtn"><span>⚙️</span><div><strong>운영진모드</strong><small>운영진 인증이 된 계정만 사용할 수 있어요.</small></div><b>›</b></button>
-    <button type="button" id="myPageLogoutBtn"><span>🚪</span><div><strong>로그아웃</strong><small>현재 계정에서 로그아웃합니다.</small></div><b>›</b></button>
-  </div>
-</section>
-</section>
-<section class="view" id="moreView">
-<section class="utility-page-card">
-  <p class="home-eyebrow">☰ 여우방</p>
-  <h2>더보기</h2>
+
+  <h3 class="myinfo-section-title">내 활동</h3>
   <div class="utility-list">
-    <button type="button" data-util-view="noticeView"><span>🔔</span><div><strong>공지사항</strong><small>여우방 공지를 확인해요.</small></div><b>›</b></button>
-    <button type="button" data-util-view="myPageView"><span>👤</span><div><strong>내정보 · 설정</strong><small>회원정보와 화면 설정을 확인해요.</small></div><b>›</b></button>
+    <button type="button" id="myInfoActivityBtn"><span>📊</span><div><strong>내 활동기록</strong><small>기존 활동기록과 최근 맞팔분석을 확인해요.</small></div><b>›</b></button>
   </div>
+
+  <h3 class="myinfo-section-title">설정</h3>
+  <div class="utility-list">
+    <button type="button" id="myInfoThemeBtn"><span>🌙</span><div><strong>화면 모드</strong><small>라이트 / 다크 모드를 변경해요.</small></div><b>›</b></button>
+    <button type="button" id="myInfoAdminBtn"><span>🛡️</span><div><strong>운영진모드</strong><small>운영진 인증 계정에서 전환할 수 있어요.</small></div><b>›</b></button>
+    <button type="button" id="myInfoPasswordBtn"><span>🔒</span><div><strong>비밀번호 변경</strong><small>회원 로그인 비밀번호를 변경해요.</small></div><b>›</b></button>
+  </div>
+
+  <h3 class="myinfo-section-title">계정 관리</h3>
+  <div class="utility-list">
+    <button type="button" id="myPageLogoutBtn"><span>↪</span><div><strong>로그아웃</strong><small>현재 계정에서 로그아웃합니다.</small></div><b>›</b></button>
+  </div>
+
+  <div class="utility-tip">ⓘ 회원정보는 로그인한 계정을 기준으로 표시됩니다.</div>
 </section>
 </section>
 <section class="notice-card hidden" id="noticeCard">
@@ -799,7 +807,6 @@
 <button class="nav-btn active" data-view="homeView" type="button"><span class="nav-icon">⌂</span><span>홈</span></button>
 <button class="nav-btn" data-view="myPageView" type="button"><span class="nav-icon">👤</span><span>내정보</span></button>
 <button class="nav-btn" data-view="noticeView" type="button"><span class="nav-icon">🔔</span><span>공지</span></button>
-<button class="nav-btn" data-view="moreView" type="button"><span class="nav-icon">☰</span><span>더보기</span></button>
 </nav>
 <div aria-labelledby="notificationTitle" aria-modal="true" class="account-modal hidden" id="notificationModal" role="dialog">
 <section class="account-modal-card notification-modal-card">
@@ -818,22 +825,6 @@
 <div class="account-modal-actions"><button class="outline" id="adminModeCancelBtn" type="button">취소</button><button class="primary" id="adminModeConfirmBtn" type="button">운영진모드 전환</button></div>
 </input></section>
 </div>
-<div class="member-drawer-backdrop hidden" id="memberDrawerBackdrop"></div>
-<aside aria-label="내 메뉴" class="member-drawer hidden" id="memberDrawer">
-<div class="member-drawer-head">
-<div class="drawer-profile"><img alt="여우방" src="app-logo-v20.png?v=430"><div><strong id="drawerMemberName">회원님</strong><span id="drawerMemberInstagram"></span></div></img></div>
-<button class="drawer-close" id="memberDrawerCloseBtn" type="button">×</button>
-</div>
-<nav class="member-drawer-menu">
-<button id="openMyPageBtn" type="button">👤 <span>마이페이지</span></button>
-<button id="openPasswordChangeBtn" type="button">🔒 <span>비밀번호 변경</span></button>
-<button id="drawerNoticeBtn" type="button">📢 <span>공지사항</span></button>
-<button id="openFaqBtn" type="button">❓ <span>자주 묻는 질문</span></button>
-<button id="openInquiryBtn" type="button">💬 <span>문의하기</span></button>
-<button id="openActivityBtn" type="button">📊 내 활동기록</button>
-<button class="drawer-logout" id="drawerLogoutBtn" type="button">↪ <span>로그아웃</span></button>
-</nav>
-</aside>
 <div class="account-modal hidden" id="activityModal">
 <div class="account-modal-card">
 <div class="account-modal-head"><button data-close-account-modal="activityModal" type="button">←</button><h2>내 활동기록</h2><span></span></div>
@@ -841,10 +832,6 @@
 <h3>최근 맞팔분석</h3><div class="v72-activity-list" id="analysisHistoryList"><p class="state-text">분석 기록이 없습니다.</p></div>
 </div>
 </div>
-<div class="account-modal hidden" id="myPageModal">
-<section class="account-modal-card">
-<div class="account-modal-head"><button data-close-account-modal="myPageModal" type="button">←</button><h2>마이페이지</h2><span></span></div>
-<div class="mypage-profile"><img alt="여우방" src="app-logo-v20.png?v=430"/><div><strong id="myPageName">회원</strong><span id="myPageInstagram"></span></div></div>
 <div class="mypage-info-grid">
 <div><span>닉네임</span><strong id="myPageNickname">-</strong></div>
 <div><span>인스타 아이디</span><strong id="myPageInsta">-</strong></div>
@@ -886,8 +873,8 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="supabase-auth-v107.js?v=1330"></script>
-<script src="pumasi-config.js?v=1410"></script>
-<script src="app.js?v=1410"></script>
+<script src="pumasi-config.js?v=1420"></script>
+<script src="app.js?v=1420"></script>
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
   const moreBtn = document.getElementById('moreMenuBtn');
