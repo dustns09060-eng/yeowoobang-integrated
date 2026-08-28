@@ -1018,16 +1018,11 @@ function resetNewMemberInviteGate() {
 async function registerMemberFromGate() {
   const nickname = String($("memberRegisterNickname")?.value || "").trim();
   const instagramId = normalize($("memberRegisterInstagram")?.value || "");
-  const registrationCode = String($("memberRegisterCode")?.value || "").trim().toUpperCase().replace(/\s+/g, "");
   const password = $("memberRegisterPassword")?.value || "";
   const confirm = $("memberRegisterPasswordConfirm")?.value || "";
 
-  if (!nickname || !instagramId || !registrationCode || !password || !confirm) {
+  if (!nickname || !instagramId || !password || !confirm) {
     $("gateError").textContent = "모든 항목을 입력해 주세요.";
-    return;
-  }
-  if (!/^[A-Z2-9]{8}$/.test(registrationCode)) {
-    $("gateError").textContent = "운영진에게 받은 최초등록코드 8자리를 확인해 주세요.";
     return;
   }
   if (!/^\d{4,6}$/.test(password)) {
@@ -1049,7 +1044,7 @@ async function registerMemberFromGate() {
     let result;
     if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
       const supabaseResult = await window.YW_SUPABASE_AUTH_V107.registerExistingMember(
-        nickname, instagramId, registrationCode, password
+        nickname, instagramId, password
       );
       btn.textContent = "프로그램 연결 중...";
       result = await apiPost("supabaseMemberSessionV114", {

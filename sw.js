@@ -1,11 +1,11 @@
 /* V117 */
-const CACHE = "yeowoobang-v152-invite-priority";
+const CACHE = "yeowoobang-v153-register-hotfix";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./style.css?v=1500",
-  "./app.js?v=1520",
+  "./app.js?v=1530",
   "./pumasi-config.js?v=1520",
   "./supabase-auth-v107.js?v=1330",
   "./supabase-auth-v107.json?v=1200",
