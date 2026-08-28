@@ -2554,7 +2554,9 @@ function calculateRosterAudit() {
   const baseline = readRosterBaseline();
 
   const duplicateIds = duplicateGroups(current.filter((x) => validUsername(x.id)), (x) => x.id);
-  const duplicateNos = duplicateGroups(current, (x) => x.no);
+  // V130: 번호 칸의 "부계" 같은 비숫자 표시는 정상 허용합니다.
+  // 실제 회원번호 중복 검사는 숫자 번호끼리만 수행합니다.
+  const duplicateNos = duplicateGroups(current.filter((x) => /^\d+$/.test(String(x.no || "").trim())), (x) => x.no);
   const duplicateNames = duplicateGroups(current, (x) => x.name.trim().toLowerCase())
     .filter((group) => new Set(group.members.map((x) => x.id)).size > 1);
   const missingIds = current.filter((x) => !x.idRaw.trim());
@@ -2567,13 +2569,13 @@ function calculateRosterAudit() {
   const changedIds = [];
 
   if (baseline) {
-    const currentNoGroups = duplicateGroups(current, (x) => x.no);
+    const currentNoGroups = duplicateGroups(current.filter((x) => /^\d+$/.test(String(x.no || "").trim())), (x) => x.no);
     const baselineNormalized = (baseline.members || []).map((x) => ({
       no: String(x.no || "").trim(),
       name: String(x.name || "").trim(),
       id: normalize(x.id),
     }));
-    const baselineNoGroups = duplicateGroups(baselineNormalized, (x) => x.no);
+    const baselineNoGroups = duplicateGroups(baselineNormalized.filter((x) => /^\d+$/.test(String(x.no || "").trim())), (x) => x.no);
     const badCurrentNos = new Set(currentNoGroups.map((g) => g.key));
     const badBaselineNos = new Set(baselineNoGroups.map((g) => g.key));
 
