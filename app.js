@@ -925,7 +925,14 @@ async function loginMemberFromGate() {
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
   } catch (error) {
-    $("gateError").textContent = error.message || "로그인에 실패했습니다.";
+    const raw = String(error?.message || "");
+    // V154: 로그인 화면에서는 팔로우리스트 회원 존재와 프로그램 계정 존재를 혼동하지 않도록 안내한다.
+    // 계정을 만든 적이 없는 회원은 '계정 등록'으로 이동해야 하며, 기존 계정만 비밀번호 찾기를 사용한다.
+    if (/비밀번호|password|invalid login|invalid credentials|credentials/i.test(raw)) {
+      $("gateError").textContent = "프로그램 계정을 만든 적이 없다면 ‘계정 등록’을 먼저 해주세요. 이미 계정을 만든 회원이라면 비밀번호를 확인하거나 ‘비밀번호를 잊으셨나요?’를 이용해 주세요.";
+    } else {
+      $("gateError").textContent = raw || "로그인에 실패했습니다.";
+    }
   } finally {
     btn.disabled = false;
     if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
@@ -1108,7 +1115,7 @@ async function resetMemberPasswordFromGate(){
   if(!/^\d{4,6}$/.test(newPassword)){$("gateError").textContent="새 비밀번호는 숫자 4~6자리로 설정해 주세요.";return;}
   if(newPassword!==confirm){$("gateError").textContent="새 비밀번호 확인이 일치하지 않습니다.";return;}
   const btn=$("memberForgotBtn");
-  try{btn.disabled=true;$("gateError").textContent="비밀번호 재설정은 운영진에게 문의해 주세요.";return;}
+  try{btn.disabled=true;$("gateError").textContent="프로그램 계정을 만든 적이 없다면 비밀번호 찾기가 아니라 ‘계정 등록’을 이용해 주세요. 기존 계정의 비밀번호 재설정은 운영진에게 문의해 주세요.";return;}
   catch(e){$("gateError").textContent=e.message||"비밀번호 재설정에 실패했습니다.";}
   finally{btn.disabled=false;}
 }
