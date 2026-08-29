@@ -2980,8 +2980,20 @@ async function searchAdminMembersV72(){
   if(!q){box.innerHTML='<p class="state-text">검색어를 입력해주세요.</p>';return;}
   box.innerHTML='<p class="state-text">검색 중...</p>';
   try{const d=await apiPost('getAdminMembers',{adminPassword:adminPasswordValue,query:q},12000);const items=d.items||[];
-    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button>`:''}</div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
+    box.innerHTML=items.length?items.map(x=>`<div class="v72-member-row"><div><strong>${escapeHtml(x.nickname)} · @${escapeHtml(x.instagramId)}</strong><div class="meta">MemberID ${escapeHtml(x.memberId)} · 회원 ${escapeHtml(x.memberStatus)} · 계정 ${escapeHtml(x.account?.status||'미등록')}${x.account?.last?` · 최근 ${escapeHtml(x.account.last)}`:''}</div></div><div class="v72-member-actions">${x.account?`<button class="outline ${x.account.status==='정상'?'danger-outline':'success-outline'}" data-v72-member="${escapeHtml(x.memberId)}" data-v72-status="${x.account.status==='정상'?'정지':'정상'}">${x.account.status==='정상'?'정지':'복구'}</button><button class="outline danger-outline" data-v162-reset="${escapeHtml(x.memberId)}" data-v162-name="${escapeHtml(x.nickname)}">테스트 초기화</button>`:''}</div></div>`).join(''):'<p class="state-text">검색 결과가 없습니다.</p>';
     box.querySelectorAll('[data-v72-member]').forEach(b=>b.onclick=async()=>{if(!confirm(`이 계정을 ${b.dataset.v72Status} 상태로 변경할까요?`))return;try{await apiPost('setMemberAccountStatus',{adminPassword:adminPasswordValue,memberId:b.dataset.v72Member,status:b.dataset.v72Status},12000);toast('계정 상태를 변경했습니다.');await searchAdminMembersV72();await loadAdminDashboardV72();}catch(e){toast(e.message||'변경 실패');}});
+    box.querySelectorAll('[data-v162-reset]').forEach(b=>b.onclick=async()=>{
+      const name=b.dataset.v162Name||'이 회원';
+      if(!confirm(`${name}님의 프로그램 계정만 최초 가입 전 상태로 초기화할까요?\n\n• 팔로우리스트 번호/닉네임/아이디 유지\n• 초대/맞팔/팔로우 기록 유지\n• 비밀번호/계정가입 정보만 초기화\n\n초기화 후에는 다시 계정 등록을 해야 합니다.`))return;
+      b.disabled=true;
+      try{
+        const d=await apiPost('resetTestMemberAccountV162',{adminPassword:adminPasswordValue,memberId:b.dataset.v162Reset},15000);
+        toast(d.message||'테스트 계정을 초기화했습니다.');
+        await searchAdminMembersV72();
+        await loadAdminDashboardV72();
+      }catch(e){toast(e.message||'초기화 실패');}
+      finally{b.disabled=false;}
+    });
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'검색 실패')}</p>`;}
 }
 $('adminMemberSearchBtn')?.addEventListener('click',searchAdminMembersV72);
