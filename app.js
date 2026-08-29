@@ -142,10 +142,51 @@ function saveLastFollowPosition(item) {
 function getLastFollowPosition() {
   const saved = readStorageJson(FOLLOW_PROGRESS_KEY, null);
   if (!saved || !validUsername(normalize(saved.id))) return null;
+  return canonicalizeFollowProgress(saved);
+}
+
+function safeTodayFollowCount(value) {
+  const n = Number(value);
+  const max = Math.max(Array.isArray(roomList) ? roomList.length : 0, 5000);
+  return Number.isInteger(n) && n >= 0 && n <= max ? n : null;
+}
+
+function safeProgressTimestamp(value) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? Date.now() : value.getTime();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const ms = value < 1e12 ? value * 1000 : value;
+    return ms > 946684800000 && ms < 4102444800000 ? ms : Date.now();
+  }
+  if (typeof value === "string" && value.trim()) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return safeProgressTimestamp(numeric);
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return Date.now();
+}
+
+function canonicalizeFollowProgress(progress) {
+  if (!progress) return null;
+  const id = normalize(progress.id);
+  if (!validUsername(id)) return null;
+  const matched = roomList.find(person => normalize(person.id) === id);
+  if (matched) {
+    const index = roomList.indexOf(matched);
+    return {
+      group: index >= 0 ? Math.floor(index / 500) + 1 : Math.max(1, Number(progress.group) || 1),
+      no: String(matched.no || progress.no || ""),
+      name: String(matched.name || progress.name || ""),
+      id,
+      timestamp: safeProgressTimestamp(progress.timestamp)
+    };
+  }
   return {
-    ...saved,
-    id: normalize(saved.id),
-    group: Math.max(1, Number(saved.group) || 1),
+    group: Math.max(1, Math.min(99, Number(progress.group) || 1)),
+    no: /^\d{1,5}$/.test(String(progress.no || "")) ? String(progress.no) : "",
+    name: String(progress.name || "").length <= 40 && !/GMT[+-]\d{4}|^\w{3} \w{3} \d{1,2} \d{4}/.test(String(progress.name || "")) ? String(progress.name) : "",
+    id,
+    timestamp: safeProgressTimestamp(progress.timestamp)
   };
 }
 
@@ -156,7 +197,8 @@ function renderResumeCard() {
   const last = getLastFollowPosition();
   const daily = getDailyVisitData();
 
-  $("todayVisitCount").textContent = `오늘 ${memberSession && Number.isFinite(memberTodayFollowCount) ? memberTodayFollowCount : daily.ids.length}명`;
+  const serverCount = memberSession ? safeTodayFollowCount(memberTodayFollowCount) : null;
+  $("todayVisitCount").textContent = `오늘 ${serverCount !== null ? serverCount : daily.ids.length}명`;
 
   if (!last) {
     card.classList.add("hidden");
@@ -180,7 +222,7 @@ async function clearLastFollowPosition() {
   if (memberSession?.token) {
     try {
       const result = await apiPost("clearFollowProgress", { token: memberSession.token }, 12000);
-      if (Number.isFinite(Number(result?.todayCount))) memberTodayFollowCount = Number(result.todayCount);
+      { const c = safeTodayFollowCount(result?.todayCount); if (c !== null) memberTodayFollowCount = c; }
       renderResumeCard();
       toast("내 이어보기 기록을 초기화했습니다.");
       return;
@@ -204,17 +246,11 @@ async function loadMemberFollowProgress() {
   try {
     const result = await apiPost("getFollowProgress", { token: memberSession.token }, 12000);
     memberFollowProgressLoaded = true;
-    memberTodayFollowCount = Number(result?.todayCount || 0);
+    memberTodayFollowCount = safeTodayFollowCount(result?.todayCount);
 
     if (result?.progress?.id) {
-      const progress = {
-        group: Math.max(1, Number(result.progress.group) || 1),
-        no: String(result.progress.no || ""),
-        name: String(result.progress.name || ""),
-        id: normalize(result.progress.id),
-        timestamp: Number(result.progress.timestamp || Date.now()),
-      };
-      writeStorageJson(FOLLOW_PROGRESS_KEY, progress);
+      const progress = canonicalizeFollowProgress(result.progress);
+      if (progress) writeStorageJson(FOLLOW_PROGRESS_KEY, progress);
     } else {
       // V67에서 기기에만 저장했던 기록이 있으면 최초 1회 서버로 이관
       const local = getLastFollowPosition();
@@ -246,14 +282,12 @@ async function saveMemberFollowProgressToServer(data, migration = false) {
       },
     }, 12000);
 
-    if (Number.isFinite(Number(result?.todayCount))) {
-      memberTodayFollowCount = Number(result.todayCount);
-    }
+    { const c = safeTodayFollowCount(result?.todayCount); if (c !== null) memberTodayFollowCount = c; }
 
     if (result?.progress?.timestamp) {
       const current = getLastFollowPosition();
       if (current?.id === normalize(data.id)) {
-        current.timestamp = Number(result.progress.timestamp);
+        current.timestamp = safeProgressTimestamp(result.progress.timestamp);
         writeStorageJson(FOLLOW_PROGRESS_KEY, current);
       }
     }
