@@ -1047,7 +1047,21 @@ async function registerMemberFromGate() {
     btn.textContent = "회원 확인 중...";
     $("gateError").textContent = "";
 
-    // V117: Supabase에 최초 계정을 만들고, 발급된 access token으로 기존 프로그램 세션만 연결한다.
+    // V155: 팔로우리스트 전체를 회원계정 시트에 미리 생성해 둔 과정에서
+    // 비밀번호해시/Salt/최초등록일이 비어 있는 placeholder 행이 실제 계정으로 오인되는 문제를 방지합니다.
+    // 실제 계정이 있는 회원은 서버에서 그대로 차단하고, 빈 placeholder만 제거한 뒤 최초 가입을 진행합니다.
+    btn.textContent = "계정 상태 확인 중...";
+    try {
+      await apiPost("prepareMemberAccountRegistrationV155", { nickname, instagramId }, 15000);
+    } catch (prepareError) {
+      const msg = String(prepareError?.message || "");
+      if (/알 수 없는|지원하지|unknown|not found|action/i.test(msg)) {
+        throw new Error("계정 등록 서버 패치가 아직 적용되지 않았습니다. 운영진에게 문의해 주세요.");
+      }
+      throw prepareError;
+    }
+
+    // 기존 가입 로직은 그대로 사용합니다.
     let result;
     if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
       const supabaseResult = await window.YW_SUPABASE_AUTH_V107.registerExistingMember(
