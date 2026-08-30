@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V169";
+const APP_VERSION = "V170";
 
 let config = {
   version: "V102",
@@ -1974,19 +1974,45 @@ function renderInviteRankV92(){
 function renderInviteBenefitTargetsV127(){
   const label=$("inviteBenefitMonthLabel");
   if(label) label.textContent=currentInviteMonthLabelV92();
+
   const mine=normalize(memberSession?.member?.instagramId||"");
-  const render=(min,id)=>{
+
+  // V170
+  // 한 회원은 10/20/40명 구간 중 '가장 높은 미지급 구간' 한 곳에만 표시합니다.
+  // 예) 56명 → 40명 이상에만 / 33명 → 20명 이상에만 / 16명 → 10명 이상에만
+  const buckets={10:[],20:[],40:[]};
+
+  [...inviteRankDataV92].forEach(x=>{
+    const invite=Number(x.invite||0);
+    const paid=x.paidBenefits||{};
+
+    let tier=0;
+    if(invite>=40 && !paid[40] && !paid["40"]) tier=40;
+    else if(invite>=20 && !paid[20] && !paid["20"]) tier=20;
+    else if(invite>=10 && !paid[10] && !paid["10"]) tier=10;
+
+    if(tier) buckets[tier].push(x);
+  });
+
+  const render=(tier,id)=>{
     const el=$(id); if(!el)return;
-    const items=[...inviteRankDataV92]
-      .filter(x=>Number(x.invite||0)>=min)
+    const items=buckets[tier]
       .sort((a,b)=>Number(b.invite||0)-Number(a.invite||0));
-    if(!items.length){el.textContent="아직 대상자가 없어요.";return;}
+
+    if(!items.length){
+      el.textContent="지급 대기 대상자가 없어요.";
+      return;
+    }
+
     el.innerHTML=items.map(x=>{
       const isMe=mine&&normalize(x.instagram)===mine;
       return `<span class="benefit-person ${isMe?'me':''}">${escapeHtml(x.nickname||x.instagram||'회원')} ${Number(x.invite||0)}명${isMe?' · 나':''}</span>`;
     }).join("");
   };
-  render(10,"inviteBenefit10"); render(20,"inviteBenefit20"); render(40,"inviteBenefit40");
+
+  render(10,"inviteBenefit10");
+  render(20,"inviteBenefit20");
+  render(40,"inviteBenefit40");
 }
 
 async function loadInviteLeaderboard(){
