@@ -3451,47 +3451,41 @@ document.addEventListener("click", (e) => {
 
 
 /* =========================================================
-   V164 - Android 앱 뒤로가기 / 앱 종료 / 메뉴 보강
+   V165 - Android 뒤로가기 최종 동작
+   1) 서브 화면 → 홈
+   2) 홈 → Android에서 종료 확인창
    ========================================================= */
-function isAndroidWrapperV164() {
+window.androidBackActionV165 = function() {
   try {
-    return new URLSearchParams(location.search).get("app") === "android";
-  } catch (_) {
-    return false;
-  }
-}
+    // 열려 있는 모달/메뉴가 있으면 먼저 닫습니다.
+    const visibleModal = document.querySelector(".account-modal:not(.hidden)");
+    if (visibleModal) {
+      visibleModal.classList.add("hidden");
+      document.body.classList.remove("account-modal-open");
+      return "HANDLED";
+    }
 
-function closeTopLayerV164() {
-  const visibleModal = document.querySelector(".account-modal:not(.hidden)");
-  if (visibleModal) {
-    visibleModal.classList.add("hidden");
-    document.body.classList.remove("account-modal-open");
-    return true;
-  }
+    const inviteLogin = document.getElementById("inviteAdminLoginBox");
+    if (inviteLogin && !inviteLogin.classList.contains("hidden")) {
+      inviteLogin.classList.add("hidden");
+      return "HANDLED";
+    }
 
-  const inviteLogin = document.getElementById("inviteAdminLoginBox");
-  if (inviteLogin && !inviteLogin.classList.contains("hidden")) {
-    inviteLogin.classList.add("hidden");
-    return true;
-  }
+    const moreMenu = document.getElementById("headerMoreMenu");
+    if (moreMenu && !moreMenu.classList.contains("hidden")) {
+      moreMenu.classList.add("hidden");
+      return "HANDLED";
+    }
 
-  const moreMenu = document.getElementById("headerMoreMenu");
-  if (moreMenu && !moreMenu.classList.contains("hidden")) {
-    moreMenu.classList.add("hidden");
-    return true;
-  }
-
-  return false;
-}
-
-window.androidBackActionV164 = function() {
-  try {
-    if (closeTopLayerV164()) return "HANDLED";
-
+    // 로그인 전 화면에서는 기존 화면 단계만 한 단계 뒤로 이동합니다.
     const gate = document.getElementById("appGate");
     if (gate && !gate.classList.contains("hidden")) {
-      const visibleForm =
-        document.querySelector("#memberForgotForm:not(.hidden), #memberRegisterForm:not(.hidden), #operatorLoginForm:not(.hidden), #gateForm:not(.hidden)");
+      const visibleForm = document.querySelector(
+        "#memberForgotForm:not(.hidden), " +
+        "#memberRegisterForm:not(.hidden), " +
+        "#operatorLoginForm:not(.hidden), " +
+        "#gateForm:not(.hidden)"
+      );
 
       if (visibleForm) {
         if (typeof setGate === "function") setGate("memberLogin");
@@ -3507,39 +3501,19 @@ window.androidBackActionV164 = function() {
       return "EXIT";
     }
 
+    // 로그인 후: 맞팔확인/팔로우리스트/초대별/공지/더보기/내정보 등
+    // 어떤 서브 화면이든 뒤로가기 1회면 메인 홈으로 이동합니다.
     const activeView = document.querySelector(".view.active");
     if (activeView && activeView.id !== "homeView") {
-      if (typeof showView === "function") showView("homeView");
-      return "HANDLED";
+      if (typeof showView === "function") {
+        showView("homeView");
+        return "HANDLED";
+      }
     }
 
+    // 이미 메인 홈이면 Android가 종료 확인창을 띄웁니다.
     return "EXIT";
   } catch (_) {
     return "EXIT";
   }
 };
-
-window.addEventListener("DOMContentLoaded", () => {
-  if (!isAndroidWrapperV164()) return;
-
-  const backBtn = document.getElementById("androidBackMenuBtn");
-  const exitBtn = document.getElementById("androidExitMenuBtn");
-
-  backBtn?.classList.remove("hidden");
-  exitBtn?.classList.remove("hidden");
-
-  backBtn?.addEventListener("click", () => {
-    document.getElementById("headerMoreMenu")?.classList.add("hidden");
-    const result = window.androidBackActionV164();
-    if (result === "EXIT" && window.AndroidApp?.exitApp) {
-      window.AndroidApp.exitApp();
-    }
-  });
-
-  exitBtn?.addEventListener("click", () => {
-    document.getElementById("headerMoreMenu")?.classList.add("hidden");
-    if (window.AndroidApp?.exitApp) {
-      window.AndroidApp.exitApp();
-    }
-  });
-});
