@@ -1811,3 +1811,31 @@ body.dark-mode .profile-avatar,body.dark .profile-avatar{background:#2a2d34}
 @media(max-width:700px){
   .invite-rank-summary,.invite-benefit-grid{grid-template-columns:1fr}
 }
+
+
+/* V166 - 초대 혜택 대상: 중복 없는 단계 표시 + 닉네임/아이디 정렬 */
+.benefit-person{
+  display:inline-flex!important;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.benefit-person .benefit-nickname{
+  font-weight:900;
+}
+.benefit-person .benefit-instagram{
+  color:var(--muted,#737986);
+  font-size:.92em;
+  font-weight:700;
+}
+.benefit-person .benefit-count{
+  font-weight:900;
+}
+.benefit-person em{
+  font-style:normal;
+  font-weight:900;
+}
+.benefit-person.me .benefit-instagram{
+  color:inherit;
+  opacity:.85;
+}
