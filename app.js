@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V170";
+const APP_VERSION = "V130";
 
 let config = {
   version: "V102",
@@ -106,13 +106,7 @@ function getDailyVisitData() {
     return { date: today, ids: [] };
   }
 
-  const ids = [...new Set(
-    saved.ids
-      .map((id) => normalize(String(id || "")))
-      .filter((id) => validUsername(id))
-  )];
-
-  return { date: today, ids };
+  return saved;
 }
 
 function recordDailyVisit(id) {
@@ -148,10 +142,51 @@ function saveLastFollowPosition(item) {
 function getLastFollowPosition() {
   const saved = readStorageJson(FOLLOW_PROGRESS_KEY, null);
   if (!saved || !validUsername(normalize(saved.id))) return null;
+  return canonicalizeFollowProgress(saved);
+}
+
+function safeTodayFollowCount(value) {
+  const n = Number(value);
+  const max = Math.max(Array.isArray(roomList) ? roomList.length : 0, 5000);
+  return Number.isInteger(n) && n >= 0 && n <= max ? n : null;
+}
+
+function safeProgressTimestamp(value) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? Date.now() : value.getTime();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const ms = value < 1e12 ? value * 1000 : value;
+    return ms > 946684800000 && ms < 4102444800000 ? ms : Date.now();
+  }
+  if (typeof value === "string" && value.trim()) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return safeProgressTimestamp(numeric);
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return Date.now();
+}
+
+function canonicalizeFollowProgress(progress) {
+  if (!progress) return null;
+  const id = normalize(progress.id);
+  if (!validUsername(id)) return null;
+  const matched = roomList.find(person => normalize(person.id) === id);
+  if (matched) {
+    const index = roomList.indexOf(matched);
+    return {
+      group: index >= 0 ? Math.floor(index / 500) + 1 : Math.max(1, Number(progress.group) || 1),
+      no: String(matched.no || progress.no || ""),
+      name: String(matched.name || progress.name || ""),
+      id,
+      timestamp: safeProgressTimestamp(progress.timestamp)
+    };
+  }
   return {
-    ...saved,
-    id: normalize(saved.id),
-    group: Math.max(1, Number(saved.group) || 1),
+    group: Math.max(1, Math.min(99, Number(progress.group) || 1)),
+    no: /^\d{1,5}$/.test(String(progress.no || "")) ? String(progress.no) : "",
+    name: String(progress.name || "").length <= 40 && !/GMT[+-]\d{4}|^\w{3} \w{3} \d{1,2} \d{4}/.test(String(progress.name || "")) ? String(progress.name) : "",
+    id,
+    timestamp: safeProgressTimestamp(progress.timestamp)
   };
 }
 
@@ -162,13 +197,8 @@ function renderResumeCard() {
   const last = getLastFollowPosition();
   const daily = getDailyVisitData();
 
-  const serverCountOk =
-    memberSession &&
-    Number.isFinite(memberTodayFollowCount) &&
-    memberTodayFollowCount >= 0 &&
-    memberTodayFollowCount <= 100000;
-  const todayCount = serverCountOk ? Math.floor(memberTodayFollowCount) : daily.ids.length;
-  $("todayVisitCount").textContent = `오늘 ${todayCount}명`;
+  const serverCount = memberSession ? safeTodayFollowCount(memberTodayFollowCount) : null;
+  $("todayVisitCount").textContent = `오늘 ${serverCount !== null ? serverCount : daily.ids.length}명`;
 
   if (!last) {
     card.classList.add("hidden");
@@ -192,10 +222,7 @@ async function clearLastFollowPosition() {
   if (memberSession?.token) {
     try {
       const result = await apiPost("clearFollowProgress", { token: memberSession.token }, 12000);
-      {
-      const c = Number(result?.todayCount);
-      if (Number.isFinite(c) && c >= 0 && c <= 100000) memberTodayFollowCount = Math.floor(c);
-    }
+      { const c = safeTodayFollowCount(result?.todayCount); if (c !== null) memberTodayFollowCount = c; }
       renderResumeCard();
       toast("내 이어보기 기록을 초기화했습니다.");
       return;
@@ -219,21 +246,11 @@ async function loadMemberFollowProgress() {
   try {
     const result = await apiPost("getFollowProgress", { token: memberSession.token }, 12000);
     memberFollowProgressLoaded = true;
-    {
-      const c = Number(result?.todayCount);
-      memberTodayFollowCount =
-        Number.isFinite(c) && c >= 0 && c <= 100000 ? Math.floor(c) : 0;
-    }
+    memberTodayFollowCount = safeTodayFollowCount(result?.todayCount);
 
     if (result?.progress?.id) {
-      const progress = {
-        group: Math.max(1, Number(result.progress.group) || 1),
-        no: String(result.progress.no || ""),
-        name: String(result.progress.name || ""),
-        id: normalize(result.progress.id),
-        timestamp: Number(result.progress.timestamp || Date.now()),
-      };
-      writeStorageJson(FOLLOW_PROGRESS_KEY, progress);
+      const progress = canonicalizeFollowProgress(result.progress);
+      if (progress) writeStorageJson(FOLLOW_PROGRESS_KEY, progress);
     } else {
       // V67에서 기기에만 저장했던 기록이 있으면 최초 1회 서버로 이관
       const local = getLastFollowPosition();
@@ -265,17 +282,12 @@ async function saveMemberFollowProgressToServer(data, migration = false) {
       },
     }, 12000);
 
-    {
-      const c = Number(result?.todayCount);
-      if (Number.isFinite(c) && c >= 0 && c <= 100000) {
-        memberTodayFollowCount = Math.floor(c);
-      }
-    }
+    { const c = safeTodayFollowCount(result?.todayCount); if (c !== null) memberTodayFollowCount = c; }
 
     if (result?.progress?.timestamp) {
       const current = getLastFollowPosition();
       if (current?.id === normalize(data.id)) {
-        current.timestamp = Number(result.progress.timestamp);
+        current.timestamp = safeProgressTimestamp(result.progress.timestamp);
         writeStorageJson(FOLLOW_PROGRESS_KEY, current);
       }
     }
@@ -1974,45 +1986,19 @@ function renderInviteRankV92(){
 function renderInviteBenefitTargetsV127(){
   const label=$("inviteBenefitMonthLabel");
   if(label) label.textContent=currentInviteMonthLabelV92();
-
   const mine=normalize(memberSession?.member?.instagramId||"");
-
-  // V170
-  // 한 회원은 10/20/40명 구간 중 '가장 높은 미지급 구간' 한 곳에만 표시합니다.
-  // 예) 56명 → 40명 이상에만 / 33명 → 20명 이상에만 / 16명 → 10명 이상에만
-  const buckets={10:[],20:[],40:[]};
-
-  [...inviteRankDataV92].forEach(x=>{
-    const invite=Number(x.invite||0);
-    const paid=x.paidBenefits||{};
-
-    let tier=0;
-    if(invite>=40 && !paid[40] && !paid["40"]) tier=40;
-    else if(invite>=20 && !paid[20] && !paid["20"]) tier=20;
-    else if(invite>=10 && !paid[10] && !paid["10"]) tier=10;
-
-    if(tier) buckets[tier].push(x);
-  });
-
-  const render=(tier,id)=>{
+  const render=(min,id)=>{
     const el=$(id); if(!el)return;
-    const items=buckets[tier]
+    const items=[...inviteRankDataV92]
+      .filter(x=>Number(x.invite||0)>=min)
       .sort((a,b)=>Number(b.invite||0)-Number(a.invite||0));
-
-    if(!items.length){
-      el.textContent="지급 대기 대상자가 없어요.";
-      return;
-    }
-
+    if(!items.length){el.textContent="아직 대상자가 없어요.";return;}
     el.innerHTML=items.map(x=>{
       const isMe=mine&&normalize(x.instagram)===mine;
       return `<span class="benefit-person ${isMe?'me':''}">${escapeHtml(x.nickname||x.instagram||'회원')} ${Number(x.invite||0)}명${isMe?' · 나':''}</span>`;
     }).join("");
   };
-
-  render(10,"inviteBenefit10");
-  render(20,"inviteBenefit20");
-  render(40,"inviteBenefit40");
+  render(10,"inviteBenefit10"); render(20,"inviteBenefit20"); render(40,"inviteBenefit40");
 }
 
 async function loadInviteLeaderboard(){
@@ -3461,4 +3447,99 @@ document.addEventListener("click", (e) => {
     if (!confirm("로그아웃할까요?")) return;
     if (typeof logoutMember === "function") logoutMember();
   }
+});
+
+
+/* =========================================================
+   V164 - Android 앱 뒤로가기 / 앱 종료 / 메뉴 보강
+   ========================================================= */
+function isAndroidWrapperV164() {
+  try {
+    return new URLSearchParams(location.search).get("app") === "android";
+  } catch (_) {
+    return false;
+  }
+}
+
+function closeTopLayerV164() {
+  const visibleModal = document.querySelector(".account-modal:not(.hidden)");
+  if (visibleModal) {
+    visibleModal.classList.add("hidden");
+    document.body.classList.remove("account-modal-open");
+    return true;
+  }
+
+  const inviteLogin = document.getElementById("inviteAdminLoginBox");
+  if (inviteLogin && !inviteLogin.classList.contains("hidden")) {
+    inviteLogin.classList.add("hidden");
+    return true;
+  }
+
+  const moreMenu = document.getElementById("headerMoreMenu");
+  if (moreMenu && !moreMenu.classList.contains("hidden")) {
+    moreMenu.classList.add("hidden");
+    return true;
+  }
+
+  return false;
+}
+
+window.androidBackActionV164 = function() {
+  try {
+    if (closeTopLayerV164()) return "HANDLED";
+
+    const gate = document.getElementById("appGate");
+    if (gate && !gate.classList.contains("hidden")) {
+      const visibleForm =
+        document.querySelector("#memberForgotForm:not(.hidden), #memberRegisterForm:not(.hidden), #operatorLoginForm:not(.hidden), #gateForm:not(.hidden)");
+
+      if (visibleForm) {
+        if (typeof setGate === "function") setGate("memberLogin");
+        return "HANDLED";
+      }
+
+      const memberLogin = document.getElementById("memberLoginForm");
+      if (memberLogin && !memberLogin.classList.contains("hidden")) {
+        if (typeof backToRoleSelect === "function") backToRoleSelect();
+        return "HANDLED";
+      }
+
+      return "EXIT";
+    }
+
+    const activeView = document.querySelector(".view.active");
+    if (activeView && activeView.id !== "homeView") {
+      if (typeof showView === "function") showView("homeView");
+      return "HANDLED";
+    }
+
+    return "EXIT";
+  } catch (_) {
+    return "EXIT";
+  }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (!isAndroidWrapperV164()) return;
+
+  const backBtn = document.getElementById("androidBackMenuBtn");
+  const exitBtn = document.getElementById("androidExitMenuBtn");
+
+  backBtn?.classList.remove("hidden");
+  exitBtn?.classList.remove("hidden");
+
+  backBtn?.addEventListener("click", () => {
+    document.getElementById("headerMoreMenu")?.classList.add("hidden");
+    const result = window.androidBackActionV164();
+    if (result === "EXIT" && window.AndroidApp?.exitApp) {
+      window.AndroidApp.exitApp();
+    }
+  });
+
+  exitBtn?.addEventListener("click", () => {
+    document.getElementById("headerMoreMenu")?.classList.add("hidden");
+    if (window.AndroidApp?.exitApp) {
+      window.AndroidApp.exitApp();
+    }
+  });
 });
