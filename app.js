@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V176";
+const APP_VERSION = "V178";
 
 let config = {
   version: "V102",
@@ -3603,3 +3603,45 @@ window.androidBackActionV165 = function() {
 
 
 /* V174: 맞팔 전체 2707명 유지 / 아이디 없음·계정정지는 확인불가 분리 */
+
+
+/* =========================================================
+   V178 - Android 뒤로가기 보강
+   - 일반 서브뷰(.view.active) -> 홈
+   - 로그인/가입/비밀번호 화면 -> 이전 로그인 화면
+   - 외부 품앗이 페이지는 Android WebView history에서 처리
+   ========================================================= */
+window.androidBackActionV178 = function(){
+  try{
+    // 로그인 게이트가 보이는 상태
+    const gate = document.getElementById("gate");
+    const gateVisible = gate && !gate.classList.contains("hidden");
+
+    if(gateVisible){
+      if(["memberRegister","memberForgot","adminSimple","newMemberInvite","operatorLogin"].includes(gateMode)){
+        setGate("memberLogin");
+        return "HANDLED";
+      }
+      if(gateMode === "memberLogin"){
+        setGate("role");
+        return "HANDLED";
+      }
+    }
+
+    // 실제 화면 전환은 .view.active 기준
+    const activeView = document.querySelector(".view.active");
+    if(activeView && activeView.id && activeView.id !== "homeView"){
+      showView("homeView");
+      window.scrollTo({top:0, behavior:"auto"});
+      return "HOME";
+    }
+
+    return "EXIT";
+  }catch(e){
+    return "EXIT";
+  }
+};
+
+// 구버전 Android 앱에서도 새 로직 사용
+window.androidBackActionV167 = window.androidBackActionV178;
+window.androidBackActionV165 = window.androidBackActionV178;
