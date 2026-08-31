@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V180";
+const APP_VERSION = "V181";
 
 let config = {
   version: "V102",
@@ -2519,17 +2519,83 @@ async function loadMatchRequestConfig() {
   if($("matchRequestEndAt")) $("matchRequestEndAt").value=matchRequestPeriod.endAt?new Date(matchRequestPeriod.endAt).toISOString().slice(0,16):"";
   if(result.all.length) renderMatchList();
 }
+
+/* =========================================================
+   V181 - 맞팔 요청 로그인 회원 ID 자동 인식
+   일부 세션은 instagramId 대신 instagram_username 등의 키를 쓸 수 있어
+   여러 키를 모두 확인하고, 맞팔 요청 버튼 클릭 시 자동 검증합니다.
+   ========================================================= */
+function currentMemberInstagramV181(){
+  const m = memberSession?.member || {};
+  return normalize(
+    m.instagramId ||
+    m.instagram_username ||
+    m.instagram ||
+    m.username ||
+    ""
+  );
+}
+
+async function ensureMatchRequestIdentityV181(target=""){
+  if(matchRequestIdentity) return true;
+
+  const sessionId = currentMemberInstagramV181();
+  if(!sessionId) return false;
+
+  try{
+    const data = await apiPost(
+      "verifyMatchRequestIdentity",
+      { instagramId: sessionId },
+      10000
+    );
+
+    matchRequestIdentity = normalize(
+      data?.member?.instagramId ||
+      data?.member?.instagram_username ||
+      sessionId
+    );
+    matchRequestIdentityName = String(
+      data?.member?.nickname ||
+      memberSession?.member?.nickname ||
+      ""
+    );
+
+    if($("matchRequestMyInstagram")){
+      $("matchRequestMyInstagram").value = `@${matchRequestIdentity}`;
+    }
+
+    $("matchRequestIdentityBox")?.classList.add("hidden");
+    $("matchRequestVerifiedBox")?.classList.remove("hidden");
+
+    if($("matchRequestVerifiedText")){
+      $("matchRequestVerifiedText").textContent =
+        `${matchRequestIdentityName || "회원"} · @${matchRequestIdentity}`;
+    }
+
+    await loadMatchRequests();
+    renderMatchList();
+
+    if(target){
+      await sendMatchRequest(target);
+    }
+    return true;
+  }catch(e){
+    console.warn("V181 맞팔 요청 회원 ID 자동 확인 실패", e);
+    return false;
+  }
+}
+
 function prefillMatchRequestIdentity() {
   if(matchRequestIdentity) return;
-  const id=normalize(memberSession?.member?.instagramId||"");
+  const id=currentMemberInstagramV181();
   if(id && $("matchRequestMyInstagram")) $("matchRequestMyInstagram").value=`@${id}`;
 }
 async function verifyMatchRequestIdentity() {
-  const input=normalize(memberSession?.member?.instagramId||$("matchRequestMyInstagram")?.value||"");
+  const input=normalize(currentMemberInstagramV181()||$("matchRequestMyInstagram")?.value||"");
   if(!input) return toast("내 인스타 아이디를 입력해주세요.");
   try{
     const data=await apiPost("verifyMatchRequestIdentity",{instagramId:input},10000);
-    matchRequestIdentity=normalize(data.member?.instagramId||input);
+    matchRequestIdentity=normalize(data.member?.instagramId||data.member?.instagram_username||input);
     matchRequestIdentityName=String(data.member?.nickname||"");
     $("matchRequestIdentityBox")?.classList.add("hidden");
     $("matchRequestVerifiedBox")?.classList.remove("hidden");
@@ -2540,10 +2606,29 @@ async function verifyMatchRequestIdentity() {
   }catch(e){if($("matchRequestIdentityMsg"))$("matchRequestIdentityMsg").textContent=e.message||"아이디를 확인하지 못했습니다.";toast(e.message||"아이디 확인 실패");}
 }
 function changeMatchRequestIdentity(){matchRequestIdentity="";matchRequestIdentityName="";$("matchRequestIdentityBox")?.classList.remove("hidden");$("matchRequestVerifiedBox")?.classList.add("hidden");if($("matchRequestList"))$("matchRequestList").innerHTML='<p class="state-text">내 아이디를 확인하면 요청 내역이 표시됩니다.</p>';prefillMatchRequestIdentity();renderMatchList();}
-function beginMatchRequest(target){
+async function beginMatchRequest(target){
   if(!matchRequestPeriod.active)return toast("현재는 맞팔 요청 가능 기간이 아닙니다.");
-  if(!matchRequestIdentity){pendingMatchRequestTarget=normalize(target);prefillMatchRequestIdentity();$("matchRequestSection")?.scrollIntoView({behavior:"smooth",block:"start"});$("matchRequestMyInstagram")?.focus();return toast("맞팔 요청을 보내기 전에 내 아이디를 확인해주세요.");}
-  void sendMatchRequest(target);
+
+  target=normalize(target);
+  if(!target)return;
+
+  if(matchRequestIdentity){
+    return void sendMatchRequest(target);
+  }
+
+  // 로그인된 회원 ID가 있으면 별도 '내 아이디 확인' 단계 없이 자동 확인 후 요청
+  const sessionId=currentMemberInstagramV181();
+  if(sessionId){
+    const ok=await ensureMatchRequestIdentityV181(target);
+    if(ok)return;
+  }
+
+  // 정말 ID가 없는 경우에만 수동 확인 영역 안내
+  pendingMatchRequestTarget=target;
+  prefillMatchRequestIdentity();
+  $("matchRequestSection")?.scrollIntoView({behavior:"smooth",block:"start"});
+  $("matchRequestMyInstagram")?.focus();
+  toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다. 내 아이디를 확인해주세요.");
 }
 async function sendMatchRequest(target){
   target=normalize(target);if(!target)return;
@@ -3447,7 +3532,7 @@ document.addEventListener("click", async (e) => {
   }
 
   if (e.target.closest("#inquiryCopyBtn")) {
-    const text=`[여우방 프로그램 문의]\n닉네임: ${memberSession?.member?.nickname||""}\n인스타 아이디: ${memberSession?.member?.instagram_username||""}\n사용 기기:\n문제 발생 메뉴:\n문의 내용:`;
+    const text=`[여우방 프로그램 문의]\n닉네임: ${memberSession?.member?.nickname||""}\n인스타 아이디: ${currentMemberInstagramV181()||""}\n사용 기기:\n문제 발생 메뉴:\n문의 내용:`;
     try { await navigator.clipboard.writeText(text); toast("문의 양식을 복사했어요."); }
     catch (_) { toast("문의 양식을 복사하지 못했어요."); }
     return;
