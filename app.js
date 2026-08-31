@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 let roomList = [];
 let roomAuditSource = [];
 let matchRoomList = [];
-let result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [] };
+let result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [], unavailable: [] };
 let currentTab = "all";
 let matchRequestIdentity = "";
 let matchRequestIdentityName = "";
@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V166";
+const APP_VERSION = "V130";
 
 let config = {
   version: "V102",
@@ -1672,9 +1672,18 @@ async function loadRoomList(show = false) {
     saveFollowListCache(roomList);
 
     // 맞팔분석 기준 명단도 같은 최신 회원명단으로 즉시 동기화
-    matchRoomList = roomList
-      .filter(item => validUsername(normalize(item.id || "")))
-      .map(item => ({ no:item.no, name:item.name, id:normalize(item.id || "") }));
+    matchRoomList = roomList.map(item => {
+      const id = normalize(item.id || "");
+      const available = Boolean(id && validUsername(id));
+      return {
+        no: item.no,
+        name: item.name,
+        id: available ? id : "",
+        statusSource: String(item.status || ""),
+        statusLabelSource: String(item.statusLabel || ""),
+        matchAvailable: available
+      };
+    });
     if ($("roomState") && matchRoomList.length) $("roomState").textContent = `${matchRoomList.length}명`;
 
     setSheetState("정상");
@@ -1983,67 +1992,22 @@ function renderInviteRankV92(){
 }
 
 
-function renderInviteBenefitTargetsV166(){
+function renderInviteBenefitTargetsV127(){
   const label=$("inviteBenefitMonthLabel");
   if(label) label.textContent=currentInviteMonthLabelV92();
-
   const mine=normalize(memberSession?.member?.instagramId||"");
-
-  // 한 사람은 이번 달 달성한 "가장 높은 새 단계"에만 1번 표시합니다.
-  // previous가 해당 단계 이상이면 이미 그 혜택을 받은 것으로 보고 제외합니다.
-  const groups={10:[],20:[],40:[]};
-
-  [...inviteRankDataV92].forEach(x=>{
-    const invite=Math.max(0,Number(x.invite||0));
-    const previous=Math.max(0,Number(x.previous||0));
-
-    let tier=0;
-    if(invite>=40) tier=40;
-    else if(invite>=20) tier=20;
-    else if(invite>=10) tier=10;
-
-    if(!tier) return;
-
-    // 이전 실적에서 이미 해당 단계 이상을 달성했다면 다시 대상에 넣지 않습니다.
-    if(previous>=tier) return;
-
-    groups[tier].push(x);
-  });
-
-  const render=(tier,id)=>{
-    const el=$(id);
-    if(!el)return;
-
-    const items=groups[tier]
-      .slice()
-      .sort((a,b)=>{
-        const ai=Number(a.invite||0), bi=Number(b.invite||0);
-        if(bi!==ai)return bi-ai;
-        return String(a.nickname||"").localeCompare(String(b.nickname||""),"ko");
-      });
-
-    if(!items.length){
-      el.textContent="아직 대상자가 없어요.";
-      return;
-    }
-
+  const render=(min,id)=>{
+    const el=$(id); if(!el)return;
+    const items=[...inviteRankDataV92]
+      .filter(x=>Number(x.invite||0)>=min)
+      .sort((a,b)=>Number(b.invite||0)-Number(a.invite||0));
+    if(!items.length){el.textContent="아직 대상자가 없어요.";return;}
     el.innerHTML=items.map(x=>{
-      const instagram=normalize(x.instagram||x.instagramId||"");
-      const nickname=String(x.nickname||"회원").trim()||"회원";
-      const isMe=mine&&instagram===mine;
-      const idText=instagram?` @${escapeHtml(instagram)}`:"";
-      return `<span class="benefit-person ${isMe?'me':''}">`+
-        `<b class="benefit-nickname">${escapeHtml(nickname)}</b>`+
-        `<span class="benefit-instagram">${idText}</span>`+
-        `<span class="benefit-count">${Number(x.invite||0)}명</span>`+
-        `${isMe?'<em>· 나</em>':''}`+
-      `</span>`;
+      const isMe=mine&&normalize(x.instagram)===mine;
+      return `<span class="benefit-person ${isMe?'me':''}">${escapeHtml(x.nickname||x.instagram||'회원')} ${Number(x.invite||0)}명${isMe?' · 나':''}</span>`;
     }).join("");
   };
-
-  render(10,"inviteBenefit10");
-  render(20,"inviteBenefit20");
-  render(40,"inviteBenefit40");
+  render(10,"inviteBenefit10"); render(20,"inviteBenefit20"); render(40,"inviteBenefit40");
 }
 
 async function loadInviteLeaderboard(){
@@ -2080,13 +2044,13 @@ async function loadInviteLeaderboard(){
           ?"TOP 10에 올라와 있어요! 🔥"
           :"TOP 10까지 조금만 더 힘내요!";
       updateInviteMission(Number(mine.total||0));
-      renderInviteBenefitTargetsV166();
+      renderInviteBenefitTargetsV127();
     }else{
       $("inviteMyMonthlyRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
       $("inviteMyTotalRankText").textContent=memberSession?.token?"아직 실적 없음":"로그인 후 확인";
       $("inviteMyRankSub").textContent=memberSession?.token?"첫 초대를 달성하면 순위가 표시됩니다.":"회원 로그인 계정 기준으로 표시됩니다.";
       updateInviteMission(0);
-      renderInviteBenefitTargetsV166();
+      renderInviteBenefitTargetsV127();
     }
 
   }catch(e){
@@ -2187,16 +2151,18 @@ async function loadMatchRoomList(showToast = false, force = false) {
       throw new Error("단톡방 명단을 불러오지 못했습니다.");
     }
 
-    matchRoomList = roomList
-      .filter(item => {
-        const id = normalize(item?.id || "");
-        return Boolean(id && validUsername(id));
-      })
-      .map(item => ({
+    matchRoomList = roomList.map(item => {
+      const id = normalize(item?.id || "");
+      const available = Boolean(id && validUsername(id));
+      return {
         no: item.no,
         name: String(item.name || "").trim(),
-        id: normalize(item.id || "")
-      }));
+        id: available ? id : "",
+        statusSource: String(item.status || ""),
+        statusLabelSource: String(item.statusLabel || ""),
+        matchAvailable: available
+      };
+    });
 
     if (!matchRoomList.length) {
       throw new Error("맞팔분석에 사용할 회원 명단이 없습니다.");
@@ -2284,14 +2250,30 @@ function classify(followers, following, baseList = matchRoomList) {
   const followerSet = new Set(followers);
   const followingSet = new Set(following);
 
-  const all = baseList.map((person) => ({
-    ...person,
-    status:
-      followerSet.has(person.id) && followingSet.has(person.id) ? "mutual" :
-      !followerSet.has(person.id) && followingSet.has(person.id) ? "onlyMe" :
-      followerSet.has(person.id) && !followingSet.has(person.id) ? "fansOnly" :
-      "neither",
-  }));
+  const all = baseList.map((person) => {
+    const id = normalize(person.id || "");
+    const available = Boolean(person.matchAvailable !== false && id && validUsername(id));
+
+    if (!available) {
+      return {
+        ...person,
+        id: "",
+        matchAvailable: false,
+        status: "unavailable"
+      };
+    }
+
+    return {
+      ...person,
+      id,
+      matchAvailable: true,
+      status:
+        followerSet.has(id) && followingSet.has(id) ? "mutual" :
+        !followerSet.has(id) && followingSet.has(id) ? "onlyMe" :
+        followerSet.has(id) && !followingSet.has(id) ? "fansOnly" :
+        "neither",
+    };
+  });
 
   result = {
     all,
@@ -2299,6 +2281,7 @@ function classify(followers, following, baseList = matchRoomList) {
     onlyMe: all.filter((item) => item.status === "onlyMe"),
     fansOnly: all.filter((item) => item.status === "fansOnly"),
     neither: all.filter((item) => item.status === "neither"),
+    unavailable: all.filter((item) => item.status === "unavailable"),
   };
 }
 
@@ -2326,7 +2309,11 @@ async function analyze() {
     showTab("all");
     $("summarySection").classList.remove("hidden");
     $("resultsSection").classList.remove("hidden");
-    $("status").textContent = `분석 완료 · 맞팔확인용 명단 ${matchRoomList.length}명 기준`;
+    {
+      const unavailableCount = Array.isArray(result.unavailable) ? result.unavailable.length : 0;
+      $("status").textContent = `분석 완료 · 맞팔확인용 명단 ${matchRoomList.length}명 기준` +
+        (unavailableCount ? ` · 확인불가 ${unavailableCount}명` : "");
+    }
     if(memberSession?.token){
       apiPost("saveMatchAnalysis",{token:memberSession.token,counts:{total:result.all.length,mutual:result.mutual.length,onlyMe:result.onlyMe.length,fansOnly:result.fansOnly.length,neither:result.neither.length}},12000).catch(()=>{});
     }
@@ -2346,13 +2333,19 @@ function percent(value, total) {
 
 function updateSummary() {
   const total = result.all.length;
+  const unavailableCount = Array.isArray(result.unavailable) ? result.unavailable.length : 0;
+  const analyzableTotal = Math.max(0, total - unavailableCount);
+
   for (const key of ["mutual", "onlyMe", "fansOnly", "neither"]) {
     $(`${key}Count`).textContent = `${result[key].length}명`;
-    $(`${key}Rate`).textContent = percent(result[key].length, total);
+    $(`${key}Rate`).textContent = percent(result[key].length, analyzableTotal);
     $(`tab${key[0].toUpperCase() + key.slice(1)}`).textContent = result[key].length;
   }
   $("tabAll").textContent = total;
-  $("rateText").innerHTML = `단톡방 맞팔률 <strong>${percent(result.mutual.length, total)}</strong> · ${result.mutual.length}/${total}명`;
+  $("rateText").innerHTML =
+    `단톡방 맞팔률 <strong>${percent(result.mutual.length, analyzableTotal)}</strong> · ` +
+    `${result.mutual.length}/${analyzableTotal}명` +
+    (unavailableCount ? ` · 확인불가 ${unavailableCount}명` : "");
 }
 
 function statusLabel(status) {
@@ -2361,7 +2354,8 @@ function statusLabel(status) {
     onlyMe: "나만 팔로우 함",
     fansOnly: "상대만 팔로우 함",
     neither: "서로 팔로우 안 함",
-  }[status];
+    unavailable: "확인불가",
+  }[status] || "확인불가";
 }
 
 function showTab(tab) {
@@ -2374,7 +2368,7 @@ function matchFiltered() {
   const query = String($("searchInput").value || "").trim().toLowerCase();
   const items = result[currentTab] || [];
   return query
-    ? items.filter((item) => item.id.includes(normalize(query)) || String(item.name).toLowerCase().includes(query))
+    ? items.filter((item) => String(item.id || "").includes(normalize(query)) || String(item.name || "").toLowerCase().includes(query))
     : items;
 }
 
@@ -2386,12 +2380,16 @@ function renderMatchList() {
         <span class="item-no">${index + 1}</span>
         <div class="item-person">
           <strong class="item-name">${escapeHtml(item.name)}</strong>
-          <a class="id" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener">@${escapeHtml(item.id)}</a>
+          ${item.status === "unavailable"
+            ? `<span class="id">${escapeHtml(item.statusLabelSource || "아이디 없음/계정정지")}</span>`
+            : `<a class="id" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener">@${escapeHtml(item.id)}</a>`}
         </div>
         <span class="badge ${item.status}">${statusLabel(item.status)}</span>
         <div class="match-item-actions">
-          <a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
-          ${item.status === "mutual" ? "" : `<button class="match-request-send-btn" type="button" data-match-request-to="${escapeHtml(item.id)}" ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`}
+          ${item.status === "unavailable"
+            ? `<span class="muted">분석 제외</span>`
+            : `<a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
+               ${item.status === "mutual" ? "" : `<button class="match-request-send-btn" type="button" data-match-request-to="${escapeHtml(item.id)}" ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`}`}
         </div>
       </div>`).join("")
     : '<div class="empty-state">결과가 없습니다.</div>';
@@ -3562,3 +3560,6 @@ window.androidBackActionV165 = function() {
     return "EXIT";
   }
 };
+
+
+/* V174: 맞팔 전체 2707명 유지 / 아이디 없음·계정정지는 확인불가 분리 */
