@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V182";
+const APP_VERSION = "V183";
 
 let config = {
   version: "V102",
@@ -51,6 +51,40 @@ let memberFollowProgressLoaded = false;
 const ROSTER_BASELINE_KEY = "yeowoobang:adminRosterBaseline:v1";
 let lastRosterAudit = null;
 const JSZIP_CDN_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+
+const V183_SPEED = {
+  roomLoadedAt: 0,
+  roomInFlight: null,
+  inviteLoadedAt: 0,
+  inviteInFlight: null,
+  publicConfigLoadedAt: 0,
+  publicConfigInFlight: null,
+  matchRequestConfigLoadedAt: 0,
+  matchRequestConfigInFlight: null,
+  notificationsLoadedAt: 0,
+  notificationsInFlight: null,
+};
+
+const V183_TTL = {
+  room: 5 * 60 * 1000,
+  invite: 2 * 60 * 1000,
+  publicConfig: 2 * 60 * 1000,
+  matchRequestConfig: 60 * 1000,
+  notifications: 3 * 60 * 1000,
+};
+
+function freshV183(ts, ttl){
+  return Boolean(ts && (Date.now() - ts) < ttl);
+}
+
+function idleV183(fn, timeout = 1800){
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => fn(), { timeout });
+  } else {
+    setTimeout(fn, Math.min(timeout, 1200));
+  }
+}
+
 let jsZipLoadPromise = null;
 
 function localDateKey(date = new Date()) {
@@ -720,6 +754,7 @@ async function bootstrapAuth() {
   try {
     configResult = await apiGet("publicConfig", 5000);
     publicConfig = configResult;
+    V183_SPEED.publicConfigLoadedAt = Date.now();
     updateLockIndicators();
   } catch (_) {
     publicConfig = publicConfig || {
@@ -1375,20 +1410,32 @@ accessGranted = true;
 async function loadAfterAuth() {
   const restored = restoreFollowListCache();
 
-  // 먼저 화면을 바로 열고 최신 데이터는 뒤에서 갱신합니다.
-  if (!restored) {
-    loadRoomList(false).catch(() => {});
-  } else {
-    setTimeout(() => loadRoomList(false).catch(() => {}), 400);
+  // V183: 로그인 직후에는 홈을 먼저 보여주고 무거운 2707명 명단 요청은 뒤로 미룹니다.
+  // 캐시가 있으면 즉시 사용하고, 최신화는 브라우저가 한가할 때만 진행합니다.
+  if (restored) {
+    V183_SPEED.roomLoadedAt = Date.now();
   }
 
-  setTimeout(() => refreshPublicConfig(false).catch(() => {}), 700);
-  scheduleNoticeLoad(1800);
+  idleV183(() => {
+    if (memberSession?.token && !freshV183(V183_SPEED.roomLoadedAt, V183_TTL.room)) {
+      loadRoomList(false).catch(() => {});
+    }
+  }, restored ? 3500 : 1800);
+
+  idleV183(() => refreshPublicConfig(false).catch(() => {}), 2200);
+  scheduleNoticeLoad(2600);
   checkVersionUpdate();
 }
-async function refreshPublicConfig(recheck = true) {
-  const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
-  publicConfig = await apiGet("publicConfig");
+async function refreshPublicConfig(recheck = true, force = false) {
+  if (!force && publicConfig && freshV183(V183_SPEED.publicConfigLoadedAt, V183_TTL.publicConfig)) {
+    return publicConfig;
+  }
+  if (V183_SPEED.publicConfigInFlight) return V183_SPEED.publicConfigInFlight;
+
+  V183_SPEED.publicConfigInFlight = (async () => {
+    const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
+    publicConfig = await apiGet("publicConfig");
+    V183_SPEED.publicConfigLoadedAt = Date.now();
   updateLockIndicators();
   syncFollowLockAdminV99?.();
   syncMatchPeriodAdminV101?.();
@@ -1409,7 +1456,15 @@ async function refreshPublicConfig(recheck = true) {
     await bootstrapAuth();
     return;
   }
-  securityVersion = nextSecurity;
+    securityVersion = nextSecurity;
+    return publicConfig;
+  })();
+
+  try {
+    return await V183_SPEED.publicConfigInFlight;
+  } finally {
+    V183_SPEED.publicConfigInFlight = null;
+  }
 }
 
 function checkVersionUpdate() {
@@ -1640,10 +1695,23 @@ function rowsToRoom(rows) {
   });
 }
 
-async function loadRoomList(show = false) {
-  setSheetState("불러오는 중");
+async function loadRoomList(show = false, forceV183 = false) {
+  const force = Boolean(forceV183 || show);
 
-  if (!memberSession?.token) {
+  if (!force && roomList.length && freshV183(V183_SPEED.roomLoadedAt, V183_TTL.room)) {
+    setSheetState("정상");
+    updateFollowStats();
+    return roomList;
+  }
+
+  if (!force && V183_SPEED.roomInFlight) {
+    return V183_SPEED.roomInFlight;
+  }
+
+  const taskV183 = (async () => {
+    setSheetState("불러오는 중");
+
+    if (!memberSession?.token) {
     roomList = [];
     setSheetState("로그인 필요");
     renderGroupTabs();
@@ -1685,6 +1753,7 @@ async function loadRoomList(show = false) {
     if (!roomList.length) throw new Error("팔로우리스트를 불러오지 못했습니다.");
 
     saveFollowListCache(roomList);
+    V183_SPEED.roomLoadedAt = Date.now();
 
     // 맞팔분석 기준 명단도 같은 최신 회원명단으로 즉시 동기화
     matchRoomList = roomList.map(item => {
@@ -1723,6 +1792,17 @@ async function loadRoomList(show = false) {
     renderCopyBatches();
     renderFollowList();
     toast(error.message || "팔로우리스트를 불러오지 못했습니다.");
+  }
+  return roomList;
+  })();
+
+  if (!force) V183_SPEED.roomInFlight = taskV183;
+  try {
+    return await taskV183;
+  } finally {
+    if (!force && V183_SPEED.roomInFlight === taskV183) {
+      V183_SPEED.roomInFlight = null;
+    }
   }
 }
 
@@ -2065,13 +2145,23 @@ function renderInviteBenefitTargetsV176(){
   render(40,"inviteBenefit40");
 }
 
-async function loadInviteLeaderboard(){
+async function loadInviteLeaderboard(forceV183 = false){
   const top3=$("inviteTop3"), list=$("inviteRankList");
   if(!top3||!list)return;
 
+  if (!forceV183 && inviteRankDataV92.length && freshV183(V183_SPEED.inviteLoadedAt, V183_TTL.invite)) {
+    renderInviteRankV92();
+    renderInviteBenefitTargetsV176();
+    return;
+  }
+
+  if (!forceV183 && V183_SPEED.inviteInFlight) return V183_SPEED.inviteInFlight;
+
+  const taskV183 = (async () => {
   try{
     $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
+    V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
       invite:Number(x.invite||0),
@@ -2114,6 +2204,16 @@ async function loadInviteLeaderboard(){
     if($("inviteMyMonthlyRankText"))$("inviteMyMonthlyRankText").textContent="확인 불가";
     if($("inviteMyTotalRankText"))$("inviteMyTotalRankText").textContent="확인 불가";
     updateInviteMission(0);
+  }
+  })();
+
+  if (!forceV183) V183_SPEED.inviteInFlight = taskV183;
+  try {
+    return await taskV183;
+  } finally {
+    if (!forceV183 && V183_SPEED.inviteInFlight === taskV183) {
+      V183_SPEED.inviteInFlight = null;
+    }
   }
 }
 
@@ -2173,6 +2273,9 @@ function showView(id) {
 
   if (id === "followView") {
     applyFollowLock();
+    if (memberSession?.token && (!roomList.length || !freshV183(V183_SPEED.roomLoadedAt, V183_TTL.room))) {
+      loadRoomList(false).catch(() => {});
+    }
   }
 
   if (id === "matchView") {
@@ -2520,10 +2623,19 @@ function matchRequestDateText(value) {
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" });
 }
-async function loadMatchRequestConfig() {
+async function loadMatchRequestConfig(forceV183 = false) {
+  if (!forceV183 && freshV183(V183_SPEED.matchRequestConfigLoadedAt, V183_TTL.matchRequestConfig)) {
+    return matchRequestPeriod;
+  }
+  if (!forceV183 && V183_SPEED.matchRequestConfigInFlight) {
+    return V183_SPEED.matchRequestConfigInFlight;
+  }
+
+  const taskV183 = (async () => {
   try {
     const data=await apiGet("getMatchRequestConfig",8000);
     matchRequestPeriod=data.period||{active:false,startAt:"",endAt:""};
+    V183_SPEED.matchRequestConfigLoadedAt = Date.now();
   } catch (_) { matchRequestPeriod={active:false,startAt:"",endAt:""}; }
   const badge=$("matchRequestPeriodBadge");
   if(badge){badge.textContent=matchRequestPeriod.active?"요청 가능":"기간 아님";badge.className=`lock-state ${matchRequestPeriod.active?"unlocked":"locked"}`;}
@@ -2533,6 +2645,17 @@ async function loadMatchRequestConfig() {
   if($("matchRequestStartAt")) $("matchRequestStartAt").value=matchRequestPeriod.startAt?new Date(matchRequestPeriod.startAt).toISOString().slice(0,16):"";
   if($("matchRequestEndAt")) $("matchRequestEndAt").value=matchRequestPeriod.endAt?new Date(matchRequestPeriod.endAt).toISOString().slice(0,16):"";
   if(result.all.length) renderMatchList();
+  return matchRequestPeriod;
+  })();
+
+  if (!forceV183) V183_SPEED.matchRequestConfigInFlight = taskV183;
+  try {
+    return await taskV183;
+  } finally {
+    if (!forceV183 && V183_SPEED.matchRequestConfigInFlight === taskV183) {
+      V183_SPEED.matchRequestConfigInFlight = null;
+    }
+  }
 }
 
 /* =========================================================
@@ -3081,7 +3204,7 @@ $("matchRequestMyInstagram")?.addEventListener("keydown",e=>{if(e.key==="Enter")
 document.querySelectorAll(".match-request-tab").forEach(b=>b.addEventListener("click",()=>showMatchRequestTab(b.dataset.requestTab)));
 $("saveMatchRequestPeriodBtn")?.addEventListener("click",saveMatchRequestPeriod);
 
-$("refreshInviteLeaderboardBtn")?.addEventListener("click",loadInviteLeaderboard);
+$("refreshInviteLeaderboardBtn")?.addEventListener("click",()=>loadInviteLeaderboard(true));
 
 document.querySelectorAll(".tab").forEach((button) => {
   button.onclick = () => showTab(button.dataset.tab);
@@ -3159,7 +3282,7 @@ finishBootScreen();
     if (!document.hidden && accessGranted) {
       try { await refreshPublicConfig(true); } catch (_) {}
     }
-  }, 300000);
+  }, 900000);
 
   setInterval(async () => {
     if (!document.hidden && accessGranted) {
@@ -3296,14 +3419,40 @@ function setNotificationBadgeV76(count){
   badge.classList.toggle("hidden",n<1);
 }
 
-async function loadNotificationsV76(){
+async function loadNotificationsV76(forceV183 = false){
   if(!memberSession?.token){setNotificationBadgeV76(0);return;}
+
+  if (!forceV183 && freshV183(V183_SPEED.notificationsLoadedAt, V183_TTL.notifications)) {
+    setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
+    return v76Notifications;
+  }
+
+  if (!forceV183 && V183_SPEED.notificationsInFlight) {
+    return V183_SPEED.notificationsInFlight;
+  }
+
+  const taskV183=(async()=>{
+    try{
+      const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
+      v76Notifications=d.items||[];
+      V183_SPEED.notificationsLoadedAt=Date.now();
+      setNotificationBadgeV76(d.unread||0);
+      renderNotificationsV76();
+      return v76Notifications;
+    }catch(_){
+      setNotificationBadgeV76(0);
+      return v76Notifications;
+    }
+  })();
+
+  if(!forceV183)V183_SPEED.notificationsInFlight=taskV183;
   try{
-    const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
-    v76Notifications=d.items||[];
-    setNotificationBadgeV76(d.unread||0);
-    renderNotificationsV76();
-  }catch(_){ setNotificationBadgeV76(0); }
+    return await taskV183;
+  }finally{
+    if(!forceV183&&V183_SPEED.notificationsInFlight===taskV183){
+      V183_SPEED.notificationsInFlight=null;
+    }
+  }
 }
 
 function renderNotificationsV76(){
