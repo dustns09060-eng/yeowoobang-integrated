@@ -31,7 +31,7 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V181";
+const APP_VERSION = "V182";
 
 let config = {
   version: "V102",
@@ -498,12 +498,27 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
   }
 }
 
+const FIXED_API_URL_V182 = "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec";
+
 async function loadConfig() {
+  // V182: API 주소는 현재 운영 중인 Apps Script /exec 주소로 고정합니다.
+  // config.json에 과거 apiUrl이 남아 있어도 로그인/맞팔/초대별 API를 덮어쓰지 못합니다.
+  config.apiUrl = FIXED_API_URL_V182;
+
   try {
-    const response = await fetchWithTimeout("config.json?v=770", { cache: "no-store" }, 2500);
-    if (response.ok) config = { ...config, ...(await response.json()) };
+    const response = await fetchWithTimeout("config.json?v=1820", { cache: "no-store" }, 2500);
+    if (response.ok) {
+      const remoteConfig = await response.json();
+
+      // apiUrl만 제외하고 나머지 설정은 기존처럼 반영
+      if (remoteConfig && typeof remoteConfig === "object") {
+        const { apiUrl: _ignoredOldApiUrl, ...safeConfig } = remoteConfig;
+        config = { ...config, ...safeConfig, apiUrl: FIXED_API_URL_V182 };
+      }
+    }
   } catch (_) {
-    // app.js에 내장된 API 주소로 계속 진행합니다.
+    // config.json 로드 실패 시에도 고정 API 주소로 정상 진행
+    config.apiUrl = FIXED_API_URL_V182;
   }
 }
 async function apiGet(action, timeoutMs = 15000) {
