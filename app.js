@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V191";
-window.YEOWOOBANG_BUILD = "V191";
+const APP_VERSION = "V193";
+window.YEOWOOBANG_BUILD = "V193";
 
 let config = {
   version: "V102",
@@ -3970,3 +3970,33 @@ window.androidBackActionV178 = function(){
 // 구버전 Android 앱에서도 새 로직 사용
 window.androidBackActionV167 = window.androidBackActionV178;
 window.androidBackActionV165 = window.androidBackActionV178;
+
+
+/* ===== V193 맞팔요청 확인 UI ===== */
+async function confirmMatchRequestV193(item,btn){
+  if(!item||!item.requestId){showToast('요청 정보를 찾지 못했습니다. 알림센터를 다시 열어주세요.');return;}
+  if(btn){btn.disabled=true;btn.textContent='확인 중...';}
+  try{
+    const res=await apiGet('markMatchRequestCheckedV193',{requestId:item.requestId});
+    item.requestStatus='READ'; item.requestCheckedAt=(res&&res.checkedAt)||'';
+    if(btn){btn.textContent='✅ 확인 완료'+(item.requestCheckedAt?' · '+item.requestCheckedAt:'');btn.classList.add('is-checked');}
+    showToast('맞팔 요청을 확인했어요.');
+  }catch(e){if(btn){btn.disabled=false;btn.textContent='요청 확인';}showToast((e&&e.message)||'요청 확인에 실패했습니다.');}
+}
+function decorateMatchRequestNotificationsV193(items){
+  if(!Array.isArray(items))return;
+  setTimeout(()=>{
+    const cards=[...document.querySelectorAll('.notification-card,.notification-item')];
+    let ci=0;
+    items.forEach(item=>{
+      if(String(item.type||'').toUpperCase()!=='MATCH_REQUEST')return;
+      const card=cards[ci++]||null;if(!card||card.querySelector('.match-confirm-v193'))return;
+      const w=document.createElement('div');w.className='match-confirm-v193';
+      const b=document.createElement('button');b.className='match-confirm-btn-v193';b.type='button';
+      if(String(item.requestStatus||'').toUpperCase()==='READ'){b.disabled=true;b.classList.add('is-checked');b.textContent='✅ 확인 완료'+(item.requestCheckedAt?' · '+item.requestCheckedAt:'');}
+      else{b.textContent='요청 확인';b.onclick=e=>{e.stopPropagation();confirmMatchRequestV193(item,b);};}
+      w.appendChild(b);card.appendChild(w);
+    });
+  },50);
+}
+/* ===== /V193 ===== */
