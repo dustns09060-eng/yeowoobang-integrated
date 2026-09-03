@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V206";
-window.YEOWOOBANG_BUILD = "V206";
+const APP_VERSION = "V207";
+window.YEOWOOBANG_BUILD = "V207";
 
 let config = {
   version: "V102",
@@ -556,7 +556,7 @@ async function loadConfig() {
     config.apiUrl = FIXED_API_URL_V182;
   }
 }
-async function apiGet(action, timeoutMs = 15000) {
+async function apiGet(action, timeoutMs = 20000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
   let lastError = null;
@@ -565,11 +565,12 @@ async function apiGet(action, timeoutMs = 15000) {
     url.searchParams.set("action", action);
     url.searchParams.set("_t", Date.now().toString());
     try {
+      const effectiveTimeout = Math.max(Number(timeoutMs) || 0, 20000);
       const response = await fetchWithTimeout(url.toString(), {
         method: "GET",
         cache: "no-store",
         redirect: "follow",
-      }, timeoutMs);
+      }, effectiveTimeout);
 
       if (!response.ok) throw new Error(`API HTTP ${response.status}`);
       const data = await response.json();
@@ -594,29 +595,51 @@ async function apiPost(action, payload = {}, timeoutMs = 9000) {
     requestBody.adminModeToken = adminModeToken;
   }
 
-  const response = await fetchWithTimeout(config.apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=UTF-8" },
-    body: JSON.stringify(requestBody),
-    cache: "no-store",
-    redirect: "follow",
-  }, timeoutMs);
+  // V207: 기존 호출부는 그대로 두고 통신 계층에서만 안정화.
+  // 기존 9초보다 Apps Script가 실제 처리할 시간을 충분히 줍니다.
+  const effectiveTimeout = Math.max(Number(timeoutMs) || 0, 20000);
+  let lastError = null;
 
-  if (!response.ok) throw new Error(`API HTTP ${response.status}`);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetchWithTimeout(config.apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify(requestBody),
+        cache: "no-store",
+        redirect: "follow",
+      }, effectiveTimeout);
 
-  const text = await response.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (_) {
-    const preview = String(text || "").replace(/\s+/g, " ").slice(0, 120);
-    throw new Error(preview
-      ? `서버 응답 형식을 확인해주세요. (${preview})`
-      : "서버에서 빈 응답을 받았습니다.");
+      if (!response.ok) throw new Error(`API HTTP ${response.status}`);
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        const preview = String(text || "").replace(/\s+/g, " ").slice(0, 120);
+        throw new Error(preview
+          ? `서버 응답 형식을 확인해주세요. (${preview})`
+          : "서버에서 빈 응답을 받았습니다.");
+      }
+
+      if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
+      return data;
+    } catch (error) {
+      lastError = error;
+
+      // TIMEOUT / 일시적 네트워크 실패만 1회 재시도.
+      // API가 명확한 업무 오류를 응답한 경우에는 중복 실행하지 않습니다.
+      const timeout = error?.code === "TIMEOUT";
+      const network = error instanceof TypeError ||
+        /Failed to fetch|NetworkError|Load failed/i.test(String(error?.message || ""));
+
+      if ((!timeout && !network) || attempt === 1) break;
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
   }
 
-  if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
-  return data;
+  throw lastError || new Error("API 요청 실패");
 }
 function setGate(mode, message = "") {
   gateMode = mode;
