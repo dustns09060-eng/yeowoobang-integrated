@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V208";
-window.YEOWOOBANG_BUILD = "V208";
+const APP_VERSION = "V209";
+window.YEOWOOBANG_BUILD = "V209";
 
 let config = {
   version: "V102",
@@ -556,33 +556,49 @@ async function loadConfig() {
     config.apiUrl = FIXED_API_URL_V182;
   }
 }
+const API_GET_INFLIGHT_V209 = new Map();
+
 async function apiGet(action, timeoutMs = 20000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
-  let lastError = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const url = new URL(config.apiUrl);
-    url.searchParams.set("action", action);
-    url.searchParams.set("_t", Date.now().toString());
-    try {
-      const effectiveTimeout = Math.max(Number(timeoutMs) || 0, 20000);
-      const response = await fetchWithTimeout(url.toString(), {
-        method: "GET",
-        cache: "no-store",
-        redirect: "follow",
-      }, effectiveTimeout);
-
-      if (!response.ok) throw new Error(`API HTTP ${response.status}`);
-      const data = await response.json();
-      if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
-      return data;
-    } catch (error) {
-      lastError = error;
-      if (error?.code !== "TIMEOUT" || attempt === 1) break;
-      await new Promise(resolve => setTimeout(resolve, 700));
-    }
+  // V209: 같은 GET action이 동시에 여러 번 호출되면 네트워크 요청은 1번만 보냅니다.
+  if (API_GET_INFLIGHT_V209.has(action)) {
+    return API_GET_INFLIGHT_V209.get(action);
   }
-  throw lastError || new Error("API 요청 실패");
+
+  const task = (async () => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const url = new URL(config.apiUrl);
+      url.searchParams.set("action", action);
+      url.searchParams.set("_t", Date.now().toString());
+      try {
+        const effectiveTimeout = Math.max(Number(timeoutMs) || 0, 20000);
+        const response = await fetchWithTimeout(url.toString(), {
+          method: "GET",
+          cache: "no-store",
+          redirect: "follow",
+        }, effectiveTimeout);
+
+        if (!response.ok) throw new Error(`API HTTP ${response.status}`);
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
+        return data;
+      } catch (error) {
+        lastError = error;
+        if (error?.code !== "TIMEOUT" || attempt === 1) break;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    throw lastError || new Error("API 요청 실패");
+  })();
+
+  API_GET_INFLIGHT_V209.set(action, task);
+  try {
+    return await task;
+  } finally {
+    API_GET_INFLIGHT_V209.delete(action);
+  }
 }
 async function apiPost(action, payload = {}, timeoutMs = 9000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
@@ -775,9 +791,16 @@ async function bootstrapAuth() {
   setGate("loading", "로그인 정보를 확인하는 중입니다.");
 
   let configResult = null;
+  const cachedPublicConfigV209 = readPublicConfigCacheV209(60000);
+  if(cachedPublicConfigV209){
+    publicConfig = cachedPublicConfigV209;
+    V183_SPEED.publicConfigLoadedAt = Date.now();
+    updateLockIndicators();
+  }
   try {
     configResult = await apiGet("publicConfig", 5000);
     publicConfig = configResult;
+    savePublicConfigCacheV209(publicConfig);
     V183_SPEED.publicConfigLoadedAt = Date.now();
     updateLockIndicators();
   } catch (_) {
@@ -1303,12 +1326,19 @@ async function activateAdminMode(r, password) {
   setAdminHeader(adminProfile);
 applyFollowLock(); applyMatchLock();
   hideGate();
-  await loadAfterAuth();
   showView("adminView");
   showAdminPanel();
   renderRosterAudit();
-  await Promise.allSettled([loadAdminDashboardV72(),loadV73OpsStatus(),loadAdminLogs(),loadAdminTaskboxV76()]);
   toast(`${adminProfile.name || "운영진"}님 · ${adminMemberRole} 운영진모드`);
+
+  // V209: 운영진 화면을 먼저 표시하고 무거운 데이터는 뒤에서 병렬 로딩
+  void loadAfterAuth();
+  void Promise.allSettled([
+    loadAdminDashboardV72(),
+    loadV73OpsStatus(),
+    loadAdminLogs(),
+    loadAdminTaskboxV76()
+  ]);
 }
 
 async function loginOperatorFromGate() {
@@ -1445,12 +1475,28 @@ async function loadAfterAuth() {
     if (memberSession?.token && !freshV183(V183_SPEED.roomLoadedAt, V183_TTL.room)) {
       loadRoomList(false).catch(() => {});
     }
-  }, restored ? 3500 : 1800);
+  }, restored ? 1800 : 700);
 
-  idleV183(() => refreshPublicConfig(false).catch(() => {}), 2200);
-  scheduleNoticeLoad(2600);
+  idleV183(() => refreshPublicConfig(false).catch(() => {}), 700);
+  scheduleNoticeLoad(1000);
   checkVersionUpdate();
 }
+const PUBLIC_CONFIG_CACHE_V209 = "yeowoobang:publicConfig:v209";
+function savePublicConfigCacheV209(value){
+  try{
+    sessionStorage.setItem(PUBLIC_CONFIG_CACHE_V209,JSON.stringify({t:Date.now(),value}));
+  }catch(_){}
+}
+function readPublicConfigCacheV209(maxAge=60000){
+  try{
+    const raw=sessionStorage.getItem(PUBLIC_CONFIG_CACHE_V209);
+    if(!raw)return null;
+    const obj=JSON.parse(raw);
+    if(!obj?.value || Date.now()-Number(obj.t||0)>maxAge)return null;
+    return obj.value;
+  }catch(_){return null}
+}
+
 async function refreshPublicConfig(recheck = true, force = false) {
   if (!force && publicConfig && freshV183(V183_SPEED.publicConfigLoadedAt, V183_TTL.publicConfig)) {
     return publicConfig;
@@ -1460,6 +1506,7 @@ async function refreshPublicConfig(recheck = true, force = false) {
   V183_SPEED.publicConfigInFlight = (async () => {
     const previousSecurity = securityVersion || publicConfig?.securityVersion || "";
     publicConfig = await apiGet("publicConfig");
+    savePublicConfigCacheV209(publicConfig);
     V183_SPEED.publicConfigLoadedAt = Date.now();
   updateLockIndicators();
   syncFollowLockAdminV99?.();
