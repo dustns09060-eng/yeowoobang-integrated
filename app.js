@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V210";
-window.YEOWOOBANG_BUILD = "V210";
+const APP_VERSION = "V211";
+window.YEOWOOBANG_BUILD = "V211";
 
 let config = {
   version: "V102",
@@ -787,23 +787,15 @@ function finishBootScreen() {
 }
 
 async function bootstrapAuth() {
+  // V211: 첫 화면은 Apps Script 응답을 기다리지 않고 즉시 표시합니다.
   showGate();
-  setGate("loading", "로그인 정보를 확인하는 중입니다.");
 
-  let configResult = null;
-  const cachedPublicConfigV209 = readPublicConfigCacheV209(60000);
-  if(cachedPublicConfigV209){
-    publicConfig = cachedPublicConfigV209;
+  const cachedPublicConfigV211 = readPublicConfigCacheV209(60000);
+  if (cachedPublicConfigV211) {
+    publicConfig = cachedPublicConfigV211;
     V183_SPEED.publicConfigLoadedAt = Date.now();
     updateLockIndicators();
-  }
-  try {
-    configResult = await apiGet("publicConfig", 5000);
-    publicConfig = configResult;
-    savePublicConfigCacheV209(publicConfig);
-    V183_SPEED.publicConfigLoadedAt = Date.now();
-    updateLockIndicators();
-  } catch (_) {
+  } else {
     publicConfig = publicConfig || {
       appLocked: false,
       followLocked: false,
@@ -815,8 +807,8 @@ async function bootstrapAuth() {
   }
 
   const saved = readMemberSessionStorage();
+
   if (saved?.token && saved?.member && !publicConfig?.appLocked) {
-    // V120: 이미 로그인된 회원은 서버 응답을 기다리지 않고 화면부터 즉시 복원합니다.
     memberSession = saved;
     accessGranted = true;
     followGranted = true;
@@ -833,47 +825,68 @@ async function bootstrapAuth() {
     void loadMemberFollowProgress();
     window.setTimeout(() => {
       if (memberSession?.token) void loadNotificationsV76();
-    }, 1200);
+    }, 800);
+  } else {
+    // 미로그인 사용자는 서버 로딩 문구 없이 바로 선택 화면
+    setGate("role");
+  }
 
-    // V133: 기존 저장 세션 검증은 백그라운드에서 하되,
-    // 그 사이 사용자가 새로 로그인했다면 오래된 결과가 새 세션을 지우지 못하게 합니다.
-    const validatingTokenV133 = saved.token;
-    const validatingGenerationV133 = memberAuthGenerationV133;
-    void (async () => {
-      try {
-        const result = await apiPost("memberSession", { token: validatingTokenV133 }, 9000);
-        if (!result?.token || !result?.member) throw new Error("SESSION_EXPIRED");
+  // 최신 잠금/공지 설정은 백그라운드에서 갱신
+  void (async () => {
+    try {
+      const latestConfigV211 = await apiGet("publicConfig", 5000);
+      publicConfig = latestConfigV211;
+      savePublicConfigCacheV209(publicConfig);
+      V183_SPEED.publicConfigLoadedAt = Date.now();
+      updateLockIndicators();
 
-        if (
-          memberAuthGenerationV133 !== validatingGenerationV133 ||
-          memberSession?.token !== validatingTokenV133
-        ) return;
-
-        memberSession = { token: result.token, member: result.member };
-        saveMemberSessionStorage(memberSession);
-        setMemberHeader(result.member);
-      } catch (_) {
-        // 새 로그인/새 세션으로 이미 바뀌었으면 이 오래된 실패는 무시
-        if (
-          memberAuthGenerationV133 !== validatingGenerationV133 ||
-          memberSession?.token !== validatingTokenV133
-        ) return;
-
-        memberSession = null;
-        clearMemberSessionStorage();
-        try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+      if (publicConfig?.appLocked && !adminLoggedIn) {
         accessGranted = false;
         followGranted = false;
         matchGranted = false;
         showGate();
-        setGate("memberLogin");
-        $("gateError").textContent = "로그인 시간이 만료되었습니다. 다시 로그인해 주세요.";
+        setGate("blocked");
       }
-    })();
-    return;
-  }
+    } catch (_) {
+      // 연결 지연만으로 첫 화면을 막지 않음
+    }
+  })();
 
-  setGate("role");
+  if (!(saved?.token && saved?.member)) return;
+
+  // 저장 세션 검증도 백그라운드
+  const validatingTokenV133 = saved.token;
+  const validatingGenerationV133 = memberAuthGenerationV133;
+  void (async () => {
+    try {
+      const result = await apiPost("memberSession", { token: validatingTokenV133 }, 9000);
+      if (!result?.token || !result?.member) throw new Error("SESSION_EXPIRED");
+
+      if (
+        memberAuthGenerationV133 !== validatingGenerationV133 ||
+        memberSession?.token !== validatingTokenV133
+      ) return;
+
+      memberSession = { token: result.token, member: result.member };
+      saveMemberSessionStorage(memberSession);
+      setMemberHeader(result.member);
+    } catch (_) {
+      if (
+        memberAuthGenerationV133 !== validatingGenerationV133 ||
+        memberSession?.token !== validatingTokenV133
+      ) return;
+
+      memberSession = null;
+      clearMemberSessionStorage();
+      try { sessionStorage.removeItem(FOLLOW_LIST_CACHE_KEY); } catch (_) {}
+      accessGranted = false;
+      followGranted = false;
+      matchGranted = false;
+      showGate();
+      setGate("memberLogin");
+      $("gateError").textContent = "로그인 시간이 만료되었습니다. 다시 로그인해 주세요.";
+    }
+  })();
 }
 
 function chooseGeneralAccess() {
