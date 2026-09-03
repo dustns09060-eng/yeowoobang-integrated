@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V213";
-window.YEOWOOBANG_BUILD = "V213";
+const APP_VERSION = "V214";
+window.YEOWOOBANG_BUILD = "V214";
 
 let config = {
   version: "V102",
@@ -2392,7 +2392,8 @@ function showView(id) {
 
   if (id === "notificationView") {
     if (v76Notifications.length) renderNotificationsV76();
-    setTimeout(() => loadNotificationsV76().catch(() => {}), 0);
+    // V214: 보낸 요청의 상대방 완료상태를 바로 확인하도록 알림센터 진입 시 최신 조회
+    setTimeout(() => loadNotificationsV76(true).catch(() => {}), 0);
   }
   if (id === "homeView" && $("homeMemberName")) {
     $("homeMemberName").textContent = memberSession?.member?.nickname || adminProfile?.name || "회원";
@@ -3203,10 +3204,14 @@ function renderMatchRequestList(){
 }
 async function markMatchRequestRead(id){
   try{
-    await apiPost("markMatchRequestRead",{requestId:id,instagramId:matchRequestIdentity},10000);
+    await apiPost("completeMatchRequestV214",{
+      requestId:id,
+      token:memberSession?.token||""
+    },12000);
     setMatchRequestPendingV213(id,false);
     await loadMatchRequests();
     if(result.all.length) renderMatchList();
+    V183_SPEED.notificationsLoadedAt=0;
     toast("확인 완료로 처리했습니다.");
   }catch(e){
     toast(e.message||"확인 처리 실패");
@@ -4001,6 +4006,8 @@ function renderNotificationsV76(){
   box.innerHTML=v76Notifications.map(x=>{
     const type=String(x.type||'').toUpperCase();
     const isMatch=type==='MATCH_REQUEST'||type==='MATCH';
+    const isSentMatch=type==='MATCH_REQUEST_SENT';
+    const isDoneNotice=type==='MATCH_REQUEST_DONE';
     const checked=String(x.requestStatus||'').toUpperCase()==='READ';
     const canConfirm=isMatch;
 
@@ -4033,6 +4040,22 @@ function renderNotificationsV76(){
                     ${isMatchRequestPendingV213(x.requestId)?'확인 완료':'요청 확인'}
                   </button>`
             }
+          </div>
+        ` : ''}
+
+        ${isSentMatch ? `
+          <div class="notification-action-row-v196">
+            ${
+              checked
+                ? `<span class="notification-confirmed-v196">✅ 상대방 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
+                : `<span class="notification-sent-wait-v214">⏳ 상대방 확인중</span>`
+            }
+          </div>
+        ` : ''}
+
+        ${isDoneNotice && x.requestReadAt ? `
+          <div class="notification-action-row-v196">
+            <span class="notification-confirmed-v196">✅ 확인 완료 · ${escapeHtml(x.requestReadAt)}</span>
           </div>
         ` : ''}
       </article>
@@ -4090,10 +4113,9 @@ function renderNotificationsV76(){
     btn.disabled=true;
     btn.textContent='처리 중...';
     try{
-      const result=await apiPost('markMatchRequestReadV197',{
+      const result=await apiPost('completeMatchRequestV214',{
         requestId,
         notificationKey,
-        instagramId:matchRequestIdentity,
         token:memberSession.token
       },12000);
 
@@ -4109,6 +4131,7 @@ function renderNotificationsV76(){
       }catch(_){}
       setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
       renderNotificationsV76();
+      V183_SPEED.notificationsLoadedAt=0;
       loadMatchRequests().catch(()=>{});
       toast('확인 완료로 처리했습니다.');
     }catch(err){
