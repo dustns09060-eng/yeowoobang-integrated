@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V214";
-window.YEOWOOBANG_BUILD = "V214";
+const APP_VERSION = "V215";
+window.YEOWOOBANG_BUILD = "V215";
 
 let config = {
   version: "V102",
@@ -2861,6 +2861,8 @@ async function runBulkMatchRequestV200(){
     btn.textContent="전체 맞팔요청";
   }
 
+  V183_SPEED.notificationsLoadedAt=0;
+
   if(fail){
     const sample=failed.slice(0,5).map(x=>`@${x.id}: ${x.error}`).join("\n");
     alert(`전체 맞팔요청 완료\n\n성공 ${success}명\n실패 ${fail}명\n\n${sample}${failed.length>5?"\n외 실패 내역 있음":""}`);
@@ -3141,6 +3143,7 @@ async function sendMatchRequest(target, forceMismatch=false){
       toInstagram:target
     },10000);
     toast(data.message||"맞팔 요청을 보냈습니다.");
+    V183_SPEED.notificationsLoadedAt=0;
     await loadMatchRequests();
     if(result.all.length) renderMatchList();
   }catch(e){
@@ -3204,7 +3207,7 @@ function renderMatchRequestList(){
 }
 async function markMatchRequestRead(id){
   try{
-    await apiPost("completeMatchRequestV214",{
+    await apiPost("completeMatchRequestV215",{
       requestId:id,
       token:memberSession?.token||""
     },12000);
@@ -4075,8 +4078,15 @@ function renderNotificationsV76(){
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
     renderNotificationsV76();
 
-    closeNotificationModalV76();
     const type=String(item.type||'').toUpperCase();
+
+    // V215: 보낸 요청/완료 알림은 상태 확인용이므로
+    // 카드를 눌러도 알림센터에서 갑자기 홈으로 이동하지 않습니다.
+    if(type==='MATCH_REQUEST_SENT' || type==='MATCH_REQUEST_DONE'){
+      renderNotificationsV76();
+      return;
+    }
+
     if(type==='MATCH' || type==='MATCH_REQUEST'){
       showView('matchView');
       loadMatchRequests().catch(()=>{});
@@ -4113,7 +4123,7 @@ function renderNotificationsV76(){
     btn.disabled=true;
     btn.textContent='처리 중...';
     try{
-      const result=await apiPost('completeMatchRequestV214',{
+      const result=await apiPost('completeMatchRequestV215',{
         requestId,
         notificationKey,
         token:memberSession.token
