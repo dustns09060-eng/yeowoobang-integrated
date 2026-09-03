@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V193";
-window.YEOWOOBANG_BUILD = "V193";
+const APP_VERSION = "V194";
+window.YEOWOOBANG_BUILD = "V194";
 
 let config = {
   version: "V102",
@@ -1005,7 +1005,7 @@ async function loginMemberFromGate() {
       }, 20000);
     } else {
       // 비상용 레거시 폴백. Supabase 설정이 꺼진 경우에만 사용됩니다.
-      result = await apiPost("memberLogin", { instagramId, password }, 15000);
+      result = await apiPost("memberLoginV194", { instagramId, password }, 30000);
     }
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
