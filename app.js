@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V195";
-window.YEOWOOBANG_BUILD = "V195";
+const APP_VERSION = "V196";
+window.YEOWOOBANG_BUILD = "V196";
 
 let config = {
   version: "V102",
@@ -3601,8 +3601,11 @@ function setNotificationBadgeV76(count){
 async function loadNotificationsV76(forceV183 = false){
   if(!memberSession?.token){setNotificationBadgeV76(0);return;}
 
+  const box=$("notificationList");
+
   if (!forceV183 && freshV183(V183_SPEED.notificationsLoadedAt, V183_TTL.notifications)) {
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
+    renderNotificationsV76();
     return v76Notifications;
   }
 
@@ -3610,9 +3613,13 @@ async function loadNotificationsV76(forceV183 = false){
     return V183_SPEED.notificationsInFlight;
   }
 
+  if(box && !v76Notifications.length){
+    box.innerHTML='<div class="notification-empty">알림을 불러오는 중입니다...</div>';
+  }
+
   const taskV183=(async()=>{
     try{
-      const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
+      const d=await apiPost('getNotificationsV76',{token:memberSession.token},15000);
       v76Notifications=(d.items||[]).map(x=>({
         ...x,
         key:String(x.key||x.id||""),
@@ -3630,9 +3637,15 @@ async function loadNotificationsV76(forceV183 = false){
           : v76Notifications.filter(x=>!x.read).length
       );
       renderNotificationsV76();
+      try{decorateMatchRequestNotificationsV193(v76Notifications);}catch(_){}
       return v76Notifications;
-    }catch(_){
+    }catch(error){
       setNotificationBadgeV76(0);
+      if(box){
+        const msg=String(error?.message||"알림을 불러오지 못했습니다.");
+        box.innerHTML='<div class="notification-empty">알림을 불러오지 못했습니다.<br><small>'+escapeHtml(msg)+'</small><br><button type="button" id="retryNotificationsV196" class="secondary-btn">다시 불러오기</button></div>';
+        $("retryNotificationsV196")?.addEventListener("click",()=>loadNotificationsV76(true));
+      }
       return v76Notifications;
     }
   })();
@@ -3678,7 +3691,7 @@ function renderNotificationsV76(){
 function openNotificationModalV76(){
   if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
   $("notificationModal")?.classList.remove('hidden'); document.body.classList.add('account-modal-open');
-  void loadNotificationsV76();
+  void loadNotificationsV76(true);
 }
 function closeNotificationModalV76(){
   $("notificationModal")?.classList.add('hidden');
@@ -4104,14 +4117,14 @@ window.androidBackActionV165 = window.androidBackActionV178;
 
 /* ===== V193 맞팔요청 확인 UI ===== */
 async function confirmMatchRequestV193(item,btn){
-  if(!item||!item.requestId){showToast('요청 정보를 찾지 못했습니다. 알림센터를 다시 열어주세요.');return;}
+  if(!item||!item.requestId){toast('요청 정보를 찾지 못했습니다. 알림센터를 다시 열어주세요.');return;}
   if(btn){btn.disabled=true;btn.textContent='확인 중...';}
   try{
-    const res=await apiGet('markMatchRequestCheckedV193',{requestId:item.requestId});
+    const res=await apiPost('markMatchRequestCheckedV193',{token:memberSession.token,requestId:item.requestId},10000);
     item.requestStatus='READ'; item.requestCheckedAt=(res&&res.checkedAt)||'';
     if(btn){btn.textContent='✅ 확인 완료'+(item.requestCheckedAt?' · '+item.requestCheckedAt:'');btn.classList.add('is-checked');}
-    showToast('맞팔 요청을 확인했어요.');
-  }catch(e){if(btn){btn.disabled=false;btn.textContent='요청 확인';}showToast((e&&e.message)||'요청 확인에 실패했습니다.');}
+    toast('맞팔 요청을 확인했어요.');
+  }catch(e){if(btn){btn.disabled=false;btn.textContent='요청 확인';}toast((e&&e.message)||'요청 확인에 실패했습니다.');}
 }
 function decorateMatchRequestNotificationsV193(items){
   if(!Array.isArray(items))return;
