@@ -680,6 +680,74 @@
 }
 </style>
 
+<style id="v205-follow-lock-period-style">
+.follow-lock-period-v205{margin-top:14px;padding:16px;border:1px solid rgba(229,151,177,.35);border-radius:18px;background:rgba(255,247,250,.72)}
+.follow-lock-period-v205 h4{margin:0 0 5px}.follow-lock-period-grid-v205{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.follow-lock-period-grid-v205 label{display:flex;flex-direction:column;gap:6px;min-width:0;font-weight:800;font-size:13px}.follow-lock-period-grid-v205 input{width:100%;min-width:0;box-sizing:border-box}
+.follow-lock-period-actions-v205{margin-top:12px}#followLockReserveBadgeV205.active{background:#fff0f5;color:#d6537c;border-color:#efc4d2}
+@media(max-width:620px){.follow-lock-period-grid-v205{grid-template-columns:1fr}}
+</style>
+<style id="v206-admin-role-menu-style">
+/* V206 운영진 기능 권한별 노출
+   개발자: 기존 전체 기능 유지
+   관리자/운영진: 팔로우리스트 → 맞팔확인 기간 → 공지관리 → 운영진 업무함
+*/
+#adminPanel.admin-basic-only-v206{
+  display:flex !important;
+  flex-direction:column !important;
+}
+
+/* 기본 운영진 모드에서는 패널 직계 요소를 우선 숨김 */
+#adminPanel.admin-basic-only-v206 > *{
+  display:none !important;
+}
+
+/* 제목/로그아웃 행은 항상 표시 */
+#adminPanel.admin-basic-only-v206 > .section-title-row:first-child{
+  display:flex !important;
+  order:0 !important;
+}
+
+/* 요청한 네 메뉴만 표시하고 순서를 고정 */
+#adminPanel.admin-basic-only-v206 > #adminFollowSettingsV206{
+  display:block !important;
+  order:10 !important;
+}
+#adminPanel.admin-basic-only-v206 > #adminMatchSettingsV206{
+  display:block !important;
+  order:20 !important;
+}
+#adminPanel.admin-basic-only-v206 > #adminNoticeSettingsV206{
+  display:block !important;
+  order:30 !important;
+}
+#adminPanel.admin-basic-only-v206 > #adminTaskboxV206{
+  display:block !important;
+  order:40 !important;
+}
+
+/* 기본 운영진 화면에서는 불필요한 구분선도 제거 */
+#adminPanel.admin-basic-only-v206 > hr{
+  display:none !important;
+}
+
+/* 카드 간격 */
+#adminPanel.admin-basic-only-v206 > .admin-basic-v206{
+  margin-top:16px !important;
+}
+
+/* 개발자 전용임을 개발자 화면에서만 가볍게 구분 */
+#adminPanel.admin-developer-v206 .v206-developer-only-note{
+  display:block;
+}
+
+@media(max-width:620px){
+  #adminPanel.admin-basic-only-v206 > .admin-basic-v206{
+    margin-top:12px !important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -1257,7 +1325,7 @@
 
 
         <hr />
-        <div class="setting-block v76-taskbox">
+        <div id="adminTaskboxV206" class="setting-block v76-taskbox admin-basic-v206">
           <div class="section-title-row"><div><h3>📥 운영진 업무함</h3><p class="subtext">지금 확인해야 할 일을 한눈에 모아봤어요.</p></div><span id="v76TaskTotal" class="lock-state unlocked">0건</span></div>
           <div id="v76TaskList" class="v76-task-grid"><p class="state-text">운영진모드 전환 후 자동으로 불러옵니다.</p></div>
           <button id="v76TaskRefreshBtn" class="outline small" type="button">업무함 새로고침</button>
@@ -1301,14 +1369,28 @@
         </div>
 
         <hr />
-        <div class="setting-block">
+        <div id="adminFollowSettingsV206" class="setting-block admin-basic-v206">
           <div class="section-title-row">
-            <div><h3>팔로우리스트 잠금</h3></div>
+            <div><h3>팔로우리스트</h3></div>
             <span id="followLockState" class="lock-state unlocked">사용 가능</span>
           </div>
           <div class="admin-actions">
             <button id="lockFollowBtn" class="outline danger-outline" type="button">팔로우리스트 잠그기</button>
             <button id="unlockFollowBtn" class="outline success-outline" type="button">팔로우리스트 잠금 해제</button>
+          </div>
+          <div class="follow-lock-period-v205">
+            <div class="section-title-row">
+              <div><h4>예약 잠금 기간</h4><p class="subtext">시작시간부터 종료시간까지 팔로우리스트를 자동으로 잠급니다.</p></div>
+              <span id="followLockReserveBadgeV205" class="lock-state unlocked">예약 없음</span>
+            </div>
+            <div class="follow-lock-period-grid-v205">
+              <label><span>잠금 시작</span><input id="followLockStartAdmin" type="datetime-local"></label>
+              <label><span>잠금 종료</span><input id="followLockEndAdmin" type="datetime-local"></label>
+            </div>
+            <div class="admin-actions follow-lock-period-actions-v205">
+              <button id="saveFollowLockPeriodBtn" class="primary" type="button">예약 잠금 저장</button>
+              <button id="clearFollowLockPeriodBtn" class="outline" type="button">예약 해제</button>
+            </div>
           </div>
           <div class="setting-row">
             <input id="newFollowPassword" type="password" inputmode="numeric" placeholder="새 팔로우리스트 비밀번호" />
@@ -1317,7 +1399,7 @@
         </div>
 
         <hr />
-        <div class="setting-block">
+        <div id="adminMatchSettingsV206" class="setting-block admin-basic-v206">
           <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 완료/지연 투표와 ZIP 맞팔분석이 함께 활성화됩니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
           <div class="admin-actions"><button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 기간 종료</button><button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 기간 시작</button></div>
         </div>
@@ -1331,8 +1413,8 @@
         </div>
 
         <hr />
-        <div class="setting-block">
-          <h3>공지 관리</h3>
+        <div id="adminNoticeSettingsV206" class="setting-block admin-basic-v206">
+          <h3>공지관리</h3>
           <textarea id="noticeBody" placeholder="공지 내용을 입력하세요."></textarea>
           <button id="saveNoticeBtn" class="primary" type="button">공지 저장</button>
           <div id="adminNoticeList" class="admin-notice-list"></div>
@@ -1485,7 +1567,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2040"></script>
+  <script src="app.js?v=2060"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

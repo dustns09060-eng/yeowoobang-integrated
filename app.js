@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V204";
-window.YEOWOOBANG_BUILD = "V204";
+const APP_VERSION = "V206";
+window.YEOWOOBANG_BUILD = "V206";
 
 let config = {
   version: "V102",
@@ -1271,6 +1271,8 @@ async function activateAdminMode(r, password) {
   adminModeToken = r.adminModeToken || "";
   adminMemberRole = r.role || r.operator?.role || "운영진";
   adminProfile = r.operator || { instagramId:"", name:"운영진", role:adminMemberRole };
+  // V206: 개발자/관리자/운영진 메뉴 노출을 즉시 분리
+  setTimeout(()=>applyAdminMenuByRoleV206(),0);
   try { sessionStorage.setItem("yeowoobangRole", "admin"); } catch (_) {}
   accessGranted = true; matchGranted = true; followGranted = true;
   if (r.publicConfig) publicConfig = r.publicConfig;
@@ -3319,9 +3321,36 @@ $("adminLoginMsg").textContent = "";
   }
 }
 
+
+/* =========================================================
+   V206 운영진 메뉴 권한 분리
+   - 개발자: 기존 전체 운영진 기능 표시
+   - 관리자/운영진: 팔로우리스트, 맞팔확인 기간, 공지관리, 운영진 업무함만 표시
+   기존 API/버튼 동작 자체는 변경하지 않습니다.
+   ========================================================= */
+function isDeveloperRoleV206(){
+  return String(adminMemberRole||adminProfile?.role||"").trim()==="개발자";
+}
+
+function applyAdminMenuByRoleV206(){
+  const panel=$("adminPanel");
+  if(!panel)return;
+
+  const developer=isDeveloperRoleV206();
+  panel.classList.toggle("admin-developer-v206",developer);
+  panel.classList.toggle("admin-basic-only-v206",!developer);
+
+  // 역할 배지 문구도 현재 등급으로만 맞춤
+  const badge=$("adminRoleBadge");
+  if(badge){
+    badge.textContent=adminMemberRole||adminProfile?.role||"운영진";
+  }
+}
+
 function showAdminPanel() {
   $("adminPanel").classList.remove("hidden");
   $("adminLoginCard").classList.add("hidden");
+  applyAdminMenuByRoleV206();
   updateLockIndicators();
 }
 
@@ -4029,6 +4058,7 @@ function syncFollowLockAdminV99(){
   if($("followLockEndAdmin") && document.activeElement!==$("followLockEndAdmin")){
     $("followLockEndAdmin").value=toLocalDateTimeInputV99(publicConfig?.followLockEndAt||"");
   }
+  syncFollowLockReserveBadgeV205();
 }
 function toLocalDateTimeInputV99(v){
   if(!v)return "";
@@ -4062,6 +4092,15 @@ $("unlockFollowBtn")?.addEventListener("click",()=>setFollowLockV99(false));
 $("saveFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(false));
 $("clearFollowLockPeriodBtn")?.addEventListener("click",()=>saveFollowLockPeriodV99(true));
 
+
+/* V205 팔로우리스트 예약잠금 상태표시 */
+function syncFollowLockReserveBadgeV205(){
+  const badge=$("followLockReserveBadgeV205");
+  if(!badge)return;
+  const on=Boolean(publicConfig?.followLockStartAt && publicConfig?.followLockEndAt);
+  badge.textContent=on?"예약 설정됨":"예약 없음";
+  badge.classList.toggle("active",on);
+}
 
 /* V101 맞팔확인 기간 / 예약기간 */
 function toLocalDateTimeInputV101(value){
