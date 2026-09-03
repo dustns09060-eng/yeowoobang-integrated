@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V201";
-window.YEOWOOBANG_BUILD = "V201";
+const APP_VERSION = "V202";
+window.YEOWOOBANG_BUILD = "V202";
 
 let config = {
   version: "V102",
@@ -3704,35 +3704,7 @@ function setNotificationBadgeV76(count){
   badge.classList.toggle("hidden",n<1);
 }
 
-async 
-function renderNotificationLoadErrorV201(error){
-  const box=$("notificationList");
-  if(!box)return;
-
-  const msg=(error && error.message)
-    ? String(error.message)
-    : "알림을 불러오지 못했습니다.";
-
-  box.innerHTML=`
-    <div class="notification-load-error-v201">
-      <strong>알림을 불러오지 못했어요.</strong>
-      <span>${escapeHtml(msg)}</span>
-      <button id="notificationRetryBtnV201" type="button">다시 불러오기</button>
-    </div>
-  `;
-
-  $("notificationRetryBtnV201")?.addEventListener("click",()=>{
-    const btn=$("notificationRetryBtnV201");
-    if(btn){
-      btn.disabled=true;
-      btn.textContent="불러오는 중...";
-    }
-    V183_SPEED.notificationsLoadedAt=0;
-    loadNotificationsV76(true).catch(()=>{});
-  });
-}
-
-function loadNotificationsV76(forceV183 = false){
+async function loadNotificationsV76(forceV183 = false){
   if(!memberSession?.token){setNotificationBadgeV76(0);return;}
 
   if (!forceV183 && freshV183(V183_SPEED.notificationsLoadedAt, V183_TTL.notifications)) {
@@ -3742,14 +3714,9 @@ function loadNotificationsV76(forceV183 = false){
   }
 
   if (!forceV183 && V183_SPEED.notificationsInFlight) {
-    try{
-      const items=await V183_SPEED.notificationsInFlight;
-      renderNotificationsV76();
-      return items;
-    }catch(e){
-      renderNotificationLoadErrorV201(e);
-      return v76Notifications;
-    }
+    const items = await V183_SPEED.notificationsInFlight;
+    renderNotificationsV76();
+    return items;
   }
 
   const taskV183=(async()=>{
@@ -3776,10 +3743,11 @@ function loadNotificationsV76(forceV183 = false){
       return v76Notifications;
     }catch(err){
       setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
+      const box=$("notificationList");
       if(v76Notifications.length){
         renderNotificationsV76();
-      }else{
-        renderNotificationLoadErrorV201(err);
+      }else if(box){
+        box.innerHTML='<div class="notification-empty">알림을 불러오지 못했어요. 잠시 후 다시 열어주세요.</div>';
       }
       return v76Notifications;
     }
@@ -3969,15 +3937,11 @@ function renderNotificationsV76(){
 
 function openNotificationModalV76(){
   if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
-
   $("notificationModal")?.classList.remove('hidden');
   document.body.classList.add('account-modal-open');
 
   if(v76Notifications.length){
     renderNotificationsV76();
-  }else{
-    const box=$("notificationList");
-    if(box) box.innerHTML='<div class="notification-loading-v201">알림을 불러오는 중입니다.</div>';
   }
 
   void loadNotificationsV76();
