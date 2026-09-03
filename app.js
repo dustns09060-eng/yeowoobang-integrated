@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V189";
-window.YEOWOOBANG_BUILD = "V189";
+const APP_VERSION = "V191";
+window.YEOWOOBANG_BUILD = "V191";
 
 let config = {
   version: "V102",
@@ -3538,7 +3538,10 @@ function renderNotificationsV76(){
     const item=v76Notifications.find(x=>x.key===key); if(item)item.read=true;
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length); renderNotificationsV76();
     closeNotificationModalV76();
-    if(type==='match')showView('matchView'); else if(type==='notice')showView('noticeView'); else if(type==='invite')showView('inviteView');
+    const normalizedType=String(type||'').toUpperCase();
+    if(normalizedType==='MATCH' || normalizedType==='MATCH_REQUEST') showView('matchView');
+    else if(normalizedType==='NOTICE') showView('noticeView');
+    else if(normalizedType==='INVITE') showView('inviteView');
   }));
 }
 
