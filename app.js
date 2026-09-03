@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V211";
-window.YEOWOOBANG_BUILD = "V211";
+const APP_VERSION = "V213";
+window.YEOWOOBANG_BUILD = "V213";
 
 let config = {
   version: "V102",
@@ -3171,21 +3171,43 @@ async function loadMatchRequests(){
   catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
 }
 function showMatchRequestTab(tab){matchRequestTab=tab;document.querySelectorAll(".match-request-tab").forEach(b=>b.classList.toggle("active",b.dataset.requestTab===tab));renderMatchRequestList();}
+const MATCH_REQUEST_PENDING_KEY_V213 = "yeowoobang:matchRequestPending:v213";
+function getMatchRequestPendingV213(){
+  try{return JSON.parse(sessionStorage.getItem(MATCH_REQUEST_PENDING_KEY_V213)||"{}");}catch(_){return {};}
+}
+function setMatchRequestPendingV213(id,value=true){
+  const map=getMatchRequestPendingV213();
+  if(value) map[String(id||"")]=Date.now(); else delete map[String(id||"")];
+  try{sessionStorage.setItem(MATCH_REQUEST_PENDING_KEY_V213,JSON.stringify(map));}catch(_){}
+}
+function isMatchRequestPendingV213(id){return !!getMatchRequestPendingV213()[String(id||"")];}
 function renderMatchRequestList(){
   const box=$("matchRequestList");if(!box)return;
   const items=matchRequestData[matchRequestTab]||[];
   box.innerHTML=items.length?items.map(x=>{
     const received=matchRequestTab==="received";const read=x.status==="READ"||!!x.readAt;
-    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions"><a class="insta" href="https://www.instagram.com/${encodeURIComponent(x.fromInstagram)}/" target="_blank" rel="noopener">↗ 열기</a>${read?'<span class="request-read-label">확인함</span>':`<button class="outline small" data-read-request="${escapeHtml(x.id)}" type="button">확인하기</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"확인함":"확인 전"}</span>`}</div>`;
+    const pending=!read&&isMatchRequestPendingV213(x.id);
+    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions">${read?'<span class="request-read-label">확인 완료</span>':`<button class="outline small" data-request-check-v213="${escapeHtml(x.id)}" data-request-from-v213="${escapeHtml(x.fromInstagram||'')}" type="button">${pending?'확인 완료':'요청 확인'}</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"확인 완료":"확인 전"}</span>`}</div>`;
   }).join(""):'<p class="state-text">표시할 맞팔 요청이 없습니다.</p>';
-  box.querySelectorAll("[data-read-request]").forEach(b=>b.onclick=()=>markMatchRequestRead(b.dataset.readRequest));
+  box.querySelectorAll("[data-request-check-v213]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.requestCheckV213, from=normalize(b.dataset.requestFromV213||"");
+    if(!isMatchRequestPendingV213(id)){
+      setMatchRequestPendingV213(id,true);
+      b.textContent="확인 완료";
+      if(from) openInstagramProfileV199(from);
+      toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
+      return;
+    }
+    await markMatchRequestRead(id);
+  });
 }
 async function markMatchRequestRead(id){
   try{
     await apiPost("markMatchRequestRead",{requestId:id,instagramId:matchRequestIdentity},10000);
+    setMatchRequestPendingV213(id,false);
     await loadMatchRequests();
     if(result.all.length) renderMatchList();
-    toast("맞팔 요청을 확인했습니다.");
+    toast("확인 완료로 처리했습니다.");
   }catch(e){
     toast(e.message||"확인 처리 실패");
   }
@@ -4008,7 +4030,7 @@ function renderNotificationsV76(){
                 : `<button class="notification-confirm-v196" type="button"
                     data-confirm-match-request="${escapeHtml(x.requestId||'')}"
                     data-notification-key-confirm="${escapeHtml(x.key||'')}">
-                    요청 확인
+                    ${isMatchRequestPendingV213(x.requestId)?'확인 완료':'요청 확인'}
                   </button>`
             }
           </div>
@@ -4049,15 +4071,24 @@ function renderNotificationsV76(){
     const requestId=btn.dataset.confirmMatchRequest;
     const notificationKey=btn.dataset.notificationKeyConfirm;
     const item=v76Notifications.find(x=>x.key===notificationKey);
-    const knownSender=normalize(item?.requestFromInstagram||"");
+    const sender=normalize(item?.requestFromInstagram||"");
 
+    // V213: 첫 클릭은 인스타 확인만. 서버의 확인완료 상태는 절대 바꾸지 않습니다.
+    if(!isMatchRequestPendingV213(requestId)){
+      setMatchRequestPendingV213(requestId,true);
+      btn.textContent='확인 완료';
+      if(sender) openInstagramProfileV199(sender);
+      else {
+        showView('matchView');
+        loadMatchRequests().catch(()=>{});
+      }
+      toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
+      return;
+    }
+
+    // 두 번째 클릭에서만 실제 확인완료 저장
     btn.disabled=true;
-    btn.textContent='확인 중...';
-
-    // 보낸 사람 ID를 이미 알고 있으면 사용자 클릭 이벤트 안에서 즉시 프로필을 엽니다.
-    // 서버 확인 처리는 아래에서 그대로 진행됩니다.
-    if(knownSender) openInstagramProfileV199(knownSender);
-
+    btn.textContent='처리 중...';
     try{
       const result=await apiPost('markMatchRequestReadV197',{
         requestId,
@@ -4066,35 +4097,24 @@ function renderNotificationsV76(){
         token:memberSession.token
       },12000);
 
+      setMatchRequestPendingV213(requestId,false);
       if(item){
         item.requestStatus='READ';
         item.requestReadAt=result.readAt||'';
-        item.requestFromInstagram=normalize(
-          item.requestFromInstagram || result.fromInstagram || ""
-        );
+        item.requestFromInstagram=normalize(item.requestFromInstagram || result.fromInstagram || "");
         item.read=true;
       }
-
-      // 기존 알림처럼 클릭 전에 보낸 사람 ID를 몰랐던 경우 서버 응답으로 프로필 열기
-      if(!knownSender && result?.fromInstagram){
-        openInstagramProfileV199(result.fromInstagram);
-      }
-
       try{
-        await apiPost('markNotificationReadV76',{
-          token:memberSession.token,
-          key:notificationKey
-        },8000);
+        await apiPost('markNotificationReadV76',{token:memberSession.token,key:notificationKey},8000);
       }catch(_){}
-
       setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
       renderNotificationsV76();
       loadMatchRequests().catch(()=>{});
-      toast('맞팔 요청을 확인했습니다.');
+      toast('확인 완료로 처리했습니다.');
     }catch(err){
       btn.disabled=false;
-      btn.textContent='요청 확인';
-      toast(err?.message||'요청 확인에 실패했습니다.');
+      btn.textContent='확인 완료';
+      toast(err?.message||'확인 완료 처리에 실패했습니다.');
     }
   }));
 }
