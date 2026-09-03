@@ -199,146 +199,213 @@
 
 
 
-<style id="v195-match-confirm-style">
-/* V195 알림센터 레이아웃 안정화
-   - 카카오 인앱 브라우저 / 좁은 화면 / 폴더블에서도 텍스트가 한 글자씩 세로로 깨지지 않도록
-     flex-basis, min-width, word-break를 명시합니다.
-*/
-.notification-item{
-  width:100%;
-  box-sizing:border-box;
-  overflow:hidden;
+<style id="v196-notification-layout-style">
+/* V196 알림센터 UI 완전 재구성 */
+#notificationModal,
+.notification-modal,
+.notification-sheet,
+.notification-panel{
+  writing-mode:horizontal-tb !important;
 }
 
-.notification-main-v194{
+#notificationList{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+.notification-card-v196{
   width:100%;
+  box-sizing:border-box;
+  border:1px solid #efd1dc;
+  border-radius:22px;
+  background:#fff;
+  padding:18px;
+  margin:0 0 14px;
+  overflow:hidden;
+  writing-mode:horizontal-tb !important;
+}
+
+.notification-card-v196.is-unread{
+  background:#fff7fa;
+}
+
+.notification-open-v196{
+  width:100%;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr) 12px;
+  column-gap:14px;
+  align-items:start;
   border:0;
-  background:transparent;
   padding:0;
   margin:0;
-  display:flex;
-  align-items:flex-start;
-  gap:12px;
-  text-align:left;
+  background:transparent;
   color:inherit;
-  font:inherit;
+  text-align:left;
   box-sizing:border-box;
-  min-width:0;
+  writing-mode:horizontal-tb !important;
 }
 
-.notification-main-v194 .notification-icon{
-  flex:0 0 auto;
-  width:44px;
-  min-width:44px;
+.notification-icon-v196{
+  width:46px;
+  min-width:46px;
+  font-size:34px;
+  line-height:1;
   text-align:center;
+  writing-mode:horizontal-tb !important;
 }
 
-.notification-main-v194 .notification-copy{
-  flex:1 1 auto;
+.notification-text-v196{
   min-width:0;
-  width:auto;
-  max-width:100%;
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  white-space:normal;
-  word-break:keep-all;
-  overflow-wrap:anywhere;
-  line-height:1.45;
+  width:100%;
+  display:block;
+  writing-mode:horizontal-tb !important;
+  white-space:normal !important;
+  word-break:normal !important;
+  overflow-wrap:break-word !important;
 }
 
-.notification-main-v194 .notification-copy strong,
-.notification-main-v194 .notification-copy span,
-.notification-main-v194 .notification-copy small{
+.notification-title-v196,
+.notification-message-v196,
+.notification-time-v196{
   display:block;
   width:100%;
   min-width:0;
-  max-width:100%;
-  white-space:normal;
-  word-break:keep-all;
-  overflow-wrap:anywhere;
+  writing-mode:horizontal-tb !important;
+  white-space:normal !important;
+  word-break:normal !important;
+  overflow-wrap:break-word !important;
 }
 
-.notification-main-v194 .notification-copy strong{
+.notification-title-v196{
+  font-size:18px;
   line-height:1.35;
+  font-weight:900;
+  margin-bottom:4px;
 }
 
-.notification-main-v194 .notification-copy small{
+.notification-message-v196{
+  font-size:15px;
+  line-height:1.5;
+  color:#333;
+}
+
+.notification-time-v196{
+  font-size:13px;
+  line-height:1.4;
+  color:#999;
   margin-top:6px;
 }
 
-.notification-main-v194 .notification-dot{
-  flex:0 0 auto;
+.notification-dot-v196{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#ed5b86;
   margin-top:8px;
+  justify-self:end;
 }
 
-.match-request-confirm-area-v194{
+.notification-action-row-v196{
+  width:100%;
   display:flex;
   justify-content:flex-end;
   align-items:center;
-  width:100%;
-  margin-top:12px;
+  margin-top:14px;
   box-sizing:border-box;
+  writing-mode:horizontal-tb !important;
 }
 
-.match-request-confirm-v194{
-  flex:0 0 auto;
-  border:1px solid #efcbd6;
+.notification-confirm-v196{
+  border:1px solid #efc8d5;
   border-radius:999px;
+  background:#fff3f7;
+  color:#d9547b;
   padding:10px 18px;
-  background:#fff4f7;
-  color:#d9557c;
-  font-weight:800;
-  white-space:nowrap;
   min-width:96px;
+  font-weight:900;
+  font-size:14px;
+  line-height:1.2;
+  white-space:nowrap;
+  writing-mode:horizontal-tb !important;
 }
 
-.match-request-confirm-v194:disabled{
-  opacity:.65;
+.notification-confirm-v196:disabled{
+  opacity:.6;
 }
 
-.match-request-confirmed-v194{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:999px;
+.notification-confirmed-v196{
+  display:inline-block;
+  max-width:100%;
   padding:9px 14px;
+  border-radius:999px;
   background:#edf8f1;
   color:#258653;
-  font-weight:800;
+  font-weight:900;
   font-size:13px;
   line-height:1.35;
-  white-space:normal;
   text-align:center;
-  max-width:100%;
+  white-space:normal;
+  writing-mode:horizontal-tb !important;
 }
 
-/* 좁은 화면/인앱 브라우저 */
+/* 상단 모두읽음 세로 깨짐 방지 */
+#notificationMarkAllReadBtn,
+#markAllNotificationsReadBtn,
+.notification-mark-all-read,
+.notification-read-all,
+[data-notification-read-all]{
+  writing-mode:horizontal-tb !important;
+  white-space:nowrap !important;
+  width:auto !important;
+  min-width:max-content !important;
+  max-width:none !important;
+  flex:0 0 auto !important;
+  word-break:keep-all !important;
+  overflow-wrap:normal !important;
+}
+
+/* 알림센터 헤더 */
+.notification-modal-header,
+.notification-sheet-header,
+.notification-panel-header{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  writing-mode:horizontal-tb !important;
+}
+
 @media (max-width:480px){
-  .notification-main-v194{
-    gap:10px;
+  .notification-card-v196{
+    padding:16px;
+    border-radius:20px;
   }
 
-  .notification-main-v194 .notification-icon{
-    width:38px;
-    min-width:38px;
+  .notification-open-v196{
+    grid-template-columns:40px minmax(0,1fr) 10px;
+    column-gap:10px;
   }
 
-  .notification-main-v194 .notification-copy{
+  .notification-icon-v196{
+    width:40px;
+    min-width:40px;
+    font-size:30px;
+  }
+
+  .notification-title-v196{
+    font-size:16px;
+  }
+
+  .notification-message-v196{
     font-size:14px;
   }
 
-  .match-request-confirm-area-v194{
-    justify-content:flex-end;
-  }
-
-  .match-request-confirm-v194{
-    min-width:88px;
-    padding:9px 14px;
+  .notification-time-v196{
+    font-size:12px;
   }
 }
 </style>
-
 
 </head>
 <body>
@@ -1121,7 +1188,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=1950"></script>
+  <script src="app.js?v=1960"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

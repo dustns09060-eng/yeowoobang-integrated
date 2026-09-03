@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V195";
-window.YEOWOOBANG_BUILD = "V195";
+const APP_VERSION = "V196";
+window.YEOWOOBANG_BUILD = "V196";
 
 let config = {
   version: "V102",
@@ -3529,7 +3529,9 @@ function openNotificationTargetV189(item){
 }
 
 function renderNotificationsV76(){
-  const box=$("notificationList"); if(!box)return;
+  const box=$("notificationList");
+  if(!box)return;
+
   if(!v76Notifications.length){
     box.innerHTML='<div class="notification-empty">새 알림이 없어요 🦊</div>';
     return;
@@ -3541,24 +3543,39 @@ function renderNotificationsV76(){
     const checked=String(x.requestStatus||'').toUpperCase()==='READ';
     const canConfirm=isMatch && !!x.requestId;
 
-    return `<div class="notification-item ${x.read?'read':'unread'}" data-notification-key="${escapeHtml(x.key)}" data-notification-type="${escapeHtml(x.type||'')}">
-      <button class="notification-main-v194" type="button" data-notification-open="${escapeHtml(x.key)}">
-        <span class="notification-icon">${escapeHtml(x.icon||'🔔')}</span>
-        <span class="notification-copy">
-          <strong>${escapeHtml(x.title||'알림')}</strong>
-          <span>${escapeHtml(x.message||'')}</span>
-          <small>${escapeHtml(x.createdAt||'')}</small>
-        </span>
-        ${x.read?'':'<i class="notification-dot"></i>'}
-      </button>
-      ${canConfirm
-        ? `<div class="match-request-confirm-area-v194">${
-            checked
-              ? `<span class="match-request-confirmed-v194">✅ 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
-              : `<button class="match-request-confirm-v194" type="button" data-confirm-match-request="${escapeHtml(x.requestId)}" data-notification-key-confirm="${escapeHtml(x.key)}">요청 확인</button>`
-          }</div>`
-        : ''}
-    </div>`;
+    return `
+      <article class="notification-card-v196 ${x.read?'is-read':'is-unread'}"
+        data-notification-key="${escapeHtml(x.key||'')}"
+        data-notification-type="${escapeHtml(x.type||'')}">
+
+        <button class="notification-open-v196" type="button"
+          data-notification-open="${escapeHtml(x.key||'')}">
+          <span class="notification-icon-v196">${escapeHtml(x.icon||'🔔')}</span>
+
+          <span class="notification-text-v196">
+            <strong class="notification-title-v196">${escapeHtml(x.title||'알림')}</strong>
+            <span class="notification-message-v196">${escapeHtml(x.message||'')}</span>
+            <small class="notification-time-v196">${escapeHtml(x.createdAt||'')}</small>
+          </span>
+
+          ${x.read?'':'<span class="notification-dot-v196" aria-hidden="true"></span>'}
+        </button>
+
+        ${canConfirm ? `
+          <div class="notification-action-row-v196">
+            ${
+              checked
+                ? `<span class="notification-confirmed-v196">✅ 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
+                : `<button class="notification-confirm-v196" type="button"
+                    data-confirm-match-request="${escapeHtml(x.requestId)}"
+                    data-notification-key-confirm="${escapeHtml(x.key||'')}">
+                    요청 확인
+                  </button>`
+            }
+          </div>
+        ` : ''}
+      </article>
+    `;
   }).join('');
 
   box.querySelectorAll('[data-notification-open]').forEach(el=>el.addEventListener('click',async()=>{
@@ -3566,7 +3583,10 @@ function renderNotificationsV76(){
     const item=v76Notifications.find(x=>x.key===key);
     if(!item)return;
 
-    try{await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);}catch(_){}
+    try{
+      await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);
+    }catch(_){}
+
     item.read=true;
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
     renderNotificationsV76();
@@ -3576,24 +3596,12 @@ function renderNotificationsV76(){
     if(type==='MATCH' || type==='MATCH_REQUEST'){
       showView('matchView');
       loadMatchRequests().catch(()=>{});
-    }else if(type==='NOTICE')showView('noticeView');
-    else if(type==='INVITE')showView('inviteView');
+    }else if(type==='NOTICE'){
+      showView('noticeView');
+    }else if(type==='INVITE'){
+      showView('inviteView');
+    }
   }));
-
-  // V195: 카카오 인앱 브라우저/좁은 화면에서 알림 텍스트 폭이 0에 가까워지는 현상 방지
-  box.querySelectorAll('.notification-item').forEach(card=>{
-    card.style.width='100%';
-    card.style.boxSizing='border-box';
-    card.style.writingMode='horizontal-tb';
-  });
-  box.querySelectorAll('.notification-copy').forEach(copy=>{
-    copy.style.minWidth='0';
-    copy.style.width='auto';
-    copy.style.flex='1 1 auto';
-    copy.style.writingMode='horizontal-tb';
-    copy.style.wordBreak='keep-all';
-    copy.style.overflowWrap='anywhere';
-  });
 
   box.querySelectorAll('[data-confirm-match-request]').forEach(btn=>btn.addEventListener('click',async(e)=>{
     e.stopPropagation();
@@ -3601,6 +3609,7 @@ function renderNotificationsV76(){
 
     const requestId=btn.dataset.confirmMatchRequest;
     const notificationKey=btn.dataset.notificationKeyConfirm;
+
     btn.disabled=true;
     btn.textContent='확인 중...';
 
@@ -3627,8 +3636,6 @@ function renderNotificationsV76(){
 
       setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
       renderNotificationsV76();
-
-      // 보낸 사람 화면에서도 즉시 '확인함 + 확인시간'으로 읽히도록 서버 시트가 갱신됨
       loadMatchRequests().catch(()=>{});
       toast('맞팔 요청을 확인했습니다.');
     }catch(err){
