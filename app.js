@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V198";
-window.YEOWOOBANG_BUILD = "V198";
+const APP_VERSION = "V194";
+window.YEOWOOBANG_BUILD = "V194";
 
 let config = {
   version: "V102",
@@ -408,66 +408,6 @@ function normalize(value) {
 function validUsername(value) {
   return /^[a-z0-9._]{1,30}$/.test(value) &&
     !["instagram", "accounts", "explore", "direct", "p", "reels", "stories", "www", "about", "privacy", "terms", "login", "_u"].includes(value);
-}
-
-
-/**
- * V195 - 맞팔 판정 전용 인스타 ID 정규화
- * 기존 로그인/회원 로직의 normalize()는 건드리지 않습니다.
- */
-function canonicalInstagramIdV195(value) {
-  let text = String(value ?? "");
-
-  try { text = text.normalize("NFKC"); } catch (_) {}
-
-  // 복사/HTML/CSV 등에 섞일 수 있는 보이지 않는 문자 제거
-  text = text
-    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
-    .replace(/\u00A0/g, " ")
-    .trim();
-
-  // URL 인코딩된 값 대응
-  try { text = decodeURIComponent(text); } catch (_) {}
-
-  // HTML entity 최소 대응
-  text = text
-    .replace(/&amp;/gi, "&")
-    .replace(/&#64;/gi, "@");
-
-  text = text
-    .toLowerCase()
-    .replace(/^https?:\/\/(?:www\.)?instagram\.com\//i, "")
-    .replace(/^instagram\.com\//i, "")
-    .replace(/^_u\//i, "")
-    .replace(/^@+/, "")
-    .replace(/[?#].*$/, "")
-    .replace(/\/+$/, "")
-    .trim();
-
-  // URL 전체가 아닌 path가 넘어온 경우 마지막 안전 처리
-  const slash = text.indexOf("/");
-  if (slash >= 0) {
-    const first = text.slice(0, slash);
-    if (first === "_u") text = text.slice(slash + 1);
-    else text = first;
-  }
-
-  return text.trim();
-}
-
-function validInstagramIdV195(value) {
-  const id = canonicalInstagramIdV195(value);
-  return /^[a-z0-9._]{1,30}$/.test(id) &&
-    !["instagram","accounts","explore","direct","p","reel","reels","stories","www","about","privacy","terms","login","_u"].includes(id);
-}
-
-function uniqueInstagramIdsV195(values) {
-  const set = new Set();
-  for (const value of values || []) {
-    const id = canonicalInstagramIdV195(value);
-    if (validInstagramIdV195(id)) set.add(id);
-  }
-  return [...set];
 }
 
 function unique(values) {
@@ -1065,7 +1005,7 @@ async function loginMemberFromGate() {
       }, 20000);
     } else {
       // 비상용 레거시 폴백. Supabase 설정이 꺼진 경우에만 사용됩니다.
-      result = await apiPost("memberLoginV194", { instagramId, password }, 30000);
+      result = await apiPost("memberLogin", { instagramId, password }, 15000);
     }
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
@@ -2056,10 +1996,8 @@ let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
 
 function currentInviteMonthLabelV92(){
-  // V197: 짝수달 초대제. 홀수달에는 직전 짝수달 랭킹 유지.
-  const month=new Date().getMonth()+1;
-  const rankingMonth=(month%2===0)?month:(month===1?12:month-1);
-  return `${rankingMonth}월`;
+  const d=new Date();
+  return `${d.getMonth()+1}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2133,7 +2071,7 @@ function renderInviteRankV92(){
         <div class="invite-rank-detail-head">
           <div>
             <b>${escapeHtml(x.nickname||"")}</b>
-            <span>📅 ${currentInviteMonthLabelV92()} ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
             <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
           </div>
           <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
@@ -2414,27 +2352,15 @@ function findFiles(zip) {
 
 function extractHtml(text) {
   const ids = [];
-
-  // V195: 실제 href를 우선 파싱
-  try {
-    const doc = new DOMParser().parseFromString(String(text || ""), "text/html");
-    doc.querySelectorAll("a[href]").forEach((a) => {
-      const href = a.getAttribute("href") || "";
-      const m = href.match(/instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/i);
-      if (m) ids.push(m[1]);
-
-      // 일부 내보내기 파일은 링크 텍스트에만 ID가 남는 경우 대응
-      const label = canonicalInstagramIdV195(a.textContent || "");
-      if (validInstagramIdV195(label)) ids.push(label);
-    });
-  } catch (_) {}
-
-  // DOMParser에서 누락된 href를 정규식으로 추가 수집
   let match;
-  const regex = /https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/gi;
-  while ((match = regex.exec(String(text || "")))) ids.push(match[1]);
+  let regex = /href=["']https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)\/?[^"']*["']/gi;
+  while ((match = regex.exec(text))) ids.push(match[1]);
 
-  return uniqueInstagramIdsV195(ids);
+  if (!ids.length) {
+    regex = /https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/gi;
+    while ((match = regex.exec(text))) ids.push(match[1]);
+  }
+  return unique(ids);
 }
 
 function walkJson(value, output) {
@@ -2453,28 +2379,8 @@ function walkJson(value, output) {
 
 function extractJson(text) {
   const output = [];
-  try {
-    const data = JSON.parse(text);
-
-    // 공식 내보내기 형식의 href/value를 우선 수집
-    const visit = (value) => {
-      if (value == null) return;
-      if (Array.isArray(value)) {
-        value.forEach(visit);
-        return;
-      }
-      if (typeof value === "object") {
-        if (typeof value.href === "string") output.push(value.href);
-        if (typeof value.value === "string") output.push(value.value);
-        Object.values(value).forEach(visit);
-        return;
-      }
-      if (typeof value === "string") output.push(value);
-    };
-    visit(data);
-  } catch (_) {}
-
-  return uniqueInstagramIdsV195(output);
+  try { walkJson(JSON.parse(text), output); } catch (_) {}
+  return unique(output);
 }
 
 async function parseInstagramZip(file) {
@@ -2496,17 +2402,16 @@ async function parseInstagramZip(file) {
   const followingText = await zip.files[paths.following].async("string");
   const following = paths.following.endsWith(".json") ? extractJson(followingText) : extractHtml(followingText);
 
-  return { followers: uniqueInstagramIdsV195(followers), following: uniqueInstagramIdsV195(following) };
+  return { followers: unique(followers), following };
 }
 
 function classify(followers, following, baseList = matchRoomList) {
-  // V195: followers / following / 여우방 명단 모두 동일한 규칙으로 정규화한 뒤 비교합니다.
-  const followerSet = new Set(uniqueInstagramIdsV195(followers));
-  const followingSet = new Set(uniqueInstagramIdsV195(following));
+  const followerSet = new Set(followers);
+  const followingSet = new Set(following);
 
   const all = baseList.map((person) => {
-    const id = canonicalInstagramIdV195(person.id || "");
-    const available = Boolean(person.matchAvailable !== false && id && validInstagramIdV195(id));
+    const id = normalize(person.id || "");
+    const available = Boolean(person.matchAvailable !== false && id && validUsername(id));
 
     if (!available) {
       return {
@@ -2517,22 +2422,15 @@ function classify(followers, following, baseList = matchRoomList) {
       };
     }
 
-    const inFollowers = followerSet.has(id);
-    const inFollowing = followingSet.has(id);
-
-    // 양쪽 ZIP 목록에 모두 있으면 다른 조건보다 무조건 맞팔 우선
-    let status = "neither";
-    if (inFollowers && inFollowing) status = "mutual";
-    else if (!inFollowers && inFollowing) status = "onlyMe";
-    else if (inFollowers && !inFollowing) status = "fansOnly";
-
     return {
       ...person,
       id,
       matchAvailable: true,
-      status,
-      _v195Follower: inFollowers,
-      _v195Following: inFollowing
+      status:
+        followerSet.has(id) && followingSet.has(id) ? "mutual" :
+        !followerSet.has(id) && followingSet.has(id) ? "onlyMe" :
+        followerSet.has(id) && !followingSet.has(id) ? "fansOnly" :
+        "neither",
     };
   });
 
@@ -2544,39 +2442,9 @@ function classify(followers, following, baseList = matchRoomList) {
     neither: all.filter((item) => item.status === "neither"),
     unavailable: all.filter((item) => item.status === "unavailable"),
   };
-
-  // 개발/오류 확인용 - 개인정보 전체를 로그로 남기지 않고 개수만 기록
-  console.info("[V195 맞팔분석]", {
-    followers: followerSet.size,
-    following: followingSet.size,
-    roster: all.length,
-    mutual: result.mutual.length,
-    onlyMe: result.onlyMe.length,
-    fansOnly: result.fansOnly.length,
-    neither: result.neither.length
-  });
 }
 
 async function analyze() {
-  // V195: 이전 ZIP 분석 결과가 화면에 섞이지 않도록 매 분석마다 초기화
-  result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [], unavailable: [] };
-
-  // 현재 팔로우리스트 기준으로 비교 명단을 다시 동기화
-  if (roomList.length) {
-    matchRoomList = roomList.map(item => {
-      const id = canonicalInstagramIdV195(item.id || "");
-      const available = Boolean(id && validInstagramIdV195(id));
-      return {
-        no: item.no,
-        name: String(item.name || "").trim(),
-        id: available ? id : "",
-        statusSource: String(item.status || ""),
-        statusLabelSource: String(item.statusLabel || ""),
-        matchAvailable: available
-      };
-    });
-  }
-
   if (!isMatchPeriodOpen()) {
     updateMatchAnalysisUi();
     toast("지금은 맞팔분석 기간이 아닙니다.");
@@ -3603,11 +3471,8 @@ function setNotificationBadgeV76(count){
 async function loadNotificationsV76(forceV183 = false){
   if(!memberSession?.token){setNotificationBadgeV76(0);return;}
 
-  const box=$("notificationList");
-
   if (!forceV183 && freshV183(V183_SPEED.notificationsLoadedAt, V183_TTL.notifications)) {
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
-    renderNotificationsV76();
     return v76Notifications;
   }
 
@@ -3615,13 +3480,9 @@ async function loadNotificationsV76(forceV183 = false){
     return V183_SPEED.notificationsInFlight;
   }
 
-  if(box && !v76Notifications.length){
-    box.innerHTML='<div class="notification-empty">알림을 불러오는 중입니다...</div>';
-  }
-
   const taskV183=(async()=>{
     try{
-      const d=await apiPost('getNotificationsV76',{token:memberSession.token},15000);
+      const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
       v76Notifications=(d.items||[]).map(x=>({
         ...x,
         key:String(x.key||x.id||""),
@@ -3640,13 +3501,8 @@ async function loadNotificationsV76(forceV183 = false){
       );
       renderNotificationsV76();
       return v76Notifications;
-    }catch(error){
+    }catch(_){
       setNotificationBadgeV76(0);
-      if(box){
-        const msg=String(error?.message||"알림을 불러오지 못했습니다.");
-        box.innerHTML='<div class="notification-empty">알림을 불러오지 못했습니다.<br><small>'+escapeHtml(msg)+'</small><br><button type="button" id="retryNotificationsV196" class="secondary-btn">다시 불러오기</button></div>';
-        $("retryNotificationsV196")?.addEventListener("click",()=>loadNotificationsV76(true));
-      }
       return v76Notifications;
     }
   })();
@@ -3673,35 +3529,20 @@ function openNotificationTargetV189(item){
 }
 
 function renderNotificationsV76(){
-  const box=$("notificationList");
-  if(!box)return;
-
+  const box=$("notificationList"); if(!box)return;
   if(!v76Notifications.length){
     box.innerHTML='<div class="notification-empty">새 알림이 없어요 🦊</div>';
     return;
   }
 
-  // V198:
-  // 기존에는 notification-item 자체가 <button>인데 그 안에 다시 '요청 확인' <button>을 넣어
-  // 중첩 button 구조가 되어 클릭 이벤트가 충돌할 수 있었습니다.
-  // 바깥은 div, 일반 알림 영역과 요청확인 버튼을 각각 독립 버튼으로 렌더링합니다.
   box.innerHTML=v76Notifications.map(x=>{
-    const isMatch=String(x.type||'').toUpperCase()==='MATCH_REQUEST';
-    const isChecked=String(x.requestStatus||'').toUpperCase()==='READ';
-    const confirmHtml=isMatch
-      ? `<button class="match-confirm-btn-v198 ${isChecked?'is-checked':''}" type="button"
-            data-match-confirm-key="${escapeHtml(x.key)}"
-            ${isChecked?'disabled':''}>
-          ${isChecked
-            ? `✅ 확인 완료${x.requestCheckedAt?' · '+escapeHtml(x.requestCheckedAt):''}`
-            : '요청 확인'}
-        </button>`
-      : '';
+    const type=String(x.type||'').toUpperCase();
+    const isMatch=type==='MATCH_REQUEST'||type==='MATCH';
+    const checked=String(x.requestStatus||'').toUpperCase()==='READ';
+    const canConfirm=isMatch && !!x.requestId;
 
-    return `<div class="notification-item ${x.read?'read':'unread'}" data-notification-card="${escapeHtml(x.key)}">
-      <button class="notification-main-v198" type="button"
-        data-notification-key="${escapeHtml(x.key)}"
-        data-notification-type="${escapeHtml(x.type||'')}">
+    return `<div class="notification-item ${x.read?'read':'unread'}" data-notification-key="${escapeHtml(x.key)}" data-notification-type="${escapeHtml(x.type||'')}">
+      <button class="notification-main-v194" type="button" data-notification-open="${escapeHtml(x.key)}">
         <span class="notification-icon">${escapeHtml(x.icon||'🔔')}</span>
         <span class="notification-copy">
           <strong>${escapeHtml(x.title||'알림')}</strong>
@@ -3710,67 +3551,75 @@ function renderNotificationsV76(){
         </span>
         ${x.read?'':'<i class="notification-dot"></i>'}
       </button>
-      ${confirmHtml}
+      ${canConfirm
+        ? `<div class="match-request-confirm-area-v194">${
+            checked
+              ? `<span class="match-request-confirmed-v194">✅ 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
+              : `<button class="match-request-confirm-v194" type="button" data-confirm-match-request="${escapeHtml(x.requestId)}" data-notification-key-confirm="${escapeHtml(x.key)}">요청 확인</button>`
+          }</div>`
+        : ''}
     </div>`;
   }).join('');
 
-  // 일반 알림 본문 클릭
-  box.querySelectorAll('[data-notification-key]').forEach(el=>el.addEventListener('click',async()=>{
-    const key=el.dataset.notificationKey;
-    const type=el.dataset.notificationType;
-    try{await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);}catch(_){}
-
+  box.querySelectorAll('[data-notification-open]').forEach(el=>el.addEventListener('click',async()=>{
+    const key=el.dataset.notificationOpen;
     const item=v76Notifications.find(x=>x.key===key);
-    if(item)item.read=true;
+    if(!item)return;
 
+    try{await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);}catch(_){}
+    item.read=true;
     setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
     renderNotificationsV76();
-    closeNotificationModalV76();
 
-    const normalizedType=String(type||'').toUpperCase();
-    if(normalizedType==='MATCH' || normalizedType==='MATCH_REQUEST') showView('matchView');
-    else if(normalizedType==='NOTICE') showView('noticeView');
-    else if(normalizedType==='INVITE') showView('inviteView');
+    closeNotificationModalV76();
+    const type=String(item.type||'').toUpperCase();
+    if(type==='MATCH' || type==='MATCH_REQUEST'){
+      showView('matchView');
+      loadMatchRequests().catch(()=>{});
+    }else if(type==='NOTICE')showView('noticeView');
+    else if(type==='INVITE')showView('inviteView');
   }));
 
-  // 맞팔요청 '요청 확인' 버튼
-  box.querySelectorAll('[data-match-confirm-key]').forEach(btn=>btn.addEventListener('click',async(e)=>{
-    e.preventDefault();
+  box.querySelectorAll('[data-confirm-match-request]').forEach(btn=>btn.addEventListener('click',async(e)=>{
     e.stopPropagation();
+    if(btn.disabled)return;
 
-    const key=btn.dataset.matchConfirmKey;
-    const item=v76Notifications.find(x=>x.key===key);
-    if(!item)return toast('요청 정보를 찾지 못했습니다.');
-
-    if(!item.requestId){
-      return toast('맞팔요청 연결 정보를 찾지 못했습니다. 새 요청으로 다시 테스트해주세요.');
-    }
-
+    const requestId=btn.dataset.confirmMatchRequest;
+    const notificationKey=btn.dataset.notificationKeyConfirm;
     btn.disabled=true;
     btn.textContent='확인 중...';
 
     try{
-      const res=await apiPost('markMatchRequestCheckedV193',{
-        token:memberSession.token,
-        requestId:item.requestId
+      const result=await apiPost('markMatchRequestRead',{
+        requestId,
+        instagramId:matchRequestIdentity,
+        token:memberSession.token
       },12000);
 
-      item.requestStatus='READ';
-      item.requestCheckedAt=res?.checkedAt||'';
-      item.read=true;
+      const item=v76Notifications.find(x=>x.key===notificationKey);
+      if(item){
+        item.requestStatus='READ';
+        item.requestReadAt=result.readAt||'';
+        item.read=true;
+      }
 
-      // 알림 자체도 읽음 처리
       try{
-        await apiPost('markNotificationReadV76',{token:memberSession.token,key},8000);
+        await apiPost('markNotificationReadV76',{
+          token:memberSession.token,
+          key:notificationKey
+        },8000);
       }catch(_){}
 
       setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
       renderNotificationsV76();
-      toast('맞팔 요청을 확인했어요.');
-    }catch(error){
+
+      // 보낸 사람 화면에서도 즉시 '확인함 + 확인시간'으로 읽히도록 서버 시트가 갱신됨
+      loadMatchRequests().catch(()=>{});
+      toast('맞팔 요청을 확인했습니다.');
+    }catch(err){
       btn.disabled=false;
       btn.textContent='요청 확인';
-      toast(error?.message||'요청 확인에 실패했습니다.');
+      toast(err?.message||'요청 확인에 실패했습니다.');
     }
   }));
 }
@@ -3778,7 +3627,7 @@ function renderNotificationsV76(){
 function openNotificationModalV76(){
   if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
   $("notificationModal")?.classList.remove('hidden'); document.body.classList.add('account-modal-open');
-  void loadNotificationsV76(true);
+  void loadNotificationsV76();
 }
 function closeNotificationModalV76(){
   $("notificationModal")?.classList.add('hidden');
@@ -4200,6 +4049,3 @@ window.androidBackActionV178 = function(){
 // 구버전 Android 앱에서도 새 로직 사용
 window.androidBackActionV167 = window.androidBackActionV178;
 window.androidBackActionV165 = window.androidBackActionV178;
-
-
-
