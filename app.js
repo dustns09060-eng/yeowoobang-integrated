@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V196";
-window.YEOWOOBANG_BUILD = "V196";
+const APP_VERSION = "V197";
+window.YEOWOOBANG_BUILD = "V197";
 
 let config = {
   version: "V102",
@@ -2056,8 +2056,10 @@ let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
 
 function currentInviteMonthLabelV92(){
-  const d=new Date();
-  return `${d.getMonth()+1}월`;
+  // V197: 짝수달 초대제. 홀수달에는 직전 짝수달 랭킹 유지.
+  const month=new Date().getMonth()+1;
+  const rankingMonth=(month%2===0)?month:(month===1?12:month-1);
+  return `${rankingMonth}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2131,7 +2133,7 @@ function renderInviteRankV92(){
         <div class="invite-rank-detail-head">
           <div>
             <b>${escapeHtml(x.nickname||"")}</b>
-            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>📅 ${currentInviteMonthLabelV92()} ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
             <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
           </div>
           <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
