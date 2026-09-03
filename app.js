@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V194";
-window.YEOWOOBANG_BUILD = "V194";
+const APP_VERSION = "V195";
+window.YEOWOOBANG_BUILD = "V195";
 
 let config = {
   version: "V102",
@@ -3579,6 +3579,21 @@ function renderNotificationsV76(){
     }else if(type==='NOTICE')showView('noticeView');
     else if(type==='INVITE')showView('inviteView');
   }));
+
+  // V195: 카카오 인앱 브라우저/좁은 화면에서 알림 텍스트 폭이 0에 가까워지는 현상 방지
+  box.querySelectorAll('.notification-item').forEach(card=>{
+    card.style.width='100%';
+    card.style.boxSizing='border-box';
+    card.style.writingMode='horizontal-tb';
+  });
+  box.querySelectorAll('.notification-copy').forEach(copy=>{
+    copy.style.minWidth='0';
+    copy.style.width='auto';
+    copy.style.flex='1 1 auto';
+    copy.style.writingMode='horizontal-tb';
+    copy.style.wordBreak='keep-all';
+    copy.style.overflowWrap='anywhere';
+  });
 
   box.querySelectorAll('[data-confirm-match-request]').forEach(btn=>btn.addEventListener('click',async(e)=>{
     e.stopPropagation();

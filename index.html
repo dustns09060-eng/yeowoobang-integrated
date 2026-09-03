@@ -198,24 +198,147 @@
 </style>
 
 
-<style id="v194-match-confirm-style">
+
+<style id="v195-match-confirm-style">
+/* V195 알림센터 레이아웃 안정화
+   - 카카오 인앱 브라우저 / 좁은 화면 / 폴더블에서도 텍스트가 한 글자씩 세로로 깨지지 않도록
+     flex-basis, min-width, word-break를 명시합니다.
+*/
+.notification-item{
+  width:100%;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
 .notification-main-v194{
-  width:100%;border:0;background:transparent;padding:0;margin:0;
-  display:flex;align-items:center;text-align:left;color:inherit;font:inherit;
+  width:100%;
+  border:0;
+  background:transparent;
+  padding:0;
+  margin:0;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  text-align:left;
+  color:inherit;
+  font:inherit;
+  box-sizing:border-box;
+  min-width:0;
 }
+
+.notification-main-v194 .notification-icon{
+  flex:0 0 auto;
+  width:44px;
+  min-width:44px;
+  text-align:center;
+}
+
+.notification-main-v194 .notification-copy{
+  flex:1 1 auto;
+  min-width:0;
+  width:auto;
+  max-width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  white-space:normal;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+  line-height:1.45;
+}
+
+.notification-main-v194 .notification-copy strong,
+.notification-main-v194 .notification-copy span,
+.notification-main-v194 .notification-copy small{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
+
+.notification-main-v194 .notification-copy strong{
+  line-height:1.35;
+}
+
+.notification-main-v194 .notification-copy small{
+  margin-top:6px;
+}
+
+.notification-main-v194 .notification-dot{
+  flex:0 0 auto;
+  margin-top:8px;
+}
+
 .match-request-confirm-area-v194{
-  display:flex;justify-content:flex-end;margin-top:10px;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  width:100%;
+  margin-top:12px;
+  box-sizing:border-box;
 }
+
 .match-request-confirm-v194{
-  border:1px solid #efcbd6;border-radius:999px;padding:10px 18px;
-  background:#fff4f7;color:#d9557c;font-weight:800;
+  flex:0 0 auto;
+  border:1px solid #efcbd6;
+  border-radius:999px;
+  padding:10px 18px;
+  background:#fff4f7;
+  color:#d9557c;
+  font-weight:800;
+  white-space:nowrap;
+  min-width:96px;
 }
-.match-request-confirm-v194:disabled{opacity:.65}
+
+.match-request-confirm-v194:disabled{
+  opacity:.65;
+}
+
 .match-request-confirmed-v194{
-  display:inline-flex;align-items:center;border-radius:999px;padding:9px 14px;
-  background:#edf8f1;color:#258653;font-weight:800;font-size:13px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:9px 14px;
+  background:#edf8f1;
+  color:#258653;
+  font-weight:800;
+  font-size:13px;
+  line-height:1.35;
+  white-space:normal;
+  text-align:center;
+  max-width:100%;
+}
+
+/* 좁은 화면/인앱 브라우저 */
+@media (max-width:480px){
+  .notification-main-v194{
+    gap:10px;
+  }
+
+  .notification-main-v194 .notification-icon{
+    width:38px;
+    min-width:38px;
+  }
+
+  .notification-main-v194 .notification-copy{
+    font-size:14px;
+  }
+
+  .match-request-confirm-area-v194{
+    justify-content:flex-end;
+  }
+
+  .match-request-confirm-v194{
+    min-width:88px;
+    padding:9px 14px;
+  }
 }
 </style>
+
 
 </head>
 <body>
@@ -998,7 +1121,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=1940"></script>
+  <script src="app.js?v=1950"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
