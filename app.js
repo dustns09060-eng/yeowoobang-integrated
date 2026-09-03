@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V198";
-window.YEOWOOBANG_BUILD = "V198";
+const APP_VERSION = "V200";
+window.YEOWOOBANG_BUILD = "V200";
 
 let config = {
   version: "V102",
@@ -2553,8 +2553,7 @@ function getSentMatchRequestStateV198(targetId){
 }
 
 function matchRequestButtonV198(item){
-  if(item.status==="mutual") return "";
-
+  // V199: 이미 보낸 요청이 있으면 맞팔 판정과 관계없이 요청 상태를 가장 먼저 표시
   const state=getSentMatchRequestStateV198(item.id);
   if(state){
     const time=state.read && state.request?.readAt
@@ -2567,11 +2566,186 @@ function matchRequestButtonV198(item){
       disabled${time}>${state.read?"✓ 확인 완료":"요청 보냄"}</button>`;
   }
 
+  // 프로그램에서는 맞팔로 나오지만 실제 인스타에서 맞팔이 아닌 경우를 위한 예외 요청
+  if(item.status==="mutual"){
+    return `<button
+      class="match-request-send-btn match-request-force-v199"
+      type="button"
+      data-match-request-to="${escapeHtml(item.id)}"
+      data-match-request-force="1"
+      ${matchRequestPeriod.active ? "" : "disabled"}>실제 맞팔 아님 · 요청</button>`;
+  }
+
   return `<button
     class="match-request-send-btn match-request-ready-v198"
     type="button"
     data-match-request-to="${escapeHtml(item.id)}"
     ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`;
+}
+
+
+/* =========================================================
+   V200 - 전체 맞팔요청
+   기존 단건 요청 로직은 건드리지 않고 별도 순차 전송 함수로 추가합니다.
+   ========================================================= */
+
+function getBulkMatchTargetsV200(includeMutual=false){
+  const all = Array.isArray(result?.all) ? result.all : [];
+  const out = [];
+
+  all.forEach(item=>{
+    if(!item || !item.id) return;
+
+    // 이미 요청 보냄/확인 완료면 제외
+    if(getSentMatchRequestStateV198(item.id)) return;
+
+    // 기본: 프로그램상 미맞팔 대상만
+    if(item.status!=="mutual"){
+      out.push({id:item.id, forceMismatch:false});
+      return;
+    }
+
+    // 선택 시에만 프로그램상 맞팔도 포함
+    if(includeMutual){
+      out.push({id:item.id, forceMismatch:true});
+    }
+  });
+
+  return out;
+}
+
+async function sendMatchRequestSilentV200(target, forceMismatch=false){
+  target=normalize(target);
+  const from=normalize(matchRequestIdentity||currentMemberInstagramV181());
+
+  if(!target) return {ok:false,target,error:"대상 아이디 없음"};
+  if(!from) return {ok:false,target,error:"로그인 회원 인스타 아이디 확인 불가"};
+  if(target===from) return {ok:false,target,error:"본인 계정"};
+
+  try{
+    const data=await apiPost("sendMatchRequest",{
+      from,
+      to:target,
+      instagramId:from,
+      targetInstagram:target,
+      fromInstagram:from,
+      toInstagram:target,
+      forceMismatch:Boolean(forceMismatch)
+    },10000);
+
+    return {
+      ok:true,
+      target,
+      message:data?.message||"맞팔 요청을 보냈습니다."
+    };
+  }catch(e){
+    return {
+      ok:false,
+      target,
+      error:e?.message||"요청 실패"
+    };
+  }
+}
+
+function sleepV200(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function runBulkMatchRequestV200(){
+  const btn=$("bulkMatchRequestBtnV200");
+  const progress=$("bulkMatchRequestProgressV200");
+  const includeMutual=Boolean($("bulkIncludeMutualV200")?.checked);
+
+  if(!matchRequestPeriod.active){
+    toast("현재는 맞팔요청 기간이 아닙니다.");
+    return;
+  }
+
+  if(!matchRequestIdentity){
+    const ok=await ensureMatchRequestIdentityV181("");
+    if(!ok) return;
+  }
+
+  const targets=getBulkMatchTargetsV200(includeMutual);
+
+  if(!targets.length){
+    toast("새로 요청할 대상이 없습니다.");
+    return;
+  }
+
+  const extra = includeMutual
+    ? "\n프로그램상 맞팔 대상도 포함됩니다."
+    : "";
+
+  if(!confirm(
+    `아직 요청하지 않은 ${targets.length}명에게 맞팔요청을 순차 전송할까요?${extra}\n\n이미 요청 보냄/확인 완료인 회원은 자동 제외됩니다.`
+  )) return;
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="전체 요청 중...";
+  }
+
+  if(progress){
+    progress.hidden=false;
+    progress.textContent=`0 / ${targets.length}명 처리 중`;
+  }
+
+  let success=0;
+  let fail=0;
+  const failed=[];
+
+  for(let i=0;i<targets.length;i++){
+    const t=targets[i];
+
+    if(progress){
+      progress.textContent=`${i+1} / ${targets.length}명 · @${t.id} 요청 중`;
+    }
+
+    const res=await sendMatchRequestSilentV200(t.id,t.forceMismatch);
+
+    if(res.ok){
+      success++;
+    }else{
+      fail++;
+      failed.push({id:t.id,error:res.error});
+    }
+
+    // 서버 과부하/중복 호출 방지용 짧은 간격
+    if(i < targets.length-1) await sleepV200(350);
+  }
+
+  // 한 번만 최신 요청목록 다시 불러와 버튼 상태 전체 갱신
+  try{
+    await loadMatchRequests();
+  }catch(_){}
+
+  if(result.all.length) renderMatchList();
+
+  if(progress){
+    const failText=fail ? ` · 실패 ${fail}명` : "";
+    progress.textContent=`완료 · 성공 ${success}명${failText}`;
+  }
+
+  if(btn){
+    btn.disabled=false;
+    btn.textContent="전체 맞팔요청";
+  }
+
+  if(fail){
+    const sample=failed.slice(0,5).map(x=>`@${x.id}: ${x.error}`).join("\n");
+    alert(`전체 맞팔요청 완료\n\n성공 ${success}명\n실패 ${fail}명\n\n${sample}${failed.length>5?"\n외 실패 내역 있음":""}`);
+  }else{
+    toast(`${success}명에게 맞팔요청을 보냈습니다.`);
+  }
+}
+
+function bindBulkMatchRequestV200(){
+  const btn=$("bulkMatchRequestBtnV200");
+  if(btn && !btn.dataset.boundV200){
+    btn.dataset.boundV200="1";
+    btn.addEventListener("click",runBulkMatchRequestV200);
+  }
 }
 
 function renderMatchList() {
@@ -2596,7 +2770,10 @@ function renderMatchList() {
       </div>`).join("")
     : '<div class="empty-state">결과가 없습니다.</div>';
   document.querySelectorAll("[data-match-request-to]").forEach((button) => {
-    button.onclick = () => beginMatchRequest(button.dataset.matchRequestTo);
+    button.onclick = () => beginMatchRequest(
+      button.dataset.matchRequestTo,
+      button.dataset.matchRequestForce === "1"
+    );
   });
 }
 
@@ -2718,7 +2895,7 @@ function currentMemberInstagramV181(){
   );
 }
 
-async function ensureMatchRequestIdentityV181(target=""){
+async function ensureMatchRequestIdentityV181(target="", forceMismatch=false){
   if(matchRequestIdentity) return true;
 
   const sessionId = currentMemberInstagramV181();
@@ -2758,7 +2935,7 @@ async function ensureMatchRequestIdentityV181(target=""){
     renderMatchList();
 
     if(target){
-      await sendMatchRequest(target);
+      await sendMatchRequest(target, forceMismatch);
     }
     return true;
   }catch(e){
@@ -2788,20 +2965,20 @@ async function verifyMatchRequestIdentity() {
   }catch(e){if($("matchRequestIdentityMsg"))$("matchRequestIdentityMsg").textContent=e.message||"아이디를 확인하지 못했습니다.";toast(e.message||"아이디 확인 실패");}
 }
 function changeMatchRequestIdentity(){matchRequestIdentity="";matchRequestIdentityName="";$("matchRequestIdentityBox")?.classList.remove("hidden");$("matchRequestVerifiedBox")?.classList.add("hidden");if($("matchRequestList"))$("matchRequestList").innerHTML='<p class="state-text">내 아이디를 확인하면 요청 내역이 표시됩니다.</p>';prefillMatchRequestIdentity();renderMatchList();}
-async function beginMatchRequest(target){
+async function beginMatchRequest(target, forceMismatch=false){
   if(!matchRequestPeriod.active)return toast("현재는 맞팔 요청 가능 기간이 아닙니다.");
 
   target=normalize(target);
   if(!target)return;
 
   if(matchRequestIdentity){
-    return void sendMatchRequest(target);
+    return void sendMatchRequest(target, forceMismatch);
   }
 
   // 로그인된 회원 ID가 있으면 별도 '내 아이디 확인' 단계 없이 자동 확인 후 요청
   const sessionId=currentMemberInstagramV181();
   if(sessionId){
-    const ok=await ensureMatchRequestIdentityV181(target);
+    const ok=await ensureMatchRequestIdentityV181(target, forceMismatch);
     if(ok)return;
   }
 
@@ -2812,14 +2989,17 @@ async function beginMatchRequest(target){
   $("matchRequestMyInstagram")?.focus();
   toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다. 내 아이디를 확인해주세요.");
 }
-async function sendMatchRequest(target){
+async function sendMatchRequest(target, forceMismatch=false){
   target=normalize(target);
   const from=normalize(matchRequestIdentity||currentMemberInstagramV181());
 
   if(!target)return;
   if(!from)return toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다.");
   if(target===from)return toast("본인에게는 요청할 수 없습니다.");
-  if(!confirm(`@${target}님에게 맞팔 확인 요청을 보낼까요?`))return;
+  const confirmText = forceMismatch
+    ? `프로그램에서는 @${target}님과 맞팔로 확인됩니다.\n실제 인스타그램에서 맞팔이 아닌 경우에만 요청해주세요.\n\n맞팔 확인 요청을 보낼까요?`
+    : `@${target}님에게 맞팔 확인 요청을 보낼까요?`;
+  if(!confirm(confirmText))return;
 
   try{
     const data=await apiPost("sendMatchRequest",{
@@ -3547,6 +3727,7 @@ async function loadNotificationsV76(forceV183 = false){
         message:String(x.message||x.content||""),
         content:String(x.content||x.message||""),
         type:String(x.type||x.kind||""),
+        requestFromInstagram:normalize(x.requestFromInstagram||x.fromInstagram||""),
         read:Boolean(x.read || x.status==="READ")
       }));
       V183_SPEED.notificationsLoadedAt=Date.now();
@@ -3582,6 +3763,35 @@ function openNotificationTargetV189(item){
     return true;
   }
   return false;
+}
+
+
+function openInstagramProfileV199(instagramId){
+  const id=normalize(instagramId);
+  if(!id)return false;
+
+  const url=`https://www.instagram.com/${encodeURIComponent(id)}/`;
+
+  // 실제 사용자의 버튼 클릭 흐름 안에서 링크를 만들어 열어
+  // 모바일 브라우저/Android WebView의 외부링크 처리와 최대한 동일하게 동작시킵니다.
+  try{
+    const a=document.createElement("a");
+    a.href=url;
+    a.target="_blank";
+    a.rel="noopener";
+    a.style.display="none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  }catch(_){
+    try{
+      window.open(url,"_blank");
+      return true;
+    }catch(__){
+      return false;
+    }
+  }
 }
 
 function renderNotificationsV76(){
@@ -3665,9 +3875,15 @@ function renderNotificationsV76(){
 
     const requestId=btn.dataset.confirmMatchRequest;
     const notificationKey=btn.dataset.notificationKeyConfirm;
+    const item=v76Notifications.find(x=>x.key===notificationKey);
+    const knownSender=normalize(item?.requestFromInstagram||"");
 
     btn.disabled=true;
     btn.textContent='확인 중...';
+
+    // 보낸 사람 ID를 이미 알고 있으면 사용자 클릭 이벤트 안에서 즉시 프로필을 엽니다.
+    // 서버 확인 처리는 아래에서 그대로 진행됩니다.
+    if(knownSender) openInstagramProfileV199(knownSender);
 
     try{
       const result=await apiPost('markMatchRequestReadV197',{
@@ -3677,11 +3893,18 @@ function renderNotificationsV76(){
         token:memberSession.token
       },12000);
 
-      const item=v76Notifications.find(x=>x.key===notificationKey);
       if(item){
         item.requestStatus='READ';
         item.requestReadAt=result.readAt||'';
+        item.requestFromInstagram=normalize(
+          item.requestFromInstagram || result.fromInstagram || ""
+        );
         item.read=true;
+      }
+
+      // 기존 알림처럼 클릭 전에 보낸 사람 ID를 몰랐던 경우 서버 응답으로 프로필 열기
+      if(!knownSender && result?.fromInstagram){
+        openInstagramProfileV199(result.fromInstagram);
       }
 
       try{
@@ -4128,3 +4351,9 @@ window.androidBackActionV178 = function(){
 // 구버전 Android 앱에서도 새 로직 사용
 window.androidBackActionV167 = window.androidBackActionV178;
 window.androidBackActionV165 = window.androidBackActionV178;
+
+
+document.addEventListener("DOMContentLoaded",()=>{
+  try{ bindBulkMatchRequestV200(); }catch(_){}
+});
+setTimeout(()=>{ try{ bindBulkMatchRequestV200(); }catch(_){} },800);

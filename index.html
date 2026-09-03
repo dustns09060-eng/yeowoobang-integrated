@@ -451,6 +451,96 @@
 }
 </style>
 
+
+<style id="v199-mutual-exception-style">
+/* 프로그램상 맞팔이지만 실제 인스타와 다른 경우 사용하는 예외 요청 */
+.match-request-send-btn.match-request-force-v199{
+  background:#fff6e8 !important;
+  border-color:#efcf9d !important;
+  color:#a66b17 !important;
+  opacity:1 !important;
+  white-space:nowrap;
+}
+</style>
+
+
+<style id="v200-bulk-match-request-style">
+.bulk-match-request-v200{
+  margin:16px 0;
+  padding:16px;
+  border:1px solid #efd3dc;
+  border-radius:20px;
+  background:#fffafc;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  box-sizing:border-box;
+}
+
+.bulk-match-request-copy-v200{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.bulk-match-request-copy-v200 strong{
+  font-size:15px;
+  font-weight:900;
+}
+
+.bulk-match-request-copy-v200 span{
+  font-size:12px;
+  color:#888;
+  line-height:1.4;
+}
+
+.bulk-match-option-v200{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:13px;
+  color:#666;
+  cursor:pointer;
+}
+
+#bulkMatchRequestBtnV200{
+  border:1px solid #efbfd0;
+  border-radius:999px;
+  padding:11px 18px;
+  background:#f65f88;
+  color:#fff;
+  font-size:14px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+#bulkMatchRequestBtnV200:disabled{
+  opacity:.6;
+}
+
+.bulk-match-progress-v200{
+  grid-column:1 / -1;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#fff;
+  color:#666;
+  font-size:12px;
+  line-height:1.4;
+}
+
+@media (max-width:480px){
+  .bulk-match-request-v200{
+    grid-template-columns:1fr;
+  }
+  #bulkMatchRequestBtnV200{
+    width:100%;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -706,7 +796,21 @@
           </label>
           <button id="analyzeBtn" class="primary" type="button">맞팔 분석 시작 <span>→</span></button>
           <p id="status" class="status">단톡방 명단을 불러온 뒤 ZIP 파일을 선택해 주세요.</p>
-        </section>
+        
+<div id="bulkMatchRequestBarV200" class="bulk-match-request-v200">
+  <div class="bulk-match-request-copy-v200">
+    <strong>맞팔요청 한번에 보내기</strong>
+    <span>아직 요청하지 않은 대상에게 순차적으로 요청해요.</span>
+  </div>
+  <label class="bulk-match-option-v200">
+    <input id="bulkIncludeMutualV200" type="checkbox">
+    <span>프로그램상 맞팔 포함</span>
+  </label>
+  <button id="bulkMatchRequestBtnV200" type="button">전체 맞팔요청</button>
+  <div id="bulkMatchRequestProgressV200" class="bulk-match-progress-v200" hidden></div>
+</div>
+
+</section>
 
         <section id="summarySection" class="card hidden">
           <div class="section-title-row">
@@ -1232,7 +1336,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=1980"></script>
+  <script src="app.js?v=2000"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
