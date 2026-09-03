@@ -31,7 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V185";
+const APP_VERSION = "V187";
+window.YEOWOOBANG_BUILD = "V187";
 
 let config = {
   version: "V102",
@@ -3270,8 +3271,22 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderResumeCard();
 finishBootScreen();
 
+  // V187: Android 앱(WebView)에서는 PWA Service Worker를 사용하지 않습니다.
+  // 예전 서비스워커가 오래된 app.js/index.html을 계속 제공하는 현상을 방지합니다.
+  const isAndroidAppV187 = new URLSearchParams(location.search).get("app") === "android";
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=1210").catch(() => {});
+    if (isAndroidAppV187) {
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => Promise.all(regs.map(reg => reg.unregister())))
+        .catch(() => {});
+      if (window.caches) {
+        caches.keys()
+          .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+          .catch(() => {});
+      }
+    } else {
+      navigator.serviceWorker.register("sw.js?v=1870").catch(() => {});
+    }
   }
 
   // V118: app.js에 API 주소가 내장되어 있으므로 config.json을 기다리지 않고 즉시 인증을 시작합니다.
