@@ -563,6 +563,123 @@
 }
 </style>
 
+
+<style id="v204-bottom-nav-final-style">
+/* V204 하단메뉴 최종 고정: 홈 / 내정보 / 공지 / 알림센터 / 더보기 */
+.integrated-bottom-nav.home-bottom-nav{
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  grid-template-rows:1fr !important;
+  grid-auto-flow:column !important;
+  grid-auto-columns:minmax(0,1fr) !important;
+  flex-wrap:nowrap !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+  width:min(720px,calc(100% - 24px)) !important;
+  max-width:720px !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  overflow:visible !important;
+}
+
+.integrated-bottom-nav.home-bottom-nav > .nav-btn{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:8px 2px !important;
+  box-sizing:border-box !important;
+  flex:unset !important;
+  white-space:nowrap !important;
+  word-break:keep-all !important;
+}
+
+.integrated-bottom-nav.home-bottom-nav > #adminNavBtn{
+  display:none !important;
+}
+
+.integrated-bottom-nav.home-bottom-nav .nav-icon{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:0 !important;
+  line-height:1 !important;
+}
+
+.integrated-bottom-nav.home-bottom-nav .nav-btn > span:last-child{
+  display:block !important;
+  min-width:0 !important;
+  white-space:nowrap !important;
+  word-break:keep-all !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+}
+
+/* 알림센터 페이지 */
+#notificationView{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+#notificationView .notification-page-v203{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+#notificationView .notification-list{
+  width:100%;
+  min-width:0;
+}
+
+.notification-error-v204{
+  width:100%;
+  box-sizing:border-box;
+  padding:30px 16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+  text-align:center;
+  color:#777;
+}
+
+.notification-error-v204 strong{
+  color:#333;
+  font-size:16px;
+}
+
+.notification-error-v204 span{
+  max-width:100%;
+  font-size:12px;
+  line-height:1.45;
+  word-break:break-word;
+}
+
+#notificationRetryBtnV204{
+  margin-top:6px;
+  border:1px solid #efc4d2;
+  border-radius:999px;
+  padding:10px 18px;
+  background:#fff3f7;
+  color:#d6537c;
+  font-weight:900;
+}
+
+@media(max-width:520px){
+  .integrated-bottom-nav.home-bottom-nav{
+    width:calc(100% - 12px) !important;
+  }
+  .integrated-bottom-nav.home-bottom-nav > .nav-btn{
+    font-size:10px !important;
+  }
+  .integrated-bottom-nav.home-bottom-nav .nav-icon{
+    font-size:17px !important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -1368,7 +1485,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2030"></script>
+  <script src="app.js?v=2040"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

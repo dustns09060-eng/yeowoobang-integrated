@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V203";
-window.YEOWOOBANG_BUILD = "V203";
+const APP_VERSION = "V204";
+window.YEOWOOBANG_BUILD = "V204";
 
 let config = {
   version: "V102",
@@ -3750,7 +3750,17 @@ async function loadNotificationsV76(forceV183 = false){
       if(v76Notifications.length){
         renderNotificationsV76();
       }else if(box){
-        box.innerHTML='<div class="notification-empty">알림을 불러오지 못했어요. 잠시 후 다시 열어주세요.</div>';
+        const message=String(err?.message||'알림을 불러오지 못했습니다.');
+        box.innerHTML=`
+          <div class="notification-error-v204">
+            <strong>알림을 불러오지 못했어요.</strong>
+            <span>${escapeHtml(message)}</span>
+            <button id="notificationRetryBtnV204" type="button">다시 불러오기</button>
+          </div>`;
+        $("notificationRetryBtnV204")?.addEventListener("click",()=>{
+          V183_SPEED.notificationsLoadedAt=0;
+          loadNotificationsV76(true).catch(()=>{});
+        });
       }
       return v76Notifications;
     }
