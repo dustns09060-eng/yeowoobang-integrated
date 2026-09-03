@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V188";
-window.YEOWOOBANG_BUILD = "V188";
+const APP_VERSION = "V189";
+window.YEOWOOBANG_BUILD = "V189";
 
 let config = {
   version: "V102",
@@ -3483,9 +3483,22 @@ async function loadNotificationsV76(forceV183 = false){
   const taskV183=(async()=>{
     try{
       const d=await apiPost('getNotificationsV76',{token:memberSession.token},12000);
-      v76Notifications=d.items||[];
+      v76Notifications=(d.items||[]).map(x=>({
+        ...x,
+        key:String(x.key||x.id||""),
+        id:String(x.id||x.key||""),
+        title:String(x.title||"알림"),
+        message:String(x.message||x.content||""),
+        content:String(x.content||x.message||""),
+        type:String(x.type||x.kind||""),
+        read:Boolean(x.read || x.status==="READ")
+      }));
       V183_SPEED.notificationsLoadedAt=Date.now();
-      setNotificationBadgeV76(d.unread||0);
+      setNotificationBadgeV76(
+        Number.isFinite(Number(d.unread))
+          ? Number(d.unread)
+          : v76Notifications.filter(x=>!x.read).length
+      );
       renderNotificationsV76();
       return v76Notifications;
     }catch(_){
@@ -3502,6 +3515,17 @@ async function loadNotificationsV76(forceV183 = false){
       V183_SPEED.notificationsInFlight=null;
     }
   }
+}
+
+
+function openNotificationTargetV189(item){
+  const type=String(item?.type||"").toUpperCase();
+  if(type==="MATCH_REQUEST" || type==="MATCH"){
+    showView("matchView");
+    loadMatchRequests().catch(()=>{});
+    return true;
+  }
+  return false;
 }
 
 function renderNotificationsV76(){
