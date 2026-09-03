@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V187";
-window.YEOWOOBANG_BUILD = "V187";
+const APP_VERSION = "V188";
+window.YEOWOOBANG_BUILD = "V188";
 
 let config = {
   version: "V102",
@@ -2770,15 +2770,49 @@ async function beginMatchRequest(target){
   toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다. 내 아이디를 확인해주세요.");
 }
 async function sendMatchRequest(target){
-  target=normalize(target);if(!target)return;
-  if(target===matchRequestIdentity)return toast("본인에게는 요청할 수 없습니다.");
+  target=normalize(target);
+  const from=normalize(matchRequestIdentity||currentMemberInstagramV181());
+
+  if(!target)return;
+  if(!from)return toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다.");
+  if(target===from)return toast("본인에게는 요청할 수 없습니다.");
   if(!confirm(`@${target}님에게 맞팔 확인 요청을 보낼까요?`))return;
-  try{const data=await apiPost("sendMatchRequest",{fromInstagram:matchRequestIdentity,toInstagram:target},12000);toast(data.message||"맞팔 요청을 보냈습니다.");await loadMatchRequests();}
-  catch(e){toast(e.message||"맞팔 요청을 보내지 못했습니다.");}
+
+  try{
+    const data=await apiPost("sendMatchRequest",{
+      from,
+      to:target,
+      // V188 이전 서버와도 호환
+      instagramId:from,
+      targetInstagram:target,
+      fromInstagram:from,
+      toInstagram:target
+    },10000);
+    toast(data.message||"맞팔 요청을 보냈습니다.");
+    await loadMatchRequests();
+  }catch(e){
+    toast(e.message||"맞팔 요청을 보내지 못했습니다.");
+  }
 }
 async function loadMatchRequests(){
   if(!matchRequestIdentity)return;
-  try{const data=await apiPost("getMatchRequests",{instagramId:matchRequestIdentity},12000);matchRequestData={received:data.received||[],sent:data.sent||[]};if($("receivedRequestCount"))$("receivedRequestCount").textContent=matchRequestData.received.filter(x=>x.status!=="READ").length;if($("sentRequestCount"))$("sentRequestCount").textContent=matchRequestData.sent.length;renderMatchRequestList();}
+  try{
+    const data=await apiPost("getMatchRequests",{instagramId:matchRequestIdentity,instagram:matchRequestIdentity},10000);
+    const normalizeItemV188=x=>({
+      ...x,
+      fromInstagram:normalize(x.fromInstagram||x.from||""),
+      toInstagram:normalize(x.toInstagram||x.to||""),
+      fromName:String(x.fromName||x.senderName||""),
+      toName:String(x.toName||x.targetName||"")
+    });
+    matchRequestData={
+      received:(data.received||[]).map(normalizeItemV188),
+      sent:(data.sent||[]).map(normalizeItemV188)
+    };
+    if($("receivedRequestCount"))$("receivedRequestCount").textContent=matchRequestData.received.filter(x=>x.status!=="READ").length;
+    if($("sentRequestCount"))$("sentRequestCount").textContent=matchRequestData.sent.length;
+    renderMatchRequestList();
+  }
   catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
 }
 function showMatchRequestTab(tab){matchRequestTab=tab;document.querySelectorAll(".match-request-tab").forEach(b=>b.classList.toggle("active",b.dataset.requestTab===tab));renderMatchRequestList();}
