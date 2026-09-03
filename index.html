@@ -541,6 +541,28 @@
 }
 </style>
 
+
+<style id="v203-notification-page-style">
+.home-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr)) !important;}
+.notification-nav-v203{position:relative}
+.notification-nav-icon-v203{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.notification-nav-badge-v203{
+  position:absolute;top:-8px;right:-12px;min-width:18px;height:18px;padding:0 5px;
+  border-radius:999px;display:flex;align-items:center;justify-content:center;
+  background:#e94f79;color:#fff;font-size:10px;font-weight:900;line-height:1
+}
+.notification-page-v203{width:100%;box-sizing:border-box}
+.notification-page-head-v203{align-items:flex-start;gap:12px}
+.notification-page-head-v203>div{min-width:0;flex:1}
+.notification-page-head-v203 #notificationReadAllBtn{flex:0 0 auto;white-space:nowrap}
+#notificationView .notification-list{margin-top:16px;width:100%;min-width:0;box-sizing:border-box}
+#notificationBtn,#memberMenuBtn{display:none!important}
+@media(max-width:480px){
+  .home-bottom-nav .nav-btn{font-size:11px;padding-left:2px!important;padding-right:2px!important}
+  .home-bottom-nav .nav-icon{font-size:18px}
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -654,13 +676,11 @@
         <strong id="memberBadgeName"></strong>
         <span id="memberBadgeId"></span>
       </div>
-      <button id="notificationBtn" class="install notification-btn hidden" type="button" aria-label="알림센터">🔔<span id="notificationBadge" class="notification-badge hidden">0</span></button>
       <button id="adminModeBtn" class="install admin-mode-switch hidden" type="button">운영진</button>
       <button id="themeToggleBtn" class="install theme-toggle" type="button" aria-label="화면 모드 변경">🌙</button>
       <button id="moreMenuBtn" class="install header-more-btn" type="button" aria-label="더보기">⋯</button>
       <div id="headerMoreMenu" class="header-more-menu hidden">
         <button id="installBtn" type="button">📱 앱 설치</button>
-        <button id="memberMenuBtn" class="hidden" type="button">👤 내 메뉴</button>
       </div>
     </div>
   </header>
@@ -1021,6 +1041,22 @@
       </section>
     </section>
 
+
+<section id="notificationView" class="view">
+  <section class="card notification-page-v203">
+    <div class="section-title-row notification-page-head-v203">
+      <div>
+        <h2>🔔 알림센터</h2>
+        <p class="subtext">맞팔확인, 초대 처리결과, 새 공지를 한곳에서 확인해요.</p>
+      </div>
+      <button id="notificationReadAllBtn" class="text-btn small" type="button">모두 읽음</button>
+    </div>
+    <div id="notificationList" class="notification-list">
+      <p class="state-text">알림을 불러오는 중입니다.</p>
+    </div>
+  </section>
+</section>
+
 <section id="noticeView" class="view">
       <section class="card notice-page-card">
         <div class="section-title-row">
@@ -1236,20 +1272,16 @@
     <button id="homeNavBtn" class="nav-btn active" data-view="homeView" type="button"><span class="nav-icon">⌂</span><span>홈</span></button>
     <button id="myInfoNavBtn" class="nav-btn" data-view="myPageView" type="button"><span class="nav-icon">♙</span><span>내정보</span></button>
     <button id="noticeNavBtn" class="nav-btn" data-view="noticeView" type="button"><span class="nav-icon">♢</span><span>공지</span></button>
+    <button id="notificationNavBtnV203" class="nav-btn notification-nav-v203" data-view="notificationView" type="button">
+      <span class="nav-icon notification-nav-icon-v203">🔔<b id="notificationNavBadgeV203" class="notification-nav-badge-v203 hidden">0</b></span>
+      <span>알림센터</span>
+    </button>
     <button id="bottomMoreNavBtn" class="nav-btn" data-view="moreView" type="button"><span class="nav-icon">•••</span><span>더보기</span></button>
     <button id="adminNavBtn" class="nav-btn hidden" data-view="adminView" type="button"><span>운영진</span></button>
   </nav>
 
 
 
-
-  <div id="notificationModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
-    <section class="account-modal-card notification-modal-card">
-      <div class="account-modal-head"><button id="notificationCloseBtn" type="button">←</button><h2 id="notificationTitle">🔔 알림센터</h2><button id="notificationReadAllBtn" class="text-btn small" type="button">모두 읽음</button></div>
-      <p class="subtext">맞팔확인, 초대 처리결과, 새 공지를 한곳에서 확인해요.</p>
-      <div id="notificationList" class="notification-list"><p class="state-text">알림을 불러오는 중입니다.</p></div>
-    </section>
-  </div>
 
   <div id="adminModeModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminModeTitle">
     <section class="account-modal-card admin-mode-card">
@@ -1336,7 +1368,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2020"></script>
+  <script src="app.js?v=2030"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

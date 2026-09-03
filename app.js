@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V202";
-window.YEOWOOBANG_BUILD = "V202";
+const APP_VERSION = "V203";
+window.YEOWOOBANG_BUILD = "V203";
 
 let config = {
   version: "V102",
@@ -1230,8 +1230,7 @@ function logoutMember() {
   matchGranted = false;
   followGranted = false;
   setMemberHeader(null);
-  $("notificationBtn")?.classList.add("hidden");
-  $("notificationBadge")?.classList.add("hidden");
+  setNotificationBadgeV76(0);
   showGate();
   setGate("role");
   toast("로그아웃했습니다.");
@@ -2265,6 +2264,11 @@ function isOperatorMode_() {
 function showView(id) {
   if (id === "myPageView") {
     setTimeout(() => loadUnifiedMyInfoV142().catch(() => {}), 0);
+  }
+
+  if (id === "notificationView") {
+    if (v76Notifications.length) renderNotificationsV76();
+    setTimeout(() => loadNotificationsV76().catch(() => {}), 0);
   }
   if (id === "homeView" && $("homeMemberName")) {
     $("homeMemberName").textContent = memberSession?.member?.nickname || adminProfile?.name || "회원";
@@ -3696,9 +3700,8 @@ $('v74DataIssuesBtn')?.addEventListener('click',loadV75Issues);
 let v76Notifications=[];
 
 function setNotificationBadgeV76(count){
-  const btn=$("notificationBtn"), badge=$("notificationBadge");
-  if(!btn||!badge)return;
-  if(memberSession?.token)btn.classList.remove("hidden"); else btn.classList.add("hidden");
+  const badge=$("notificationNavBadgeV203");
+  if(!badge)return;
   const n=Number(count||0);
   badge.textContent=n>99?'99+':String(n);
   badge.classList.toggle("hidden",n<1);
@@ -3937,18 +3940,10 @@ function renderNotificationsV76(){
 
 function openNotificationModalV76(){
   if(!memberSession?.token)return toast('회원 로그인이 필요합니다.');
-  $("notificationModal")?.classList.remove('hidden');
-  document.body.classList.add('account-modal-open');
-
-  if(v76Notifications.length){
-    renderNotificationsV76();
-  }
-
-  void loadNotificationsV76();
+  showView("notificationView");
 }
 function closeNotificationModalV76(){
-  $("notificationModal")?.classList.add('hidden');
-  if(!document.querySelector('.account-modal:not(.hidden)'))document.body.classList.remove('account-modal-open');
+  showView("homeView");
 }
 async function markAllNotificationsReadV76(){
   if(!memberSession?.token)return;
@@ -3986,10 +3981,7 @@ async function loadMemberDetailV76(){
   }catch(e){box.innerHTML=`<p class="error-text">${escapeHtml(e.message||'회원 정보를 불러오지 못했습니다.')}</p>`;}
 }
 
-$("notificationBtn")?.addEventListener('click',openNotificationModalV76);
-$("notificationCloseBtn")?.addEventListener('click',closeNotificationModalV76);
 $("notificationReadAllBtn")?.addEventListener('click',markAllNotificationsReadV76);
-$("notificationModal")?.addEventListener('click',e=>{if(e.target?.id==='notificationModal')closeNotificationModalV76();});
 $("v76TaskRefreshBtn")?.addEventListener('click',loadAdminTaskboxV76);
 $("v76DetailBtn")?.addEventListener('click',loadMemberDetailV76);
 $("v76DetailId")?.addEventListener('keydown',e=>{if(e.key==='Enter')loadMemberDetailV76();});
