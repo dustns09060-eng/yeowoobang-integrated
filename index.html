@@ -748,7 +748,13 @@
 }
 </style>
 
-</head>
+<style id="v208-match-lock-period-style">
+.match-lock-period-v208{margin-top:14px;padding:16px;border:1px solid rgba(229,151,177,.35);border-radius:18px;background:rgba(255,247,250,.72)}
+.match-lock-period-v208 h4{margin:0 0 5px}.match-lock-period-grid-v208{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.match-lock-period-grid-v208 label{display:flex;flex-direction:column;gap:6px;min-width:0;font-weight:800;font-size:13px}.match-lock-period-grid-v208 input{width:100%;min-width:0;box-sizing:border-box}
+.match-lock-period-actions-v208{margin-top:12px}#matchPeriodReserveBadge.active{background:#fff0f5;color:#d6537c;border-color:#efc4d2}
+@media(max-width:620px){.match-lock-period-grid-v208{grid-template-columns:1fr}}
+</style></head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
     <section class="boot-card">
@@ -1400,8 +1406,31 @@
 
         <hr />
         <div id="adminMatchSettingsV206" class="setting-block admin-basic-v206">
-          <div class="section-title-row"><div><h3>맞팔확인 기간</h3><p class="subtext">기간을 열면 회원의 완료/지연 투표와 ZIP 맞팔분석이 함께 활성화됩니다.</p></div><span id="matchLockState" class="lock-state locked">기간 아님</span></div>
-          <div class="admin-actions"><button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 기간 종료</button><button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 기간 시작</button></div>
+          <div class="section-title-row">
+            <div><h3>맞팔확인</h3></div>
+            <span id="matchLockState" class="lock-state unlocked">사용 가능</span>
+          </div>
+          <div class="admin-actions">
+            <button id="lockMatchBtn" class="outline danger-outline" type="button">맞팔확인 잠그기</button>
+            <button id="unlockMatchBtn" class="outline success-outline" type="button">맞팔확인 잠금 해제</button>
+          </div>
+          <div class="match-lock-period-v208">
+            <div class="section-title-row">
+              <div>
+                <h4>예약 잠금 기간</h4>
+                <p class="subtext">시작시간부터 종료시간까지 맞팔확인을 자동으로 잠급니다.</p>
+              </div>
+              <span id="matchPeriodReserveBadge" class="lock-state unlocked">예약 없음</span>
+            </div>
+            <div class="match-lock-period-grid-v208">
+              <label><span>잠금 시작</span><input id="matchPeriodStartAdmin" type="datetime-local"></label>
+              <label><span>잠금 종료</span><input id="matchPeriodEndAdmin" type="datetime-local"></label>
+            </div>
+            <div class="admin-actions match-lock-period-actions-v208">
+              <button id="saveMatchPeriodBtn" class="primary" type="button">예약 잠금 저장</button>
+              <button id="clearMatchPeriodBtn" class="outline" type="button">예약 해제</button>
+            </div>
+          </div>
         </div>
 
 
@@ -1567,7 +1596,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2070"></script>
+  <script src="app.js?v=2080"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

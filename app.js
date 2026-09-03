@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V207";
-window.YEOWOOBANG_BUILD = "V207";
+const APP_VERSION = "V208";
+window.YEOWOOBANG_BUILD = "V208";
 
 let config = {
   version: "V102",
@@ -1511,10 +1511,10 @@ function updateLockIndicators() {
   }
 
   if ($("matchLockState")) {
-    const scheduled=Boolean(publicConfig?.matchPeriodScheduled);
+    const scheduledLocked=Boolean(publicConfig?.matchScheduledLocked);
     $("matchLockState").textContent = matchLocked
-      ? (scheduled ? "예약 대기/종료" : "기간 아님")
-      : (scheduled ? "예약 진행중" : "진행중");
+      ? (scheduledLocked ? "예약 잠금 중" : "잠금 중")
+      : "사용 가능";
     $("matchLockState").className = `lock-state ${matchLocked ? "locked" : "unlocked"}`;
   }
 
@@ -1574,14 +1574,14 @@ function updateMatchAnalysisUi() {
 
   const badge = $("matchAnalysisBadge");
   if (badge) {
-    badge.textContent = open ? "진행중" : "기간 아님";
+    badge.textContent = open ? "사용 가능" : "잠금 중";
     badge.className = `lock-state ${open ? "unlocked" : "locked"}`;
   }
 
   const message = $("matchAnalysisMessage");
   if (message) {
     if (!signedIn) message.textContent = "회원 로그인 후 맞팔분석을 이용할 수 있습니다.";
-    else if (!open) message.textContent = "지금은 맞팔분석 기간이 아닙니다. (관리자가 기간을 지정하면 열립니다)";
+    else if (!open) message.textContent = "현재 맞팔확인이 잠겨 있습니다. 운영진이 잠금을 해제하면 이용할 수 있습니다.";
     else message.textContent = "단톡방 명단을 불러온 뒤 인스타그램 ZIP 파일을 선택해 주세요.";
   }
 
@@ -1594,8 +1594,8 @@ function updateMatchAnalysisUi() {
   document.querySelector('label[for="zipFile"]')?.classList.toggle("disabled", !enabled);
 
   if (!open) {
-    if ($("roomState")) $("roomState").textContent = "기간 아님";
-    if ($("status")) $("status").textContent = "맞팔확인 기간이 시작되면 분석 기능이 자동으로 열립니다.";
+    if ($("roomState")) $("roomState").textContent = "잠금 중";
+    if ($("status")) $("status").textContent = "맞팔확인 잠금이 해제되면 분석 기능을 이용할 수 있습니다.";
   } else if (!signedIn) {
     if ($("roomState")) $("roomState").textContent = "로그인 필요";
     if ($("status")) $("status").textContent = "회원 로그인 후 맞팔분석을 이용해 주세요.";
@@ -4142,8 +4142,9 @@ function syncMatchPeriodAdminV101(){
     $("matchPeriodEndAdmin").value=toLocalDateTimeInputV101(publicConfig?.matchPeriodEndAt||"");
   }
   if($("matchPeriodReserveBadge")){
-    $("matchPeriodReserveBadge").textContent=publicConfig?.matchPeriodScheduled ? "예약 설정됨" : "예약 없음";
-    $("matchPeriodReserveBadge").classList.toggle("active",Boolean(publicConfig?.matchPeriodScheduled));
+    const reserved=Boolean(publicConfig?.matchStartAt && publicConfig?.matchEndAt);
+    $("matchPeriodReserveBadge").textContent=reserved ? "예약 설정됨" : "예약 없음";
+    $("matchPeriodReserveBadge").classList.toggle("active",reserved);
   }
 }
 
@@ -4160,9 +4161,9 @@ async function setMatchVoteOpenV101(open){
     },15000);
     await refreshPublicConfig(false);
     syncMatchPeriodAdminV101();
-    toast(open?"맞팔확인 기간을 시작했습니다.":"맞팔확인 기간을 종료했습니다.");
+    toast(open?"맞팔확인 잠금을 해제했습니다.":"맞팔확인을 잠갔습니다.");
   }catch(e){
-    toast(e.message||"맞팔확인 기간 변경에 실패했습니다.");
+    toast(e.message||"맞팔확인 잠금 변경에 실패했습니다.");
   }
 }
 
@@ -4186,9 +4187,9 @@ async function saveMatchPeriodV101(clear=false){
     },15000);
     await refreshPublicConfig(false);
     syncMatchPeriodAdminV101();
-    toast(clear?"맞팔확인 예약을 해제했습니다.":"맞팔확인 예약을 저장했습니다.");
+    toast(clear?"맞팔확인 예약 잠금을 해제했습니다.":"맞팔확인 예약 잠금을 저장했습니다.");
   }catch(e){
-    toast(e.message||"맞팔확인 예약 설정에 실패했습니다.");
+    toast(e.message||"맞팔확인 예약 잠금 설정에 실패했습니다.");
   }
 }
 $("saveMatchPeriodBtn")?.addEventListener("click",()=>saveMatchPeriodV101(false));
