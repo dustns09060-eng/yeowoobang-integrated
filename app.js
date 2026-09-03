@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V209";
-window.YEOWOOBANG_BUILD = "V209";
+const APP_VERSION = "V210";
+window.YEOWOOBANG_BUILD = "V210";
 
 let config = {
   version: "V102",
@@ -1220,17 +1220,56 @@ async function registerMemberFromGate() {
 
 function openMemberDrawer() {
   if (!memberSession?.member) return;
-  $("drawerMemberName").textContent = `${memberSession.member.nickname || "회원"}님`;
-  $("drawerMemberInstagram").textContent = memberSession.member.instagramId ? `@${memberSession.member.instagramId}` : "";
-  $("memberDrawerBackdrop")?.classList.remove("hidden");
-  $("memberDrawer")?.classList.remove("hidden");
+
+  const name=$("drawerMemberName");
+  const insta=$("drawerMemberInstagram");
+  if(name) name.textContent=`${memberSession.member.nickname || "회원"}님`;
+  if(insta) insta.textContent=memberSession.member.instagramId ? `@${memberSession.member.instagramId}` : "";
+
+  const backdrop=$("memberDrawerBackdrop");
+  const drawer=$("memberDrawer");
+
+  backdrop?.classList.remove("hidden");
+  drawer?.classList.remove("hidden");
+  drawer?.classList.add("open");
   document.body.classList.add("drawer-open");
 }
+
 function closeMemberDrawer() {
-  $("memberDrawerBackdrop")?.classList.add("hidden");
-  $("memberDrawer")?.classList.add("hidden");
+  const backdrop=$("memberDrawerBackdrop");
+  const drawer=$("memberDrawer");
+
+  // V210: 기존 inline-script가 붙이던 open 클래스까지 반드시 제거
+  drawer?.classList.remove("open");
+  drawer?.classList.add("hidden");
+  backdrop?.classList.add("hidden");
   document.body.classList.remove("drawer-open");
+
+  return true;
 }
+
+function isMemberDrawerOpenV210(){
+  const drawer=$("memberDrawer");
+  if(!drawer) return false;
+  return !drawer.classList.contains("hidden") || drawer.classList.contains("open") || document.body.classList.contains("drawer-open");
+}
+
+/* V210 더보기 패널 닫기 전용 - 다른 기능은 건드리지 않음 */
+document.addEventListener("click",(e)=>{
+  if(e.target.closest("#memberDrawerCloseBtn")){
+    e.preventDefault();
+    e.stopPropagation();
+    closeMemberDrawer();
+    return;
+  }
+
+  if(e.target.id==="memberDrawerBackdrop"){
+    e.preventDefault();
+    closeMemberDrawer();
+    return;
+  }
+},true);
+
 function openAccountModal(id) { closeMemberDrawer(); $(id)?.classList.remove("hidden"); document.body.classList.add("account-modal-open"); }
 function closeAccountModal(id) { $(id)?.classList.add("hidden"); if (!document.querySelector('.account-modal:not(.hidden)')) document.body.classList.remove("account-modal-open"); }
 
@@ -4446,26 +4485,48 @@ window.androidBackActionV165 = function() {
    ========================================================= */
 window.androidBackActionV178 = function(){
   try{
-    // 로그인 게이트가 보이는 상태
-    const gate = document.getElementById("gate");
-    const gateVisible = gate && !gate.classList.contains("hidden");
+    // V210: 더보기 패널이 열려 있으면 시스템 뒤로가기는 앱 종료가 아니라 패널 닫기
+    if(typeof isMemberDrawerOpenV210==="function" && isMemberDrawerOpenV210()){
+      closeMemberDrawer();
+      return "HANDLED";
+    }
+
+    // 일반 계정 모달도 먼저 닫기
+    const visibleModal=document.querySelector(".account-modal:not(.hidden)");
+    if(visibleModal){
+      visibleModal.classList.add("hidden");
+      document.body.classList.remove("account-modal-open");
+      return "HANDLED";
+    }
+
+    // 헤더의 작은 더보기 메뉴가 남아 있는 경우도 먼저 닫기
+    const headerMore=document.getElementById("headerMoreMenu");
+    if(headerMore && !headerMore.classList.contains("hidden")){
+      headerMore.classList.add("hidden");
+      return "HANDLED";
+    }
+
+    // 로그인 게이트
+    const gate=document.getElementById("appGate") || document.getElementById("gate");
+    const gateVisible=gate && !gate.classList.contains("hidden");
 
     if(gateVisible){
       if(["memberRegister","memberForgot","adminSimple","newMemberInvite","operatorLogin"].includes(gateMode)){
         setGate("memberLogin");
         return "HANDLED";
       }
-      if(gateMode === "memberLogin"){
-        setGate("role");
+      if(gateMode==="memberLogin"){
+        if(typeof backToRoleSelect==="function") backToRoleSelect();
+        else setGate("role");
         return "HANDLED";
       }
     }
 
-    // 실제 화면 전환은 .view.active 기준
-    const activeView = document.querySelector(".view.active");
-    if(activeView && activeView.id && activeView.id !== "homeView"){
+    // 로그인 후 서브 화면 -> 홈
+    const activeView=document.querySelector(".view.active");
+    if(activeView && activeView.id && activeView.id!=="homeView"){
       showView("homeView");
-      window.scrollTo({top:0, behavior:"auto"});
+      window.scrollTo({top:0,behavior:"auto"});
       return "HOME";
     }
 

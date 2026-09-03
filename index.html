@@ -1525,7 +1525,7 @@
   <aside id="memberDrawer" class="member-drawer hidden" aria-label="내 메뉴">
     <div class="member-drawer-head">
       <div class="drawer-profile"><img src="app-logo-v20.png?v=430" alt="여우방"/><div><strong id="drawerMemberName">회원님</strong><span id="drawerMemberInstagram"></span></div></div>
-      <button id="memberDrawerCloseBtn" class="drawer-close" type="button">×</button>
+      <button id="memberDrawerCloseBtn" class="drawer-close" type="button" aria-label="더보기 닫기">×</button>
     </div>
     <nav class="member-drawer-menu">
       <button id="openMyPageBtn" type="button">👤 <span>마이페이지</span></button>
@@ -1596,7 +1596,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2090"></script>
+  <script src="app.js?v=2100"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
@@ -1623,14 +1623,15 @@ window.addEventListener('DOMContentLoaded', function(){
     if(btn) btn.click();
   });
   if(more) more.addEventListener('click', function(){
-    const btn=document.getElementById('memberMenuBtn');
-    if(btn && !btn.classList.contains('hidden')) btn.click();
-    else {
-      const drawer=document.getElementById('memberDrawer');
-      const back=document.getElementById('memberDrawerBackdrop');
-      if(drawer){ drawer.classList.remove('hidden'); drawer.classList.add('open'); }
-      if(back) back.classList.remove('hidden');
+    if(typeof openMemberDrawer==='function'){
+      openMemberDrawer();
+      return;
     }
+    const drawer=document.getElementById('memberDrawer');
+    const back=document.getElementById('memberDrawerBackdrop');
+    if(drawer){ drawer.classList.remove('hidden'); drawer.classList.add('open'); }
+    if(back) back.classList.remove('hidden');
+    document.body.classList.add('drawer-open');
   });
 });
 </script>
