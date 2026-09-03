@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V194";
-window.YEOWOOBANG_BUILD = "V194";
+const APP_VERSION = "V195";
+window.YEOWOOBANG_BUILD = "V195";
 
 let config = {
   version: "V102",
@@ -408,6 +408,66 @@ function normalize(value) {
 function validUsername(value) {
   return /^[a-z0-9._]{1,30}$/.test(value) &&
     !["instagram", "accounts", "explore", "direct", "p", "reels", "stories", "www", "about", "privacy", "terms", "login", "_u"].includes(value);
+}
+
+
+/**
+ * V195 - 맞팔 판정 전용 인스타 ID 정규화
+ * 기존 로그인/회원 로직의 normalize()는 건드리지 않습니다.
+ */
+function canonicalInstagramIdV195(value) {
+  let text = String(value ?? "");
+
+  try { text = text.normalize("NFKC"); } catch (_) {}
+
+  // 복사/HTML/CSV 등에 섞일 수 있는 보이지 않는 문자 제거
+  text = text
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\u00A0/g, " ")
+    .trim();
+
+  // URL 인코딩된 값 대응
+  try { text = decodeURIComponent(text); } catch (_) {}
+
+  // HTML entity 최소 대응
+  text = text
+    .replace(/&amp;/gi, "&")
+    .replace(/&#64;/gi, "@");
+
+  text = text
+    .toLowerCase()
+    .replace(/^https?:\/\/(?:www\.)?instagram\.com\//i, "")
+    .replace(/^instagram\.com\//i, "")
+    .replace(/^_u\//i, "")
+    .replace(/^@+/, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "")
+    .trim();
+
+  // URL 전체가 아닌 path가 넘어온 경우 마지막 안전 처리
+  const slash = text.indexOf("/");
+  if (slash >= 0) {
+    const first = text.slice(0, slash);
+    if (first === "_u") text = text.slice(slash + 1);
+    else text = first;
+  }
+
+  return text.trim();
+}
+
+function validInstagramIdV195(value) {
+  const id = canonicalInstagramIdV195(value);
+  return /^[a-z0-9._]{1,30}$/.test(id) &&
+    !["instagram","accounts","explore","direct","p","reel","reels","stories","www","about","privacy","terms","login","_u"].includes(id);
+}
+
+function uniqueInstagramIdsV195(values) {
+  const set = new Set();
+  for (const value of values || []) {
+    const id = canonicalInstagramIdV195(value);
+    if (validInstagramIdV195(id)) set.add(id);
+  }
+  return [...set];
 }
 
 function unique(values) {
@@ -2352,15 +2412,27 @@ function findFiles(zip) {
 
 function extractHtml(text) {
   const ids = [];
-  let match;
-  let regex = /href=["']https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)\/?[^"']*["']/gi;
-  while ((match = regex.exec(text))) ids.push(match[1]);
 
-  if (!ids.length) {
-    regex = /https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/gi;
-    while ((match = regex.exec(text))) ids.push(match[1]);
-  }
-  return unique(ids);
+  // V195: 실제 href를 우선 파싱
+  try {
+    const doc = new DOMParser().parseFromString(String(text || ""), "text/html");
+    doc.querySelectorAll("a[href]").forEach((a) => {
+      const href = a.getAttribute("href") || "";
+      const m = href.match(/instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/i);
+      if (m) ids.push(m[1]);
+
+      // 일부 내보내기 파일은 링크 텍스트에만 ID가 남는 경우 대응
+      const label = canonicalInstagramIdV195(a.textContent || "");
+      if (validInstagramIdV195(label)) ids.push(label);
+    });
+  } catch (_) {}
+
+  // DOMParser에서 누락된 href를 정규식으로 추가 수집
+  let match;
+  const regex = /https?:\/\/(?:www\.)?instagram\.com\/(?:_u\/)?([A-Za-z0-9._]+)/gi;
+  while ((match = regex.exec(String(text || "")))) ids.push(match[1]);
+
+  return uniqueInstagramIdsV195(ids);
 }
 
 function walkJson(value, output) {
@@ -2379,8 +2451,28 @@ function walkJson(value, output) {
 
 function extractJson(text) {
   const output = [];
-  try { walkJson(JSON.parse(text), output); } catch (_) {}
-  return unique(output);
+  try {
+    const data = JSON.parse(text);
+
+    // 공식 내보내기 형식의 href/value를 우선 수집
+    const visit = (value) => {
+      if (value == null) return;
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      if (typeof value === "object") {
+        if (typeof value.href === "string") output.push(value.href);
+        if (typeof value.value === "string") output.push(value.value);
+        Object.values(value).forEach(visit);
+        return;
+      }
+      if (typeof value === "string") output.push(value);
+    };
+    visit(data);
+  } catch (_) {}
+
+  return uniqueInstagramIdsV195(output);
 }
 
 async function parseInstagramZip(file) {
@@ -2402,16 +2494,17 @@ async function parseInstagramZip(file) {
   const followingText = await zip.files[paths.following].async("string");
   const following = paths.following.endsWith(".json") ? extractJson(followingText) : extractHtml(followingText);
 
-  return { followers: unique(followers), following };
+  return { followers: uniqueInstagramIdsV195(followers), following: uniqueInstagramIdsV195(following) };
 }
 
 function classify(followers, following, baseList = matchRoomList) {
-  const followerSet = new Set(followers);
-  const followingSet = new Set(following);
+  // V195: followers / following / 여우방 명단 모두 동일한 규칙으로 정규화한 뒤 비교합니다.
+  const followerSet = new Set(uniqueInstagramIdsV195(followers));
+  const followingSet = new Set(uniqueInstagramIdsV195(following));
 
   const all = baseList.map((person) => {
-    const id = normalize(person.id || "");
-    const available = Boolean(person.matchAvailable !== false && id && validUsername(id));
+    const id = canonicalInstagramIdV195(person.id || "");
+    const available = Boolean(person.matchAvailable !== false && id && validInstagramIdV195(id));
 
     if (!available) {
       return {
@@ -2422,15 +2515,22 @@ function classify(followers, following, baseList = matchRoomList) {
       };
     }
 
+    const inFollowers = followerSet.has(id);
+    const inFollowing = followingSet.has(id);
+
+    // 양쪽 ZIP 목록에 모두 있으면 다른 조건보다 무조건 맞팔 우선
+    let status = "neither";
+    if (inFollowers && inFollowing) status = "mutual";
+    else if (!inFollowers && inFollowing) status = "onlyMe";
+    else if (inFollowers && !inFollowing) status = "fansOnly";
+
     return {
       ...person,
       id,
       matchAvailable: true,
-      status:
-        followerSet.has(id) && followingSet.has(id) ? "mutual" :
-        !followerSet.has(id) && followingSet.has(id) ? "onlyMe" :
-        followerSet.has(id) && !followingSet.has(id) ? "fansOnly" :
-        "neither",
+      status,
+      _v195Follower: inFollowers,
+      _v195Following: inFollowing
     };
   });
 
@@ -2442,9 +2542,39 @@ function classify(followers, following, baseList = matchRoomList) {
     neither: all.filter((item) => item.status === "neither"),
     unavailable: all.filter((item) => item.status === "unavailable"),
   };
+
+  // 개발/오류 확인용 - 개인정보 전체를 로그로 남기지 않고 개수만 기록
+  console.info("[V195 맞팔분석]", {
+    followers: followerSet.size,
+    following: followingSet.size,
+    roster: all.length,
+    mutual: result.mutual.length,
+    onlyMe: result.onlyMe.length,
+    fansOnly: result.fansOnly.length,
+    neither: result.neither.length
+  });
 }
 
 async function analyze() {
+  // V195: 이전 ZIP 분석 결과가 화면에 섞이지 않도록 매 분석마다 초기화
+  result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [], unavailable: [] };
+
+  // 현재 팔로우리스트 기준으로 비교 명단을 다시 동기화
+  if (roomList.length) {
+    matchRoomList = roomList.map(item => {
+      const id = canonicalInstagramIdV195(item.id || "");
+      const available = Boolean(id && validInstagramIdV195(id));
+      return {
+        no: item.no,
+        name: String(item.name || "").trim(),
+        id: available ? id : "",
+        statusSource: String(item.status || ""),
+        statusLabelSource: String(item.statusLabel || ""),
+        matchAvailable: available
+      };
+    });
+  }
+
   if (!isMatchPeriodOpen()) {
     updateMatchAnalysisUi();
     toast("지금은 맞팔분석 기간이 아닙니다.");
