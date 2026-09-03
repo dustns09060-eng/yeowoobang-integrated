@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V196";
-window.YEOWOOBANG_BUILD = "V196";
+const APP_VERSION = "V198";
+window.YEOWOOBANG_BUILD = "V198";
 
 let config = {
   version: "V102",
@@ -2531,6 +2531,49 @@ function matchFiltered() {
     : items;
 }
 
+
+function getSentMatchRequestStateV198(targetId){
+  const target=normalize(targetId);
+  if(!target) return null;
+
+  const sent=Array.isArray(matchRequestData?.sent) ? matchRequestData.sent : [];
+  const matches=sent.filter(x=>normalize(x.toInstagram||x.to||"")===target);
+  if(!matches.length) return null;
+
+  // 같은 사람에게 여러 요청이 있으면 가장 최근 요청을 우선 사용
+  const latest=matches[0];
+  const read=String(latest.status||"").toUpperCase()==="READ" || !!latest.readAt;
+
+  return {
+    request: latest,
+    read,
+    label: read ? "확인 완료" : "요청 보냄",
+    className: read ? "match-request-confirmed-v198" : "match-request-sent-v198"
+  };
+}
+
+function matchRequestButtonV198(item){
+  if(item.status==="mutual") return "";
+
+  const state=getSentMatchRequestStateV198(item.id);
+  if(state){
+    const time=state.read && state.request?.readAt
+      ? ` title="상대방 확인: ${escapeHtml(state.request.readAt)}"`
+      : "";
+    return `<button
+      class="match-request-send-btn ${state.className}"
+      type="button"
+      data-match-request-state="${state.read?"read":"sent"}"
+      disabled${time}>${state.read?"✓ 확인 완료":"요청 보냄"}</button>`;
+  }
+
+  return `<button
+    class="match-request-send-btn match-request-ready-v198"
+    type="button"
+    data-match-request-to="${escapeHtml(item.id)}"
+    ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`;
+}
+
 function renderMatchList() {
   const items = matchFiltered();
   $("list").innerHTML = items.length
@@ -2548,7 +2591,7 @@ function renderMatchList() {
           ${item.status === "unavailable"
             ? `<span class="muted">분석 제외</span>`
             : `<a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
-               ${item.status === "mutual" ? "" : `<button class="match-request-send-btn" type="button" data-match-request-to="${escapeHtml(item.id)}" ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`}`}
+               ${matchRequestButtonV198(item)}`}
         </div>
       </div>`).join("")
     : '<div class="empty-state">결과가 없습니다.</div>';
@@ -2790,6 +2833,7 @@ async function sendMatchRequest(target){
     },10000);
     toast(data.message||"맞팔 요청을 보냈습니다.");
     await loadMatchRequests();
+    if(result.all.length) renderMatchList();
   }catch(e){
     toast(e.message||"맞팔 요청을 보내지 못했습니다.");
   }
@@ -2812,6 +2856,9 @@ async function loadMatchRequests(){
     if($("receivedRequestCount"))$("receivedRequestCount").textContent=matchRequestData.received.filter(x=>x.status!=="READ").length;
     if($("sentRequestCount"))$("sentRequestCount").textContent=matchRequestData.sent.length;
     renderMatchRequestList();
+
+    // V198: 보낸 요청/확인 여부를 맞팔 분석 목록 버튼 색상에도 즉시 반영
+    if(result.all.length) renderMatchList();
   }
   catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
 }
@@ -2825,7 +2872,16 @@ function renderMatchRequestList(){
   }).join(""):'<p class="state-text">표시할 맞팔 요청이 없습니다.</p>';
   box.querySelectorAll("[data-read-request]").forEach(b=>b.onclick=()=>markMatchRequestRead(b.dataset.readRequest));
 }
-async function markMatchRequestRead(id){try{await apiPost("markMatchRequestRead",{requestId:id,instagramId:matchRequestIdentity},10000);await loadMatchRequests();toast("맞팔 요청을 확인했습니다.");}catch(e){toast(e.message||"확인 처리 실패");}}
+async function markMatchRequestRead(id){
+  try{
+    await apiPost("markMatchRequestRead",{requestId:id,instagramId:matchRequestIdentity},10000);
+    await loadMatchRequests();
+    if(result.all.length) renderMatchList();
+    toast("맞팔 요청을 확인했습니다.");
+  }catch(e){
+    toast(e.message||"확인 처리 실패");
+  }
+}
 async function saveMatchRequestPeriod(){
   const startValue=$("matchRequestStartAt")?.value||"",endValue=$("matchRequestEndAt")?.value||"";
   if(!startValue||!endValue)return toast("시작일과 종료일을 모두 입력해주세요.");
@@ -3541,7 +3597,7 @@ function renderNotificationsV76(){
     const type=String(x.type||'').toUpperCase();
     const isMatch=type==='MATCH_REQUEST'||type==='MATCH';
     const checked=String(x.requestStatus||'').toUpperCase()==='READ';
-    const canConfirm=isMatch && !!x.requestId;
+    const canConfirm=isMatch;
 
     return `
       <article class="notification-card-v196 ${x.read?'is-read':'is-unread'}"
@@ -3567,7 +3623,7 @@ function renderNotificationsV76(){
               checked
                 ? `<span class="notification-confirmed-v196">✅ 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
                 : `<button class="notification-confirm-v196" type="button"
-                    data-confirm-match-request="${escapeHtml(x.requestId)}"
+                    data-confirm-match-request="${escapeHtml(x.requestId||'')}"
                     data-notification-key-confirm="${escapeHtml(x.key||'')}">
                     요청 확인
                   </button>`
@@ -3614,8 +3670,9 @@ function renderNotificationsV76(){
     btn.textContent='확인 중...';
 
     try{
-      const result=await apiPost('markMatchRequestRead',{
+      const result=await apiPost('markMatchRequestReadV197',{
         requestId,
+        notificationKey,
         instagramId:matchRequestIdentity,
         token:memberSession.token
       },12000);

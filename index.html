@@ -407,6 +407,50 @@
 }
 </style>
 
+
+<style id="v198-match-request-status-style">
+/* V198 맞팔요청 버튼 상태 구분 */
+
+/* 요청 전 */
+.match-request-send-btn.match-request-ready-v198{
+  background:#fff0f5 !important;
+  border-color:#efbfd0 !important;
+  color:#d94f78 !important;
+}
+
+/* 내가 이미 요청을 보낸 상태 */
+.match-request-send-btn.match-request-sent-v198,
+.match-request-send-btn.match-request-sent-v198:disabled{
+  background:#f1edff !important;
+  border-color:#cfc2f6 !important;
+  color:#7356b8 !important;
+  opacity:1 !important;
+  cursor:default !important;
+}
+
+/* 상대방이 요청 확인까지 완료 */
+.match-request-send-btn.match-request-confirmed-v198,
+.match-request-send-btn.match-request-confirmed-v198:disabled{
+  background:#eaf8ef !important;
+  border-color:#bfe3cc !important;
+  color:#258653 !important;
+  opacity:1 !important;
+  cursor:default !important;
+}
+
+/* disabled 전역 opacity 때문에 상태색이 흐려지지 않도록 */
+.match-request-send-btn[data-match-request-state]:disabled{
+  filter:none !important;
+  -webkit-text-fill-color:currentColor !important;
+}
+
+@media (max-width:480px){
+  .match-request-send-btn{
+    white-space:nowrap;
+  }
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -1188,7 +1232,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=1960"></script>
+  <script src="app.js?v=1980"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
