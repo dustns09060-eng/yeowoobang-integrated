@@ -2117,10 +2117,14 @@ async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await 
 
 let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
+let inviteRankMonthLabelV218="";
 
 function currentInviteMonthLabelV92(){
+  if(inviteRankMonthLabelV218)return inviteRankMonthLabelV218;
   const d=new Date();
-  return `${d.getMonth()+1}월`;
+  const currentMonth=d.getMonth()+1;
+  const sourceMonth=currentMonth%2===0?currentMonth:(currentMonth===1?12:currentMonth-1);
+  return `${sourceMonth}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2285,6 +2289,8 @@ async function loadInviteLeaderboard(forceV183 = false){
   try{
     $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
+    inviteRankMonthLabelV218=String(d.monthLabel||currentInviteMonthLabelV92());
+    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
