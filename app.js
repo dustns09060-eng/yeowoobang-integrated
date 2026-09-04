@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V216";
-window.YEOWOOBANG_BUILD = "V216";
+const APP_VERSION = "V215";
+window.YEOWOOBANG_BUILD = "V215";
 
 let config = {
   version: "V102",
@@ -2386,6 +2386,8 @@ function isOperatorMode_() {
 }
 
 function showView(id) {
+  const previousViewId = document.querySelector(".view.active")?.id || "";
+
   if (id === "myPageView") {
     setTimeout(() => loadUnifiedMyInfoV142().catch(() => {}), 0);
   }
@@ -2409,6 +2411,11 @@ function showView(id) {
   }
 
   if (id === "matchView") {
+    // V217: 다른 메뉴에서 맞팔확인으로 다시 들어오면 이전 검색 조건을 남기지 않습니다.
+    if (previousViewId !== "matchView" && $("searchInput")) {
+      $("searchInput").value = "";
+      if (result.all.length) renderMatchList();
+    }
     applyMatchLock();
     prefillMatchRequestIdentity();
     loadMatchRequestConfig().catch(()=>{});
@@ -3132,6 +3139,11 @@ async function sendMatchRequest(target, forceMismatch=false){
     : `@${target}님에게 맞팔 확인 요청을 보낼까요?`;
   if(!confirm(confirmText))return;
 
+  const requestButton=[...document.querySelectorAll("[data-match-request-to]")]
+    .find(button=>normalize(button.dataset.matchRequestTo)===target);
+  const originalButtonText=requestButton?.textContent||"";
+  if(requestButton){requestButton.disabled=true;requestButton.textContent="요청 중...";}
+
   try{
     const data=await apiPost("sendMatchRequest",{
       from,
@@ -3147,7 +3159,25 @@ async function sendMatchRequest(target, forceMismatch=false){
     await loadMatchRequests();
     if(result.all.length) renderMatchList();
   }catch(e){
+    // V217: Apps Script 응답만 늦고 요청은 이미 저장된 경우 실제 서버 상태를 재확인합니다.
+    const transient=e?.code==="TIMEOUT" || e instanceof TypeError ||
+      /Failed to fetch|NetworkError|Load failed|서버 응답이 늦어/i.test(String(e?.message||""));
+    if(transient){
+      toast("요청 접수 여부를 확인하고 있어요.");
+      await loadMatchRequests();
+      if(getSentMatchRequestStateV198(target)){
+        V183_SPEED.notificationsLoadedAt=0;
+        if(result.all.length) renderMatchList();
+        toast("맞팔 요청이 접수되었습니다.");
+        return;
+      }
+    }
     toast(e.message||"맞팔 요청을 보내지 못했습니다.");
+  }finally{
+    if(requestButton?.isConnected && !getSentMatchRequestStateV198(target)){
+      requestButton.disabled=!matchRequestPeriod.active;
+      requestButton.textContent=originalButtonText;
+    }
   }
 }
 async function loadMatchRequests(){
@@ -3175,70 +3205,30 @@ async function loadMatchRequests(){
   catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
 }
 function showMatchRequestTab(tab){matchRequestTab=tab;document.querySelectorAll(".match-request-tab").forEach(b=>b.classList.toggle("active",b.dataset.requestTab===tab));renderMatchRequestList();}
-const MATCH_REQUEST_PENDING_KEY_V213 = "yeowoobang:matchRequestPending:v216";
-const MATCH_REQUEST_PENDING_TTL_V216 = 30 * 60 * 1000;
-
-function matchPendingMemberKeyV216(){
-  return String(memberSession?.member?.memberId||memberSession?.member?.instagramId||"");
-}
-
+const MATCH_REQUEST_PENDING_KEY_V213 = "yeowoobang:matchRequestPending:v213";
 function getMatchRequestPendingV213(){
-  let saved=null;
-  try{saved=JSON.parse(sessionStorage.getItem(MATCH_REQUEST_PENDING_KEY_V213)||"null");}catch(_){}
-  if(!saved){
-    try{saved=JSON.parse(localStorage.getItem(MATCH_REQUEST_PENDING_KEY_V213)||"null");}catch(_){}
-  }
-
-  const memberKey=matchPendingMemberKeyV216();
-  if(!saved || saved.memberKey!==memberKey || !saved.items || typeof saved.items!=="object") return {};
-
-  const now=Date.now();
-  const items={};
-  Object.entries(saved.items).forEach(([id,ts])=>{
-    if(id && Number(ts)>0 && now-Number(ts)<MATCH_REQUEST_PENDING_TTL_V216){
-      items[id]=Number(ts);
-    }
-  });
-  return items;
+  try{return JSON.parse(sessionStorage.getItem(MATCH_REQUEST_PENDING_KEY_V213)||"{}");}catch(_){return {};}
 }
-
-function saveMatchRequestPendingV216(items){
-  const payload={memberKey:matchPendingMemberKeyV216(),items};
-  try{sessionStorage.setItem(MATCH_REQUEST_PENDING_KEY_V213,JSON.stringify(payload));}catch(_){}
-  try{localStorage.setItem(MATCH_REQUEST_PENDING_KEY_V213,JSON.stringify(payload));}catch(_){}
-}
-
 function setMatchRequestPendingV213(id,value=true){
-  const key=String(id||"").trim();
-  if(!key)return;
   const map=getMatchRequestPendingV213();
-  if(value) map[key]=Date.now(); else delete map[key];
-  saveMatchRequestPendingV216(map);
+  if(value) map[String(id||"")]=Date.now(); else delete map[String(id||"")];
+  try{sessionStorage.setItem(MATCH_REQUEST_PENDING_KEY_V213,JSON.stringify(map));}catch(_){}
 }
-
-function isMatchRequestPendingV213(id){
-  const key=String(id||"").trim();
-  return !!(key && getMatchRequestPendingV213()[key]);
-}
+function isMatchRequestPendingV213(id){return !!getMatchRequestPendingV213()[String(id||"")];}
 function renderMatchRequestList(){
   const box=$("matchRequestList");if(!box)return;
   const items=matchRequestData[matchRequestTab]||[];
   box.innerHTML=items.length?items.map(x=>{
     const received=matchRequestTab==="received";const read=x.status==="READ"||!!x.readAt;
     const pending=!read&&isMatchRequestPendingV213(x.id);
-    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions">${read?'<span class="request-read-label">확인 완료</span>':`<button class="outline small" data-request-check-v213="${escapeHtml(x.id)}" data-request-from-v213="${escapeHtml(x.fromInstagram||'')}" type="button">${pending?'확인 완료':'요청 확인'}</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"상대방 확인 완료":"상대방 확인중"}</span>`}</div>`;
+    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions">${read?'<span class="request-read-label">확인 완료</span>':`<button class="outline small" data-request-check-v213="${escapeHtml(x.id)}" data-request-from-v213="${escapeHtml(x.fromInstagram||'')}" type="button">${pending?'확인 완료':'요청 확인'}</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"확인 완료":"확인 전"}</span>`}</div>`;
   }).join(""):'<p class="state-text">표시할 맞팔 요청이 없습니다.</p>';
   box.querySelectorAll("[data-request-check-v213]").forEach(b=>b.onclick=async()=>{
     const id=b.dataset.requestCheckV213, from=normalize(b.dataset.requestFromV213||"");
     if(!isMatchRequestPendingV213(id)){
       setMatchRequestPendingV213(id,true);
       b.textContent="확인 완료";
-      if(!from || !openInstagramProfileV199(from)){
-        setMatchRequestPendingV213(id,false);
-        b.textContent="요청 확인";
-        toast("인스타그램을 열지 못했습니다. 다시 눌러주세요.");
-        return;
-      }
+      if(from) openInstagramProfileV199(from);
       toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
       return;
     }
@@ -4037,36 +4027,6 @@ function openInstagramProfileV199(instagramId){
   }
 }
 
-
-async function resolveNotificationMatchContextV216(item,button=null){
-  if(!item) throw new Error('맞팔요청 알림 정보를 찾을 수 없습니다.');
-
-  let requestId=String(item.requestId||'').trim();
-  let sender=normalize(item.requestFromInstagram||'');
-
-  if(requestId && sender) return {requestId,sender};
-
-  const data=await apiPost('resolveMatchRequestContextV216',{
-    token:memberSession?.token||'',
-    notificationKey:item.key||'',
-    requestId
-  },12000);
-
-  requestId=String(data.requestId||'').trim();
-  sender=normalize(data.fromInstagram||sender);
-
-  if(!requestId) throw new Error('맞팔요청 ID를 찾지 못했습니다.');
-  if(!sender) throw new Error('요청을 보낸 회원의 인스타 아이디를 찾지 못했습니다.');
-
-  item.requestId=requestId;
-  item.requestFromInstagram=sender;
-  item.requestStatus=data.status||item.requestStatus||'NEW';
-  item.requestReadAt=data.readAt||item.requestReadAt||'';
-
-  if(button) button.dataset.confirmMatchRequest=requestId;
-  return {requestId,sender};
-}
-
 function renderNotificationsV76(){
   const box=$("notificationList");
   if(!box)return;
@@ -4171,40 +4131,20 @@ function renderNotificationsV76(){
     e.stopPropagation();
     if(btn.disabled)return;
 
-    let requestId=btn.dataset.confirmMatchRequest;
+    const requestId=btn.dataset.confirmMatchRequest;
     const notificationKey=btn.dataset.notificationKeyConfirm;
     const item=v76Notifications.find(x=>x.key===notificationKey);
-    let sender=normalize(item?.requestFromInstagram||"");
+    const sender=normalize(item?.requestFromInstagram||"");
 
-    // V216: 빈 RequestID/보낸아이디는 먼저 실제 요청과 연결합니다.
-    if(!requestId || !sender){
-      btn.disabled=true;
-      btn.textContent='요청 확인 중...';
-      try{
-        const resolved=await resolveNotificationMatchContextV216(item,btn);
-        requestId=resolved.requestId;
-        sender=resolved.sender;
-      }catch(err){
-        btn.disabled=false;
-        btn.textContent='요청 확인';
-        toast(err?.message||'맞팔요청 정보를 불러오지 못했습니다.');
-        return;
-      }
-      btn.disabled=false;
-    }
-
-    // 첫 클릭: 요청자의 인스타만 열고 완료 상태는 저장하지 않음.
+    // V213: 첫 클릭은 인스타 확인만. 서버의 확인완료 상태는 절대 바꾸지 않습니다.
     if(!isMatchRequestPendingV213(requestId)){
       setMatchRequestPendingV213(requestId,true);
       btn.textContent='확인 완료';
-
-      if(!openInstagramProfileV199(sender)){
-        setMatchRequestPendingV213(requestId,false);
-        btn.textContent='요청 확인';
-        toast('인스타그램을 열지 못했습니다. 다시 눌러주세요.');
-        return;
+      if(sender) openInstagramProfileV199(sender);
+      else {
+        showView('matchView');
+        loadMatchRequests().catch(()=>{});
       }
-
       toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
       return;
     }
