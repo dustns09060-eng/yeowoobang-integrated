@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V227";
-window.YEOWOOBANG_BUILD = "V227";
+const APP_VERSION = "V228";
+window.YEOWOOBANG_BUILD = "V228";
 
 let config = {
   version: "V102",
@@ -2165,12 +2165,9 @@ function renderInviteRankV92(){
   }else{
     top3.innerHTML=podium.map(x=>`
       <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
-        <span class="podium-glow-v224" aria-hidden="true"></span>
-        <span class="podium-art-v223" aria-hidden="true"></span>
-        <span class="podium-copy-v223">
-          <b>${escapeHtml(x.nickname||"")}</b>
-          <strong>${x.score}명</strong>
-        </span>
+        <span class="podium-art-v228" aria-hidden="true"></span>
+        <b class="podium-name-v228">${escapeHtml(x.nickname||"")}</b>
+        <strong class="podium-count-v228">${x.score}명</strong>
       </button>`).join("");
 
     list.innerHTML=rest.map(x=>`
