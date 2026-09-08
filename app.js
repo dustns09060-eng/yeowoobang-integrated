@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V233";
-window.YEOWOOBANG_BUILD = "V233";
+const APP_VERSION = "V234";
+window.YEOWOOBANG_BUILD = "V234";
 
 let config = {
   version: "V102",
@@ -3566,14 +3566,6 @@ if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member")
 document.querySelectorAll("[data-home-view]").forEach((button) => {
   button.onclick = () => showView(button.dataset.homeView);
 });
-if ($("homePumasiBtn")) {
-  $("homePumasiBtn").onclick = () => {
-    const configured = window.YEOWOOBANG_PUMASI_URL || "";
-    if (configured) window.location.href = configured;
-    else toast("품앗이 연결 주소를 등록하면 바로 이동할 수 있어요.");
-  };
-}
-
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
