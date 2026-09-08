@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V241";
-window.YEOWOOBANG_BUILD = "V241";
+const APP_VERSION = "V242";
+window.YEOWOOBANG_BUILD = "V242";
 
 let config = {
   version: "V102",
@@ -2172,7 +2172,7 @@ function renderInviteRankV92(){
     top3.innerHTML=`
       <svg class="invite-top3-svg-v239" viewBox="0 0 1634 650" preserveAspectRatio="xMidYMid meet"
            role="img" aria-label="초대 랭킹 1위 2위 3위">
-        <image href="top3_scene_v240.jpg?v=2400" x="0" y="0" width="1634" height="650"
+        <image href="top3_scene_v242.jpg?v=2420" x="0" y="0" width="1634" height="650"
                preserveAspectRatio="none"></image>
 
         ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
@@ -3763,7 +3763,7 @@ finishBootScreen();
           .catch(() => {});
       }
     } else {
-      navigator.serviceWorker.register("sw.js?v=2410").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=2420").catch(() => {});
     }
   }
 
