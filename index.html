@@ -781,6 +781,124 @@
 }
 </style>
 
+
+<style id="v217-invite-ranking-top3">
+/* V217 초대랭킹 TOP3 전용 디자인 */
+.invite-ranking-top1-v217,
+.invite-ranking-top2-v217,
+.invite-ranking-top3-v217{
+  position:relative !important;
+  overflow:hidden !important;
+  border-width:2px !important;
+  border-style:solid !important;
+  transform-origin:center;
+  box-shadow:0 10px 24px rgba(0,0,0,.10) !important;
+}
+
+.invite-ranking-top1-v217{
+  border-color:#e9bd35 !important;
+  background:
+    radial-gradient(circle at 15% 18%,rgba(255,255,255,.95) 0 3%,transparent 4%),
+    radial-gradient(circle at 86% 24%,rgba(255,255,255,.82) 0 2%,transparent 3%),
+    linear-gradient(135deg,#fffdf4 0%,#fff4bc 48%,#ffe281 100%) !important;
+  box-shadow:0 14px 30px rgba(204,154,27,.28), inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+.invite-ranking-top2-v217{
+  border-color:#b8c0cc !important;
+  background:linear-gradient(135deg,#ffffff 0%,#eef1f5 50%,#dfe4eb 100%) !important;
+  box-shadow:0 12px 26px rgba(120,130,145,.20), inset 0 1px 0 rgba(255,255,255,.95) !important;
+}
+
+.invite-ranking-top3-v217{
+  border-color:#c4875e !important;
+  background:linear-gradient(135deg,#fffaf6 0%,#f3d7c5 52%,#deb08f 100%) !important;
+  box-shadow:0 12px 26px rgba(167,105,67,.20), inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+.invite-ranking-top1-v217::before,
+.invite-ranking-top2-v217::before,
+.invite-ranking-top3-v217::before{
+  position:absolute;
+  top:10px;
+  left:12px;
+  z-index:2;
+  font-size:25px;
+  line-height:1;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.10));
+}
+
+.invite-ranking-top1-v217::before{content:"🏆";}
+.invite-ranking-top2-v217::before{content:"🥈";}
+.invite-ranking-top3-v217::before{content:"🥉";}
+
+.invite-ranking-top1-v217::after{
+  content:"";
+  position:absolute;
+  inset:-70% -25%;
+  background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.62) 50%,transparent 60%);
+  transform:translateX(-55%) rotate(8deg);
+  animation:v217RankShine 4.8s ease-in-out infinite;
+  pointer-events:none;
+}
+
+@keyframes v217RankShine{
+  0%,62%{transform:translateX(-60%) rotate(8deg);}
+  78%,100%{transform:translateX(65%) rotate(8deg);}
+}
+
+.invite-ranking-top1-v217 .invite-rank-badge-v217,
+.invite-ranking-top2-v217 .invite-rank-badge-v217,
+.invite-ranking-top3-v217 .invite-rank-badge-v217{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:46px;
+  height:30px;
+  padding:0 10px;
+  border-radius:999px;
+  font-weight:1000;
+  font-size:13px;
+  letter-spacing:-.2px;
+  margin-right:8px;
+  box-shadow:0 3px 8px rgba(0,0,0,.10);
+}
+
+.invite-ranking-top1-v217 .invite-rank-badge-v217{
+  background:linear-gradient(135deg,#f6cb52,#d99b12);
+  color:#fff;
+}
+.invite-ranking-top2-v217 .invite-rank-badge-v217{
+  background:linear-gradient(135deg,#cfd5dc,#929dac);
+  color:#fff;
+}
+.invite-ranking-top3-v217 .invite-rank-badge-v217{
+  background:linear-gradient(135deg,#d7a07e,#a86b48);
+  color:#fff;
+}
+
+.invite-ranking-top1-v217 .invite-count-emphasis-v217,
+.invite-ranking-top2-v217 .invite-count-emphasis-v217,
+.invite-ranking-top3-v217 .invite-count-emphasis-v217{
+  font-size:1.13em !important;
+  font-weight:1000 !important;
+}
+
+.invite-ranking-top1-v217 .invite-count-emphasis-v217{color:#a96f00 !important;}
+.invite-ranking-top2-v217 .invite-count-emphasis-v217{color:#65707e !important;}
+.invite-ranking-top3-v217 .invite-count-emphasis-v217{color:#8f5638 !important;}
+
+/* 모바일에서 1등만 살짝 강조 */
+@media (max-width:700px){
+  .invite-ranking-top1-v217{transform:scale(1.012);}
+}
+
+/* 사용자가 모션 줄이기를 선택한 경우 반짝임 중단 */
+@media (prefers-reduced-motion: reduce){
+  .invite-ranking-top1-v217::after{animation:none !important;}
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -1623,7 +1741,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2160"></script>
+  <script src="app.js?v=2170"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
@@ -1676,6 +1794,74 @@ window.addEventListener('DOMContentLoaded', function(){
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",hideThemeButton,{once:true});
   else hideThemeButton();
+})();
+</script>
+
+
+<script id="v217-invite-ranking-decorator">
+(function(){
+  function rankFromText(el){
+    var text=(el.textContent||"").replace(/\s+/g," ").trim();
+    var m=text.match(/(?:^|\s)([123])\s*(?:위|등)(?:\s|$)/);
+    if(m) return Number(m[1]);
+    m=text.match(/(?:^|\s)([123])\s*(?:st|nd|rd)(?:\s|$)/i);
+    return m ? Number(m[1]) : 0;
+  }
+
+  function isRankingCandidate(el){
+    if(!el || el.children.length===0) return false;
+    var text=(el.textContent||"").replace(/\s+/g," ").trim();
+    if(!/(?:1\s*(?:위|등)|2\s*(?:위|등)|3\s*(?:위|등))/.test(text)) return false;
+    if(text.length>260) return false;
+    var cls=((el.className||"")+" "+(el.id||"")).toLowerCase();
+    var pcls=el.parentElement ? (((el.parentElement.className||"")+" "+(el.parentElement.id||"")).toLowerCase()) : "";
+    return /invite|초대|rank|ranking|leader/.test(cls+" "+pcls) || /초대/.test(text);
+  }
+
+  function decorateInviteRankingV217(){
+    var all=[].slice.call(document.querySelectorAll("div,li,article,tr"));
+    all.forEach(function(el){
+      if(!isRankingCandidate(el)) return;
+      var rank=rankFromText(el);
+      if(rank<1 || rank>3) return;
+
+      el.classList.remove("invite-ranking-top1-v217","invite-ranking-top2-v217","invite-ranking-top3-v217");
+      el.classList.add("invite-ranking-top"+rank+"-v217");
+
+      /* 기존 1위/2위/3위 텍스트가 있으면 뱃지 스타일만 부여 */
+      var descendants=[].slice.call(el.querySelectorAll("span,b,strong,em,div"));
+      var rankNode=descendants.find(function(n){
+        var t=(n.textContent||"").trim();
+        return new RegExp("^"+rank+"\\s*(?:위|등)$").test(t);
+      });
+      if(rankNode) rankNode.classList.add("invite-rank-badge-v217");
+
+      /* 초대 수 숫자 노드를 가능한 범위에서 강조 */
+      descendants.forEach(function(n){
+        var t=(n.textContent||"").trim();
+        if(/^\d+\s*(?:명|개|회)$/.test(t) || /초대\s*\d+/.test(t)){
+          n.classList.add("invite-count-emphasis-v217");
+        }
+      });
+    });
+  }
+
+  function run(){
+    decorateInviteRankingV217();
+    var root=document.getElementById("inviteView") || document.body;
+    if(!root || typeof MutationObserver==="undefined") return;
+    var timer=null;
+    new MutationObserver(function(){
+      clearTimeout(timer);
+      timer=setTimeout(decorateInviteRankingV217,80);
+    }).observe(root,{childList:true,subtree:true});
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",run,{once:true});
+  }else{
+    run();
+  }
 })();
 </script>
 
