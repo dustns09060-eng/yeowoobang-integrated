@@ -800,8 +800,11 @@
 
 
 
-<style id="v223-invite-podium-single-rank">
-/* V223: 순위 표시는 메달 숫자 1/2/3 하나만 유지 */
+
+
+
+<style id="v224-invite-podium-mobile-glam">
+/* ===== 공통/PC: V223 비율 유지 ===== */
 .invite-top3{
   display:grid !important;
   grid-template-columns:1fr 1.24fr 1fr !important;
@@ -820,6 +823,7 @@
   background:transparent !important;
   box-shadow:none !important;
   overflow:visible !important;
+  isolation:isolate;
 }
 .invite-podium.rank-1{
   order:2;
@@ -888,41 +892,133 @@
 .invite-podium.rank-3 .podium-copy-v223 b{color:#5f2914 !important;}
 .invite-podium.rank-3 .podium-copy-v223 strong{color:#9d3d19 !important;}
 
-/* 모바일 */
+/* ===== 모바일 전용: 더 화려하게 + 흰 여백 축소 ===== */
 @media(max-width:520px){
-  .invite-rank-summary{margin-bottom:0 !important;}
-  .invite-top3{
-    grid-template-columns:1fr 1.28fr 1fr !important;
-    gap:3px !important;
-    padding:4px 0 6px !important;
+  .invite-rank-card{
+    padding-bottom:8px !important;
   }
-  .invite-podium{height:266px !important;}
+  .invite-rank-summary{
+    margin-bottom:0 !important;
+    padding-top:10px !important;
+    padding-bottom:10px !important;
+  }
+  .invite-top3{
+    grid-template-columns:1fr 1.29fr 1fr !important;
+    gap:2px !important;
+    padding:0 0 0 !important;
+    margin-top:-2px !important;
+    margin-bottom:-8px !important;
+  }
+  .invite-podium{
+    height:248px !important;
+  }
   .invite-podium.rank-1{
-    height:304px !important;
-    transform:translateY(-12px) !important;
+    height:284px !important;
+    transform:translateY(-10px) !important;
   }
   .podium-copy-v223{
     left:4%;
     right:4%;
-    top:63%;
+    top:61.5%;
   }
   .podium-copy-v223 b{
     font-size:15px !important;
-    margin-bottom:4px !important;
+    margin-bottom:3px !important;
   }
   .podium-copy-v223 strong{
-    font-size:25px !important;
+    font-size:24px !important;
+    line-height:.95 !important;
   }
   .invite-podium.rank-1 .podium-copy-v223 b{
-    font-size:18px !important;
+    font-size:17px !important;
   }
   .invite-podium.rank-1 .podium-copy-v223 strong{
-    font-size:33px !important;
+    font-size:31px !important;
   }
-  .invite-rank-card .invite-top3{min-height:0 !important;}
+
+  /* 카드 주변 글로우 */
+  .invite-podium::before{
+    content:"";
+    position:absolute;
+    left:9%;
+    right:9%;
+    bottom:8%;
+    height:20%;
+    border-radius:50%;
+    filter:blur(14px);
+    opacity:.34;
+    z-index:0;
+    pointer-events:none;
+  }
+  .invite-podium.rank-1::before{background:#ffd72c;}
+  .invite-podium.rank-2::before{background:#78b9ff;}
+  .invite-podium.rank-3::before{background:#ff9a6d;}
+
+  /* 반짝임 */
+  .invite-podium::after{
+    content:"✦  ✨  ✦";
+    position:absolute;
+    z-index:4;
+    top:19%;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    text-align:center;
+    font-size:12px;
+    letter-spacing:14px;
+    opacity:.82;
+    pointer-events:none;
+    text-shadow:0 0 8px rgba(255,255,255,.95);
+  }
+  .invite-podium.rank-1::after{
+    content:"✨  ✦  ✨";
+    font-size:15px;
+    color:#fff7b3;
+    top:16%;
+  }
+  .invite-podium.rank-2::after{color:#dff3ff;}
+  .invite-podium.rank-3::after{color:#ffe1d3;}
+
+  /* 카드 사이/주변의 컨페티 느낌 */
+  .invite-top3::before,
+  .invite-top3::after{
+    content:"";
+    position:absolute;
+    width:8px;
+    height:22px;
+    border-radius:999px;
+    top:44%;
+    z-index:5;
+    pointer-events:none;
+  }
+  .invite-top3::before{
+    left:3%;
+    background:linear-gradient(#3d8cff,#0b5fc6);
+    transform:rotate(-30deg);
+    box-shadow:
+      18px -55px 0 -1px #ffd32a,
+      34px 28px 0 -1px #ff7b45;
+  }
+  .invite-top3::after{
+    right:3%;
+    background:linear-gradient(#ff8a5f,#d84a23);
+    transform:rotate(30deg);
+    box-shadow:
+      -18px -52px 0 -1px #ffd32a,
+      -32px 26px 0 -1px #5f9cff;
+  }
+
+  /* 4위 리스트가 TOP3 바로 아래 붙도록 */
+  .invite-rank-list{
+    margin-top:0 !important;
+    padding-top:0 !important;
+  }
+  .invite-game-rank-row:first-child{
+    margin-top:0 !important;
+  }
 }
 
-/* PC */
+/* PC는 기존 V223 유지 */
 @media(min-width:900px){
   .invite-top3{
     grid-template-columns:1fr 1.25fr 1fr !important;
@@ -1783,7 +1879,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2230"></script>
+  <script src="app.js?v=2240"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
