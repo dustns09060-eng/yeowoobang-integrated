@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V243";
-window.YEOWOOBANG_BUILD = "V243";
+const APP_VERSION = "V244";
+window.YEOWOOBANG_BUILD = "V244";
 
 let config = {
   version: "V102",
@@ -2181,8 +2181,8 @@ function renderInviteRankV92(){
         </g>`:""}
 
         ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
-          <text class="rank-name-v239 rank1-v239" x="862" y="608" text-anchor="middle">${rankText(p1,"name")}</text>
-          <text class="rank-count-v239 rank1-v239" x="862" y="663" text-anchor="middle">${rankText(p1,"count")}</text>
+          <text class="rank-name-v239 rank1-v239" x="862" y="616" text-anchor="middle">${rankText(p1,"name")}</text>
+          <text class="rank-count-v239 rank1-v239" x="862" y="671" text-anchor="middle">${rankText(p1,"count")}</text>
         </g>`:""}
 
         ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">

@@ -1,11 +1,11 @@
 /* V241 - 정리/캐시 안정화 */
-const CACHE = "yeowoobang-v243-top3-clean";
+const CACHE = "yeowoobang-v244-top3-center-down";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./style.css?v=2430",
-  "./app.js?v=2430",
+  "./app.js?v=2440",
   "./manifest.json?v=720",
   "./app-logo-v20.png?v=430",
   "./favicon-v20.png?v=430",
