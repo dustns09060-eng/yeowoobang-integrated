@@ -1,17 +1,17 @@
 /* V241 - 정리/캐시 안정화 */
-const CACHE = "yeowoobang-v245-top3-force-refresh";
+const CACHE = "yeowoobang-v246-top3-center-up";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=2451",
-  "./app.js?v=2451",
+  "./style.css?v=2461",
+  "./app.js?v=2461",
   "./manifest.json?v=720",
   "./app-logo-v20.png?v=430",
   "./favicon-v20.png?v=430",
   "./icon-192-v20.png?v=430",
   "./icon-512-v20.png?v=430",
-  "./top3_scene_v243.jpg?v=2451",
+  "./top3_scene_v243.jpg?v=2461",
 ];
 
 self.addEventListener("install", (event) => {
