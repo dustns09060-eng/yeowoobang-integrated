@@ -962,149 +962,185 @@
 
 
 
-<style id="v233-compact-exact-scene">
-@media(max-width:520px){
-  .invite-rank-summary{margin-bottom:0!important}
 
+
+
+
+
+
+<style id="v237-top3-no-overlap">
+/* V237: 배경 그래픽 자체에서 예시 닉네임/인원수를 제거했기 때문에
+   실제 데이터가 한 번만 표시되고 모바일/PC 모두 중복되지 않음 */
+
+.invite-rank-summary{margin-bottom:0!important}
+
+.invite-top3{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  padding:0!important;
+  overflow:hidden!important;
+  background-image:url("top3_scene_v237.jpg")!important;
+  background-repeat:no-repeat!important;
+  background-position:center center!important;
+  background-size:100% 100%!important;
+  box-shadow:0 8px 20px rgba(214,70,120,.10)!important;
+}
+
+.invite-top3::before,
+.invite-top3::after{
+  content:none!important;
+  display:none!important;
+}
+
+.podium-art-v228{display:none!important}
+
+.invite-podium{
+  position:absolute!important;
+  top:0!important;
+  height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  overflow:visible!important;
+  z-index:5!important;
+}
+
+/* 그래픽의 실제 단상 위치 */
+.invite-podium.rank-2{left:6.5%!important;width:24.5%!important}
+.invite-podium.rank-1{left:36.0%!important;width:28.0%!important}
+.invite-podium.rank-3{left:auto!important;right:7.0%!important;width:24.5%!important}
+
+/* 실제 데이터만 한 번 표시 */
+.podium-name-v228,
+.podium-count-v228{
+  position:absolute!important;
+  z-index:9!important;
+  left:4%!important;
+  right:4%!important;
+  width:92%!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  font-weight:1000!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+}
+
+/* 2위 */
+.invite-podium.rank-2 .podium-name-v228{
+  top:66.5%!important;
+  font-size:clamp(12px,1.45vw,18px)!important;
+  line-height:1!important;
+  color:#173b64!important;
+}
+.invite-podium.rank-2 .podium-count-v228{
+  top:75.0%!important;
+  font-size:clamp(20px,2.65vw,34px)!important;
+  line-height:1!important;
+  color:#0b4d88!important;
+  text-shadow:0 2px 0 #fff!important;
+}
+
+/* 1위 */
+.invite-podium.rank-1 .podium-name-v228{
+  top:64.0%!important;
+  font-size:clamp(14px,1.7vw,22px)!important;
+  line-height:1!important;
+  color:#372100!important;
+}
+.invite-podium.rank-1 .podium-count-v228{
+  top:73.0%!important;
+  font-size:clamp(24px,3.05vw,40px)!important;
+  line-height:1!important;
+  color:#ed1451!important;
+  text-shadow:0 2px 0 #fff!important;
+}
+
+/* 3위 */
+.invite-podium.rank-3 .podium-name-v228{
+  top:66.5%!important;
+  font-size:clamp(12px,1.45vw,18px)!important;
+  line-height:1!important;
+  color:#5f2914!important;
+}
+.invite-podium.rank-3 .podium-count-v228{
+  top:75.0%!important;
+  font-size:clamp(20px,2.65vw,34px)!important;
+  line-height:1!important;
+  color:#9a3c19!important;
+  text-shadow:0 2px 0 #fff!important;
+}
+
+.invite-rank-list{
+  margin-top:0!important;
+  padding-top:0!important;
+}
+
+/* 모바일 */
+@media(max-width:520px){
   .invite-top3{
-    position:relative!important;
-    display:block!important;
-    width:auto!important;
     height:286px!important;
     margin:0 -8px 4px!important;
-    padding:0!important;
-    overflow:hidden!important;
+    width:calc(100% + 16px)!important;
     border-radius:18px!important;
-    background-image:url("top3_scene_v235.jpg")!important;
-    background-repeat:no-repeat!important;
-    background-position:center center!important;
-    background-size:100% 100%!important;
-    box-shadow:0 8px 18px rgba(214,70,120,.10)!important;
   }
 
-  .invite-top3::before,.invite-top3::after{content:none!important;display:none!important}
-  .podium-art-v228{display:none!important}
-
-  .invite-podium{
-    position:absolute!important;
-    top:0!important;
-    height:100%!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    transform:none!important;
-    overflow:visible!important;
-    z-index:5!important;
+  .invite-podium.rank-2 .podium-name-v228,
+  .invite-podium.rank-3 .podium-name-v228{
+    font-size:11px!important;
   }
-
-  /* fixed hit/data zones matching the graphic exactly */
-  .invite-podium.rank-2{left:4.2%!important;width:28.7%!important}
-  .invite-podium.rank-1{left:34.0%!important;width:32.0%!important}
-  .invite-podium.rank-3{left:auto!important;right:4.2%!important;width:28.7%!important}
-
-  .podium-name-v228,
-  .podium-count-v228{
-    position:absolute!important;
-    z-index:9!important;
-    left:7%!important;
-    right:7%!important;
-    width:86%!important;
-    box-sizing:border-box!important;
-    margin:0!important;
-    text-align:center!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    font-weight:1000!important;
+  .invite-podium.rank-2 .podium-count-v228,
+  .invite-podium.rank-3 .podium-count-v228{
+    font-size:19px!important;
   }
-
-  /* Opaque plaques cover the baked demo text completely, preventing any overlap. */
-  .invite-podium.rank-2 .podium-name-v228{
-    top:53.5%!important;height:25px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#e7f1ff!important;color:#142f4e!important;
-    border-radius:8px 8px 0 0!important;font-size:11px!important;line-height:1!important;
-  }
-  .invite-podium.rank-2 .podium-count-v228{
-    top:61.0%!important;height:58px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#e7f1ff!important;color:#0b4d88!important;
-    border-radius:0 0 9px 9px!important;font-size:19px!important;line-height:1!important;
-    text-shadow:0 1px #fff!important;
-  }
-
   .invite-podium.rank-1 .podium-name-v228{
-    top:51.0%!important;height:28px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#ffe46d!important;color:#251600!important;
-    border-radius:9px 9px 0 0!important;font-size:13px!important;line-height:1!important;
+    font-size:13px!important;
   }
   .invite-podium.rank-1 .podium-count-v228{
-    top:59.0%!important;height:60px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#ffe46d!important;color:#ed1451!important;
-    border-radius:0 0 10px 10px!important;font-size:25px!important;line-height:1!important;
-    text-shadow:0 1px #fff!important;
+    font-size:25px!important;
   }
 
-  .invite-podium.rank-3 .podium-name-v228{
-    top:55.0%!important;height:22px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#ffddcb!important;color:#4a1d0d!important;
-    border-radius:8px 8px 0 0!important;font-size:11px!important;line-height:1!important;
+  .invite-game-rank-row{
+    min-height:58px!important;
+    margin-bottom:6px!important;
   }
-  .invite-podium.rank-3 .podium-count-v228{
-    top:62.5%!important;height:34px!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-    background:#ffddcb!important;color:#9a3c19!important;
-    border-radius:0 0 9px 9px!important;font-size:19px!important;line-height:1!important;
-    text-shadow:0 1px #fff!important;
-  }
-
-  /* Keep the lower ranking list directly visible on the same screen. */
-  .invite-rank-list{margin-top:0!important;padding-top:0!important}
-  .invite-game-rank-row{min-height:58px!important;margin-bottom:6px!important}
 }
 
+/* 작은 모바일 */
 @media(max-width:380px){
-  .invite-top3{height:260px!important;margin:0 -6px 3px!important}
-  .invite-podium.rank-2 .podium-name-v228,
-  .invite-podium.rank-3 .podium-name-v228{font-size:11px!important;height:23px!important}
-  .invite-podium.rank-2 .podium-count-v228,
-  .invite-podium.rank-3 .podium-count-v228{font-size:18px!important;height:52px!important}
-  .invite-podium.rank-1 .podium-name-v228{font-size:14px!important;height:26px!important}
-  .invite-podium.rank-1 .podium-count-v228{font-size:25px!important;height:54px!important}
-}
-</style>
-
-
-<style id="v236-top3-responsive-same-scene">
-/* V236: 모바일/PC 동일 TOP3 그래픽 + 실제 데이터 오버레이 */
-@media(min-width:521px){
-  .invite-rank-summary{margin-bottom:0!important}
   .invite-top3{
-    position:relative!important;display:block!important;width:100%!important;
-    height:auto!important;aspect-ratio:1.95/1!important;
-    margin:0 0 10px!important;padding:0!important;overflow:hidden!important;
-    border-radius:22px!important;background-image:url("top3_scene_v235.jpg")!important;
-    background-repeat:no-repeat!important;background-position:center center!important;
-    background-size:100% 100%!important;box-shadow:0 10px 24px rgba(214,70,120,.10)!important;
+    height:260px!important;
+    margin:0 -6px 3px!important;
+    width:calc(100% + 12px)!important;
   }
-  .invite-top3::before,.invite-top3::after{content:none!important;display:none!important}
-  .podium-art-v228{display:none!important}
-  .invite-podium{position:absolute!important;top:0!important;height:100%!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;overflow:visible!important;z-index:5!important}
-  .invite-podium.rank-2{left:4.2%!important;width:28.7%!important}
-  .invite-podium.rank-1{left:34%!important;width:32%!important}
-  .invite-podium.rank-3{left:auto!important;right:4.2%!important;width:28.7%!important}
-  .podium-name-v228,.podium-count-v228{position:absolute!important;z-index:9!important;left:7%!important;right:7%!important;width:86%!important;box-sizing:border-box!important;margin:0!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-weight:1000!important;display:flex!important;align-items:center!important;justify-content:center!important}
-  .invite-podium.rank-2 .podium-name-v228{top:53.5%!important;height:9%!important;background:#e7f1ff!important;color:#142f4e!important;border-radius:10px 10px 0 0!important;font-size:clamp(13px,1.45vw,20px)!important;line-height:1!important}
-  .invite-podium.rank-2 .podium-count-v228{top:62.5%!important;height:18%!important;background:#e7f1ff!important;color:#0b4d88!important;border-radius:0 0 11px 11px!important;font-size:clamp(22px,2.55vw,35px)!important;line-height:1!important;text-shadow:0 1px #fff!important}
-  .invite-podium.rank-1 .podium-name-v228{top:51%!important;height:9.5%!important;background:#ffe46d!important;color:#251600!important;border-radius:11px 11px 0 0!important;font-size:clamp(15px,1.65vw,23px)!important;line-height:1!important}
-  .invite-podium.rank-1 .podium-count-v228{top:60.5%!important;height:19%!important;background:#ffe46d!important;color:#ed1451!important;border-radius:0 0 12px 12px!important;font-size:clamp(27px,3.1vw,43px)!important;line-height:1!important;text-shadow:0 1px #fff!important}
-  .invite-podium.rank-3 .podium-name-v228{top:54.5%!important;height:9%!important;background:#ffddcb!important;color:#5f2914!important;border-radius:10px 10px 0 0!important;font-size:clamp(13px,1.45vw,20px)!important;line-height:1!important}
-  .invite-podium.rank-3 .podium-count-v228{top:63.5%!important;height:18%!important;background:#ffddcb!important;color:#9a3c19!important;border-radius:0 0 11px 11px!important;font-size:clamp(22px,2.55vw,35px)!important;line-height:1!important;text-shadow:0 1px #fff!important}
+  .invite-podium.rank-2 .podium-name-v228,
+  .invite-podium.rank-3 .podium-name-v228{font-size:10px!important}
+  .invite-podium.rank-2 .podium-count-v228,
+  .invite-podium.rank-3 .podium-count-v228{font-size:17px!important}
+  .invite-podium.rank-1 .podium-name-v228{font-size:12px!important}
+  .invite-podium.rank-1 .podium-count-v228{font-size:22px!important}
+}
+
+/* PC/태블릿: 같은 장면/같은 위치비율 */
+@media(min-width:521px){
+  .invite-top3{
+    aspect-ratio:1030/585!important;
+    height:auto!important;
+    margin:0 0 10px!important;
+    border-radius:22px!important;
+  }
 }
 </style>
 
@@ -1947,7 +1983,7 @@
 
   <div id="toast" class="toast"></div>
   
-  <script src="app.js?v=2360"></script>
+  <script src="app.js?v=2370"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
