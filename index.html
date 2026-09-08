@@ -959,40 +959,38 @@
 
 
 
-<style id="v232-approved-scene">
-/* V232 — 승인된 화려한 시안 자체를 실제 TOP3 그래픽으로 사용 */
+
+
+
+<style id="v233-compact-exact-scene">
 @media(max-width:520px){
   .invite-rank-summary{margin-bottom:0!important}
 
   .invite-top3{
     position:relative!important;
     display:block!important;
-    height:350px!important;
+    width:auto!important;
+    height:286px!important;
+    margin:0 -8px 4px!important;
     padding:0!important;
-    margin:0 -10px -4px!important;
     overflow:hidden!important;
-    background-image:url("top3_scene_v232.jpg")!important;
+    border-radius:18px!important;
+    background-image:url("top3_scene_v233.jpg")!important;
     background-repeat:no-repeat!important;
     background-position:center center!important;
-    background-size:cover!important;
-    border-radius:0 0 24px 24px!important;
-    box-shadow:0 14px 28px rgba(226,76,126,.10)!important;
+    background-size:100% 100%!important;
+    box-shadow:0 8px 18px rgba(214,70,120,.10)!important;
   }
 
-  .invite-top3::before,.invite-top3::after{
-    content:none!important;
-    display:none!important;
-  }
-
-  /* 기존 SVG 카드는 숨기고 승인된 시안을 그대로 보여줌 */
+  .invite-top3::before,.invite-top3::after{content:none!important;display:none!important}
   .podium-art-v228{display:none!important}
 
   .invite-podium{
     position:absolute!important;
     top:0!important;
     height:100%!important;
-    padding:0!important;
     margin:0!important;
+    padding:0!important;
     border:0!important;
     background:transparent!important;
     box-shadow:none!important;
@@ -1001,117 +999,83 @@
     z-index:5!important;
   }
 
-  /* 승인 시안의 좌/중앙/우 단상 위치 */
-  .invite-podium.rank-2{left:4.5%!important;width:27.5%!important}
-  .invite-podium.rank-1{left:34%!important;width:32%!important}
-  .invite-podium.rank-3{left:auto!important;right:4.5%!important;width:27.5%!important}
+  /* fixed hit/data zones matching the graphic exactly */
+  .invite-podium.rank-2{left:4.2%!important;width:28.7%!important}
+  .invite-podium.rank-1{left:34.0%!important;width:32.0%!important}
+  .invite-podium.rank-3{left:auto!important;right:4.2%!important;width:28.7%!important}
 
-  /*
-   시안에 박혀 있는 예시 닉네임/숫자 영역을 같은 톤의 플레이트로 덮고
-   실제 랭킹 데이터만 그 위에 출력.
-  */
   .podium-name-v228,
   .podium-count-v228{
     position:absolute!important;
-    left:5%!important;
-    right:5%!important;
-    width:90%!important;
-    margin:0!important;
+    z-index:9!important;
+    left:7%!important;
+    right:7%!important;
+    width:86%!important;
     box-sizing:border-box!important;
+    margin:0!important;
     text-align:center!important;
     white-space:nowrap!important;
     overflow:hidden!important;
     text-overflow:ellipsis!important;
     font-weight:1000!important;
-    z-index:8!important;
   }
 
-  /* 2위 */
+  /* Opaque plaques cover the baked demo text completely, preventing any overlap. */
   .invite-podium.rank-2 .podium-name-v228{
-    top:52.0%!important;
-    height:24px!important;
-    padding-top:3px!important;
-    border-radius:9px 9px 0 0!important;
-    background:rgba(224,238,255,.97)!important;
-    color:#111827!important;
-    font-size:13px!important;
-    line-height:18px!important;
+    top:55.0%!important;height:22px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#e7f1ff!important;color:#142f4e!important;
+    border-radius:8px 8px 0 0!important;font-size:12px!important;line-height:1!important;
   }
   .invite-podium.rank-2 .podium-count-v228{
-    top:58.5%!important;
-    height:39px!important;
-    padding-top:5px!important;
-    border-radius:0 0 10px 10px!important;
-    background:rgba(224,238,255,.97)!important;
-    color:#0b4d88!important;
-    font-size:23px!important;
-    line-height:29px!important;
-    text-shadow:0 2px #fff!important;
+    top:62.5%!important;height:34px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#e7f1ff!important;color:#0b4d88!important;
+    border-radius:0 0 9px 9px!important;font-size:21px!important;line-height:1!important;
+    text-shadow:0 1px #fff!important;
   }
 
-  /* 1위 */
   .invite-podium.rank-1 .podium-name-v228{
-    top:46.5%!important;
-    height:28px!important;
-    padding-top:4px!important;
-    border-radius:10px 10px 0 0!important;
-    background:rgba(255,225,105,.97)!important;
-    color:#1f1300!important;
-    font-size:17px!important;
-    line-height:20px!important;
+    top:52.2%!important;height:25px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#ffe46d!important;color:#251600!important;
+    border-radius:9px 9px 0 0!important;font-size:15px!important;line-height:1!important;
   }
   .invite-podium.rank-1 .podium-count-v228{
-    top:54.0%!important;
-    height:48px!important;
-    padding-top:5px!important;
-    border-radius:0 0 11px 11px!important;
-    background:rgba(255,225,105,.97)!important;
-    color:#ef1755!important;
-    font-size:31px!important;
-    line-height:37px!important;
-    text-shadow:0 2px #fff!important;
+    top:60.3%!important;height:42px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#ffe46d!important;color:#ed1451!important;
+    border-radius:0 0 10px 10px!important;font-size:28px!important;line-height:1!important;
+    text-shadow:0 1px #fff!important;
   }
 
-  /* 3위 */
   .invite-podium.rank-3 .podium-name-v228{
-    top:52.0%!important;
-    height:24px!important;
-    padding-top:3px!important;
-    border-radius:9px 9px 0 0!important;
-    background:rgba(255,218,197,.97)!important;
-    color:#241009!important;
-    font-size:13px!important;
-    line-height:18px!important;
+    top:55.0%!important;height:22px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#ffddcb!important;color:#4a1d0d!important;
+    border-radius:8px 8px 0 0!important;font-size:12px!important;line-height:1!important;
   }
   .invite-podium.rank-3 .podium-count-v228{
-    top:58.5%!important;
-    height:39px!important;
-    padding-top:5px!important;
-    border-radius:0 0 10px 10px!important;
-    background:rgba(255,218,197,.97)!important;
-    color:#9a3c19!important;
-    font-size:23px!important;
-    line-height:29px!important;
-    text-shadow:0 2px #fff!important;
+    top:62.5%!important;height:34px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    background:#ffddcb!important;color:#9a3c19!important;
+    border-radius:0 0 9px 9px!important;font-size:21px!important;line-height:1!important;
+    text-shadow:0 1px #fff!important;
   }
 
-  .invite-rank-list{
-    margin-top:0!important;
-    padding-top:0!important;
-  }
+  /* Keep the lower ranking list directly visible on the same screen. */
+  .invite-rank-list{margin-top:0!important;padding-top:0!important}
+  .invite-game-rank-row{min-height:58px!important;margin-bottom:6px!important}
 }
 
 @media(max-width:380px){
-  .invite-top3{
-    height:325px!important;
-    margin:0 -8px -2px!important;
-  }
+  .invite-top3{height:260px!important;margin:0 -6px 3px!important}
   .invite-podium.rank-2 .podium-name-v228,
-  .invite-podium.rank-3 .podium-name-v228{font-size:12px!important}
+  .invite-podium.rank-3 .podium-name-v228{font-size:11px!important;height:20px!important}
   .invite-podium.rank-2 .podium-count-v228,
-  .invite-podium.rank-3 .podium-count-v228{font-size:20px!important}
-  .invite-podium.rank-1 .podium-name-v228{font-size:15px!important}
-  .invite-podium.rank-1 .podium-count-v228{font-size:27px!important}
+  .invite-podium.rank-3 .podium-count-v228{font-size:18px!important;height:31px!important}
+  .invite-podium.rank-1 .podium-name-v228{font-size:14px!important;height:23px!important}
+  .invite-podium.rank-1 .podium-count-v228{font-size:25px!important;height:38px!important}
 }
 </style>
 
@@ -1957,7 +1921,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2320"></script>
+  <script src="app.js?v=2330"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
