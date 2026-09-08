@@ -968,9 +968,12 @@
 
 
 
-<style id="v237-top3-no-overlap">
-/* V237: 배경 그래픽 자체에서 예시 닉네임/인원수를 제거했기 때문에
-   실제 데이터가 한 번만 표시되고 모바일/PC 모두 중복되지 않음 */
+
+
+
+<style id="v238-top3-exact-plaque">
+/* V238: TOP3 실제 빈 명패 좌표에 동적 텍스트를 직접 배치.
+   모바일/PC 모두 같은 이미지 비율과 같은 좌표를 사용하므로 겹침이 발생하지 않음. */
 
 .invite-rank-summary{margin-bottom:0!important}
 
@@ -993,94 +996,101 @@
   display:none!important;
 }
 
-.podium-art-v228{display:none!important}
+.podium-art-v228{
+  display:none!important;
+}
 
+/* 버튼 자체를 '명패 영역'으로 사용 */
 .invite-podium{
   position:absolute!important;
-  top:0!important;
-  height:100%!important;
   margin:0!important;
   padding:0!important;
   border:0!important;
   background:transparent!important;
   box-shadow:none!important;
   transform:none!important;
-  overflow:visible!important;
+  overflow:hidden!important;
   z-index:5!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7%!important;
 }
 
-/* 그래픽의 실제 단상 위치 */
-.invite-podium.rank-2{left:6.5%!important;width:24.5%!important}
-.invite-podium.rank-1{left:36.0%!important;width:28.0%!important}
-.invite-podium.rank-3{left:auto!important;right:7.0%!important;width:24.5%!important}
+/* 1030x585 원본 이미지의 실제 빈 명패 좌표를 비율로 변환 */
+.invite-podium.rank-2{
+  left:10.58%!important;
+  top:67.18%!important;
+  width:17.38%!important;
+  height:19.49%!important;
+}
 
-/* 실제 데이터만 한 번 표시 */
+.invite-podium.rank-1{
+  left:39.81%!important;
+  top:57.26%!important;
+  width:22.72%!important;
+  height:20.34%!important;
+}
+
+.invite-podium.rank-3{
+  left:72.04%!important;
+  right:auto!important;
+  top:67.18%!important;
+  width:17.86%!important;
+  height:19.49%!important;
+}
+
+/* 동적 닉네임/숫자는 명패 내부에서만 표시 */
 .podium-name-v228,
 .podium-count-v228{
-  position:absolute!important;
-  z-index:9!important;
-  left:4%!important;
-  right:4%!important;
+  position:static!important;
+  display:block!important;
   width:92%!important;
+  max-width:92%!important;
+  height:auto!important;
   margin:0!important;
   padding:0!important;
   box-sizing:border-box!important;
   text-align:center!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   font-weight:1000!important;
+  line-height:1!important;
   background:transparent!important;
   border:0!important;
   border-radius:0!important;
 }
 
-/* 2위 */
 .invite-podium.rank-2 .podium-name-v228{
-  top:66.5%!important;
-  font-size:clamp(12px,1.45vw,18px)!important;
-  line-height:1!important;
   color:#173b64!important;
+  font-size:clamp(12px,1.35vw,18px)!important;
 }
 .invite-podium.rank-2 .podium-count-v228{
-  top:75.0%!important;
-  font-size:clamp(20px,2.65vw,34px)!important;
-  line-height:1!important;
   color:#0b4d88!important;
-  text-shadow:0 2px 0 #fff!important;
+  font-size:clamp(21px,2.35vw,32px)!important;
+  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
 }
 
-/* 1위 */
 .invite-podium.rank-1 .podium-name-v228{
-  top:64.0%!important;
-  font-size:clamp(14px,1.7vw,22px)!important;
-  line-height:1!important;
   color:#372100!important;
+  font-size:clamp(14px,1.55vw,21px)!important;
 }
 .invite-podium.rank-1 .podium-count-v228{
-  top:73.0%!important;
-  font-size:clamp(24px,3.05vw,40px)!important;
-  line-height:1!important;
   color:#ed1451!important;
-  text-shadow:0 2px 0 #fff!important;
+  font-size:clamp(25px,2.8vw,38px)!important;
+  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
 }
 
-/* 3위 */
 .invite-podium.rank-3 .podium-name-v228{
-  top:66.5%!important;
-  font-size:clamp(12px,1.45vw,18px)!important;
-  line-height:1!important;
   color:#5f2914!important;
+  font-size:clamp(12px,1.35vw,18px)!important;
 }
 .invite-podium.rank-3 .podium-count-v228{
-  top:75.0%!important;
-  font-size:clamp(20px,2.65vw,34px)!important;
-  line-height:1!important;
   color:#9a3c19!important;
-  text-shadow:0 2px 0 #fff!important;
+  font-size:clamp(21px,2.35vw,32px)!important;
+  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
 }
 
 .invite-rank-list{
@@ -1097,6 +1107,10 @@
     border-radius:18px!important;
   }
 
+  .invite-podium{
+    gap:7px!important;
+  }
+
   .invite-podium.rank-2 .podium-name-v228,
   .invite-podium.rank-3 .podium-name-v228{
     font-size:11px!important;
@@ -1109,7 +1123,7 @@
     font-size:13px!important;
   }
   .invite-podium.rank-1 .podium-count-v228{
-    font-size:25px!important;
+    font-size:24px!important;
   }
 
   .invite-game-rank-row{
@@ -1118,28 +1132,44 @@
   }
 }
 
-/* 작은 모바일 */
 @media(max-width:380px){
   .invite-top3{
     height:260px!important;
     margin:0 -6px 3px!important;
     width:calc(100% + 12px)!important;
   }
+
+  .invite-podium{
+    gap:5px!important;
+  }
+
   .invite-podium.rank-2 .podium-name-v228,
-  .invite-podium.rank-3 .podium-name-v228{font-size:10px!important}
+  .invite-podium.rank-3 .podium-name-v228{
+    font-size:10px!important;
+  }
   .invite-podium.rank-2 .podium-count-v228,
-  .invite-podium.rank-3 .podium-count-v228{font-size:17px!important}
-  .invite-podium.rank-1 .podium-name-v228{font-size:12px!important}
-  .invite-podium.rank-1 .podium-count-v228{font-size:22px!important}
+  .invite-podium.rank-3 .podium-count-v228{
+    font-size:17px!important;
+  }
+  .invite-podium.rank-1 .podium-name-v228{
+    font-size:12px!important;
+  }
+  .invite-podium.rank-1 .podium-count-v228{
+    font-size:21px!important;
+  }
 }
 
-/* PC/태블릿: 같은 장면/같은 위치비율 */
+/* PC/태블릿도 같은 원본 비율을 그대로 사용 */
 @media(min-width:521px){
   .invite-top3{
     aspect-ratio:1030/585!important;
     height:auto!important;
     margin:0 0 10px!important;
     border-radius:22px!important;
+  }
+
+  .invite-podium{
+    gap:8%!important;
   }
 }
 </style>
@@ -1983,7 +2013,7 @@
 
   <div id="toast" class="toast"></div>
   
-  <script src="app.js?v=2370"></script>
+  <script src="app.js?v=2380"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
