@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V225";
-window.YEOWOOBANG_BUILD = "V225";
+const APP_VERSION = "V226";
+window.YEOWOOBANG_BUILD = "V226";
 
 let config = {
   version: "V102",
