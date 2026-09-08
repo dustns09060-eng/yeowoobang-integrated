@@ -974,10 +974,15 @@
 
 
 
-<style id="v239-top3-svg-stage">
-/* V239
-   이미지와 닉네임/인원수를 하나의 SVG 좌표계 안에 넣어
-   모바일/PC에서 절대로 서로 다른 위치로 밀리지 않게 고정. */
+
+
+
+<style id="v240-top3-no-overlay">
+/* V240
+   - TOP3 이미지 자체에 네모 오버레이 카드 없음
+   - 자연스러운 장식 명패만 유지
+   - 닉네임/인원수는 SVG text로 명패 안에 직접 배치
+   - 모바일/PC 동일 좌표계 */
 
 .invite-rank-summary{margin-bottom:0!important}
 
@@ -998,8 +1003,7 @@
   display:block!important;
   width:100%!important;
   height:auto!important;
-  aspect-ratio:1030/585!important;
-  overflow:visible!important;
+  aspect-ratio:1634/650!important;
 }
 
 .invite-rank-svg-hit-v239{
@@ -1012,64 +1016,52 @@
   dominant-baseline:middle;
   paint-order:stroke fill;
   stroke:#fff;
-  stroke-width:2.6px;
+  stroke-width:2px;
   stroke-linejoin:round;
 }
 
+/* 닉네임 */
 .rank-name-v239{
-  font-size:25px;
+  font-size:31px!important;
 }
 
+/* 인원수 */
 .rank-count-v239{
-  font-size:42px;
+  font-size:50px!important;
 }
 
 .rank-name-v239.rank1-v239{
-  font-size:28px;
-  fill:#3c2400;
+  font-size:34px!important;
+  fill:#3c2400!important;
 }
-
 .rank-count-v239.rank1-v239{
-  font-size:48px;
-  fill:#ed1451;
+  font-size:58px!important;
+  fill:#ed1451!important;
 }
 
-.rank-name-v239.rank2-v239{
-  fill:#173b64;
-}
+.rank-name-v239.rank2-v239{fill:#173b64!important}
+.rank-count-v239.rank2-v239{fill:#0b4d88!important}
 
-.rank-count-v239.rank2-v239{
-  fill:#0b4d88;
-}
-
-.rank-name-v239.rank3-v239{
-  fill:#5f2914;
-}
-
-.rank-count-v239.rank3-v239{
-  fill:#9a3c19;
-}
+.rank-name-v239.rank3-v239{fill:#5f2914!important}
+.rank-count-v239.rank3-v239{fill:#9a3c19!important}
 
 .invite-rank-list{
   margin-top:0!important;
   padding-top:0!important;
 }
 
-/* 모바일도 같은 SVG를 그대로 축소 */
 @media(max-width:520px){
   .invite-top3{
     margin:0 -8px 4px!important;
     width:calc(100% + 16px)!important;
     border-radius:18px!important;
   }
-
   .invite-game-rank-row{
     min-height:58px!important;
     margin-bottom:6px!important;
   }
 }
 
-/* PC도 별도 위치값 없음 — 동일 SVG 비율 */
 @media(min-width:521px){
   .invite-top3{
     margin:0 0 10px!important;
@@ -1917,7 +1909,7 @@
 
   <div id="toast" class="toast"></div>
   
-  <script src="app.js?v=2390"></script>
+  <script src="app.js?v=2400"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
