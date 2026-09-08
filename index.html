@@ -782,54 +782,69 @@
 </style>
 
 
-<style id="v217-invite-podium-glam">
-/* V217 초대랭킹 TOP3 */
+
+
+
+<style id="v218-invite-podium-luxe">
 .invite-top3{
   display:grid !important;
-  grid-template-columns:1fr 1.12fr 1fr !important;
+  grid-template-columns:1fr 1.2fr 1fr !important;
   align-items:end !important;
-  gap:10px !important;
-  padding:30px 4px 8px !important;
+  gap:12px !important;
+  padding:52px 6px 18px !important;
   overflow:visible !important;
 }
 .invite-podium{
   position:relative !important;
   overflow:visible !important;
   min-width:0 !important;
-  border-radius:24px 24px 18px 18px !important;
-  padding:23px 7px 17px !important;
+  border-radius:28px 28px 20px 20px !important;
   border:2px solid transparent !important;
-  box-shadow:0 10px 24px rgba(77,52,80,.13) !important;
+  padding:48px 10px 22px !important;
+  box-shadow:0 16px 34px rgba(54,42,59,.14) !important;
   isolation:isolate;
-  transform:translateZ(0);
 }
 .invite-podium::before{
   content:"";
   position:absolute;
-  inset:5px;
-  border-radius:19px 19px 14px 14px;
-  border:1px solid rgba(255,255,255,.85);
+  inset:6px;
+  border-radius:22px 22px 15px 15px;
+  border:1px solid rgba(255,255,255,.94);
+  box-shadow:inset 0 0 25px rgba(255,255,255,.48);
   pointer-events:none;
   z-index:-1;
 }
 .invite-podium::after{
   content:"";
   position:absolute;
-  left:12%;
-  right:12%;
-  bottom:-9px;
-  height:15px;
+  left:8%;
+  right:8%;
+  bottom:-12px;
+  height:18px;
   border-radius:50%;
-  filter:blur(9px);
-  opacity:.32;
+  filter:blur(11px);
+  opacity:.30;
   z-index:-2;
 }
-.invite-podium .podium-medal{
+.podium-medal{
   display:block !important;
-  font-size:38px !important;
   line-height:1 !important;
-  margin-bottom:8px !important;
-  filter:drop-shadow(0 4px 5px rgba(0,0,0,.14));
+  margin:4px auto 8px !important;
+  filter:drop-shadow(0 5px 6px rgba(0,0,0,.18));
+}
+.podium-rank-label-v218{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  min-height:22px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.80);
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.7px;
+  box-shadow:0 2px 7px rgba(0,0,0,.06);
 }
 .invite-podium b{
   display:block !important;
@@ -837,120 +852,142 @@
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-  font-size:17px !important;
   font-weight:950 !important;
-  letter-spacing:-.5px;
-  margin:5px 0 3px !important;
+  letter-spacing:-.6px;
+  margin:8px 0 4px !important;
 }
 .invite-podium strong{
   display:block !important;
-  font-size:25px !important;
   font-weight:950 !important;
-  margin:3px 0 !important;
-  text-shadow:0 1px 0 rgba(255,255,255,.7);
+  margin:4px 0 7px !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.8);
 }
 .invite-podium small{
   display:inline-flex !important;
   align-items:center;
   justify-content:center;
-  min-width:42px;
-  height:25px;
-  padding:0 9px;
+  min-width:45px;
+  height:28px;
+  padding:0 10px;
   border-radius:999px;
-  background:rgba(255,255,255,.72);
-  font-weight:900 !important;
+  background:rgba(255,255,255,.78);
+  font-weight:950 !important;
 }
-.podium-rank-label-v217{
-  display:inline-block;
-  padding:3px 7px;
-  border-radius:999px;
-  font-size:8px;
-  line-height:1.1;
-  font-weight:950;
-  letter-spacing:.7px;
-  background:rgba(255,255,255,.72);
-  margin-bottom:1px;
-}
-.podium-sparkle-v217{
+.podium-crown-v218{
   position:absolute;
-  top:9px;
-  font-size:15px;
-  line-height:1;
-  pointer-events:none;
-  animation:v217Sparkle 1.7s ease-in-out infinite alternate;
-}
-.invite-podium.rank-1 .podium-sparkle-v217.sparkle-left{left:13px;}
-.invite-podium.rank-1 .podium-sparkle-v217.sparkle-right{right:13px;animation-delay:.45s;}
-
-/* 1위: 왕관 + 골드 챔피언 */
-.invite-podium.rank-1{
-  order:2;
-  min-height:214px !important;
-  padding-top:38px !important;
-  background:linear-gradient(145deg,#fff9c9 0%,#ffe373 42%,#fff1a6 68%,#ffd654 100%) !important;
-  border-color:#e6b51f !important;
-  box-shadow:
-    0 14px 30px rgba(207,155,0,.27),
-    0 0 0 4px rgba(255,224,102,.18) !important;
-  transform:translateY(-14px) scale(1.045) !important;
-}
-.invite-podium.rank-1::after{background:#e4b300;}
-.invite-podium.rank-1 b{font-size:19px !important;color:#4e3500 !important;}
-.invite-podium.rank-1 strong{font-size:30px !important;color:#9b6500 !important;}
-.invite-podium.rank-1 .podium-rank-label-v217{color:#9d6a00;}
-.podium-crown-v217{
-  position:absolute;
-  top:-31px;
   left:50%;
   transform:translateX(-50%);
-  font-size:39px;
   line-height:1;
-  filter:drop-shadow(0 5px 5px rgba(166,113,0,.24));
-  animation:v217CrownFloat 2.3s ease-in-out infinite;
+  filter:drop-shadow(0 5px 6px rgba(80,55,10,.22));
+}
+.podium-ribbon-v218{
+  position:absolute;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  width:62%;
+  height:18px;
+  border-radius:999px;
+  opacity:.95;
+  z-index:-1;
+  box-shadow:0 3px 8px rgba(0,0,0,.12);
+}
+.podium-side-sparkle{
+  position:absolute;
+  top:25%;
+  font-size:18px;
+  pointer-events:none;
+  animation:v218Sparkle 1.5s ease-in-out infinite alternate;
+}
+.podium-side-sparkle-left{left:9px;}
+.podium-side-sparkle-right{right:9px;animation-delay:.35s;}
+
+/* 1위 */
+.invite-podium.rank-1{
+  order:2;
+  min-height:274px !important;
+  padding-top:62px !important;
+  background:linear-gradient(145deg,#fff7b6 0%,#ffd540 37%,#ffea82 65%,#ffc522 100%) !important;
+  border-color:#dca40b !important;
+  box-shadow:
+    0 20px 42px rgba(211,157,0,.34),
+    0 0 0 5px rgba(255,216,74,.18) !important;
+  transform:translateY(-22px) scale(1.08) !important;
+}
+.invite-podium.rank-1::after{background:#dca900;}
+.invite-podium.rank-1 .podium-crown-v218{font-size:52px;top:-48px;}
+.invite-podium.rank-1 .podium-medal{font-size:56px !important;}
+.invite-podium.rank-1 .podium-ribbon-v218{background:linear-gradient(90deg,#c90028,#ff5972,#c90028);}
+.invite-podium.rank-1 b{font-size:22px !important;color:#4b3200 !important;}
+.invite-podium.rank-1 strong{font-size:36px !important;color:#9f6200 !important;}
+.invite-podium.rank-1 .podium-rank-label-v218{color:#986300;}
+.invite-podium.rank-1 .podium-side-sparkle{
+  color:#fff;
+  font-size:21px;
+  text-shadow:0 0 8px #fff3a0,0 0 14px #ffd95a;
 }
 
-/* 2위: 실버 */
+/* 2위 */
 .invite-podium.rank-2{
   order:1;
-  min-height:183px !important;
-  background:linear-gradient(150deg,#fafcff 0%,#dce2e9 46%,#f8fafc 100%) !important;
-  border-color:#bcc6d1 !important;
+  min-height:236px !important;
+  background:linear-gradient(150deg,#fbfdff 0%,#ccd6e0 43%,#edf2f7 72%,#b8c3cf 100%) !important;
+  border-color:#a9b6c3 !important;
+  box-shadow:0 16px 34px rgba(90,108,128,.25) !important;
 }
-.invite-podium.rank-2::after{background:#9ba7b4;}
-.invite-podium.rank-2 b{color:#3f4853 !important;}
-.invite-podium.rank-2 strong{color:#687583 !important;}
-.invite-podium.rank-2 .podium-rank-label-v217{color:#697684;}
+.invite-podium.rank-2::after{background:#8797a9;}
+.invite-podium.rank-2 .podium-crown-v218{font-size:42px;top:-37px;}
+.invite-podium.rank-2 .podium-medal{font-size:48px !important;}
+.invite-podium.rank-2 .podium-ribbon-v218{background:linear-gradient(90deg,#245fa8,#66a0ea,#245fa8);}
+.invite-podium.rank-2 b{font-size:20px !important;color:#394552 !important;}
+.invite-podium.rank-2 strong{font-size:31px !important;color:#627181 !important;}
+.invite-podium.rank-2 .podium-rank-label-v218{color:#647181;}
+.invite-podium.rank-2 .podium-side-sparkle{color:#e8f4ff;text-shadow:0 0 8px #cde9ff;}
 
-/* 3위: 브론즈/로즈 */
+/* 3위 */
 .invite-podium.rank-3{
   order:3;
-  min-height:174px !important;
-  background:linear-gradient(150deg,#fff2e8 0%,#efb27f 46%,#ffe7d3 100%) !important;
-  border-color:#d8925d !important;
+  min-height:216px !important;
+  background:linear-gradient(150deg,#fff1e7 0%,#eda16b 43%,#ffd4b8 74%,#dc884f 100%) !important;
+  border-color:#cc7944 !important;
+  box-shadow:0 15px 32px rgba(162,87,42,.24) !important;
 }
-.invite-podium.rank-3::after{background:#c67a48;}
-.invite-podium.rank-3 b{color:#6e3e21 !important;}
-.invite-podium.rank-3 strong{color:#a75c2e !important;}
-.invite-podium.rank-3 .podium-rank-label-v217{color:#9d5c34;}
+.invite-podium.rank-3::after{background:#bd713f;}
+.invite-podium.rank-3 .podium-crown-v218{font-size:38px;top:-34px;}
+.invite-podium.rank-3 .podium-medal{font-size:44px !important;}
+.invite-podium.rank-3 .podium-ribbon-v218{background:linear-gradient(90deg,#c94444,#f27f7f,#c94444);}
+.invite-podium.rank-3 b{font-size:19px !important;color:#65391f !important;}
+.invite-podium.rank-3 strong{font-size:29px !important;color:#974b23 !important;}
+.invite-podium.rank-3 .podium-rank-label-v218{color:#8d4d2a;}
+.invite-podium.rank-3 .podium-side-sparkle{color:#ffe0cc;text-shadow:0 0 8px #ffcaa7;}
 
-@keyframes v217CrownFloat{
-  0%,100%{transform:translateX(-50%) translateY(0) rotate(-3deg)}
-  50%{transform:translateX(-50%) translateY(-4px) rotate(3deg)}
-}
-@keyframes v217Sparkle{
-  from{opacity:.48;transform:scale(.88)}
-  to{opacity:1;transform:scale(1.12)}
+@keyframes v218Sparkle{
+  from{opacity:.4;transform:scale(.84) rotate(0deg)}
+  to{opacity:1;transform:scale(1.2) rotate(12deg)}
 }
 @media (prefers-reduced-motion:reduce){
-  .podium-crown-v217,.podium-sparkle-v217{animation:none !important;}
+  .podium-side-sparkle{animation:none !important;}
 }
-@media (max-width:390px){
-  .invite-top3{gap:6px !important;}
-  .invite-podium{padding-left:4px !important;padding-right:4px !important;}
-  .invite-podium b{font-size:15px !important;}
-  .invite-podium strong{font-size:22px !important;}
-  .invite-podium.rank-1 b{font-size:17px !important;}
-  .invite-podium.rank-1 strong{font-size:27px !important;}
+@media (max-width:520px){
+  .invite-top3{
+    grid-template-columns:1fr 1.16fr 1fr !important;
+    gap:7px !important;
+    padding-top:46px !important;
+  }
+  .invite-podium{
+    padding-left:5px !important;
+    padding-right:5px !important;
+  }
+  .invite-podium.rank-1{min-height:246px !important;transform:translateY(-16px) scale(1.045) !important;}
+  .invite-podium.rank-2{min-height:218px !important;}
+  .invite-podium.rank-3{min-height:200px !important;}
+  .invite-podium.rank-1 b{font-size:18px !important;}
+  .invite-podium.rank-2 b{font-size:16px !important;}
+  .invite-podium.rank-3 b{font-size:15px !important;}
+  .invite-podium.rank-1 strong{font-size:31px !important;}
+  .invite-podium.rank-2 strong{font-size:26px !important;}
+  .invite-podium.rank-3 strong{font-size:24px !important;}
+  .podium-rank-label-v218{min-width:auto;font-size:7px;padding:3px 5px;}
 }
 </style>
 
@@ -1796,7 +1833,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2171"></script>
+  <script src="app.js?v=2180"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
