@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V219";
-window.YEOWOOBANG_BUILD = "V219";
+const APP_VERSION = "V220";
+window.YEOWOOBANG_BUILD = "V220";
 
 let config = {
   version: "V102",
@@ -2165,19 +2165,13 @@ function renderInviteRankV92(){
   }else{
     top3.innerHTML=podium.map(x=>`
       <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
-        <span class="podium-confetti-v219" aria-hidden="true">
-          <i></i><i></i><i></i><i></i><i></i><i></i>
+        <span class="podium-art-v220" aria-hidden="true"></span>
+        <span class="podium-text-v220">
+          <span class="podium-rank-label-v220">${x.rank===1?'CHAMPION':x.rank===2?'2nd PLACE':'3rd PLACE'}</span>
+          <b>${escapeHtml(x.nickname||"")}</b>
+          <strong>${x.score}명</strong>
+          <small>${x.rank}위</small>
         </span>
-        <span class="podium-crown-v219" aria-hidden="true">♛</span>
-        <span class="podium-ribbon-v219" aria-hidden="true"></span>
-        <span class="podium-medal-shell-v219">
-          <span class="podium-medal">${x.rank}</span>
-        </span>
-        <span class="podium-rank-label-v219">${x.rank===1?'CHAMPION':x.rank===2?'2nd PLACE':'3rd PLACE'}</span>
-        <b>${escapeHtml(x.nickname||"")}</b>
-        <strong>${x.score}명</strong>
-        <span class="podium-stage-v219" aria-hidden="true"><i></i></span>
-        <small>${x.rank}위</small>
       </button>`).join("");
 
     list.innerHTML=rest.map(x=>`
