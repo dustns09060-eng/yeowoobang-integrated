@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V242";
-window.YEOWOOBANG_BUILD = "V242";
+const APP_VERSION = "V243";
+window.YEOWOOBANG_BUILD = "V243";
 
 let config = {
   version: "V102",
@@ -2170,24 +2170,24 @@ function renderInviteRankV92(){
     const rankId=x=>x?escapeHtml(String(x.instagram||x.nickname||"")):"";
 
     top3.innerHTML=`
-      <svg class="invite-top3-svg-v239" viewBox="0 0 1634 650" preserveAspectRatio="xMidYMid meet"
+      <svg class="invite-top3-svg-v239" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid meet"
            role="img" aria-label="초대 랭킹 1위 2위 3위">
-        <image href="top3_scene_v242.jpg?v=2420" x="0" y="0" width="1634" height="650"
+        <image href="top3_scene_v243.jpg?v=2430" x="0" y="0" width="1774" height="887"
                preserveAspectRatio="none"></image>
 
         ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
-          <text class="rank-name-v239 rank2-v239" x="290" y="475" text-anchor="middle">${rankText(p2,"name")}</text>
-          <text class="rank-count-v239 rank2-v239" x="290" y="523" text-anchor="middle">${rankText(p2,"count")}</text>
+          <text class="rank-name-v239 rank2-v239" x="332" y="634" text-anchor="middle">${rankText(p2,"name")}</text>
+          <text class="rank-count-v239 rank2-v239" x="332" y="683" text-anchor="middle">${rankText(p2,"count")}</text>
         </g>`:""}
 
         ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
-          <text class="rank-name-v239 rank1-v239" x="800" y="430" text-anchor="middle">${rankText(p1,"name")}</text>
-          <text class="rank-count-v239 rank1-v239" x="800" y="485" text-anchor="middle">${rankText(p1,"count")}</text>
+          <text class="rank-name-v239 rank1-v239" x="862" y="608" text-anchor="middle">${rankText(p1,"name")}</text>
+          <text class="rank-count-v239 rank1-v239" x="862" y="663" text-anchor="middle">${rankText(p1,"count")}</text>
         </g>`:""}
 
         ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">
-          <text class="rank-name-v239 rank3-v239" x="1360" y="475" text-anchor="middle">${rankText(p3,"name")}</text>
-          <text class="rank-count-v239 rank3-v239" x="1360" y="523" text-anchor="middle">${rankText(p3,"count")}</text>
+          <text class="rank-name-v239 rank3-v239" x="1421" y="634" text-anchor="middle">${rankText(p3,"name")}</text>
+          <text class="rank-count-v239 rank3-v239" x="1421" y="683" text-anchor="middle">${rankText(p3,"count")}</text>
         </g>`:""}
       </svg>`;
 
