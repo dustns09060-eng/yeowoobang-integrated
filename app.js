@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V238";
-window.YEOWOOBANG_BUILD = "V238";
+const APP_VERSION = "V239";
+window.YEOWOOBANG_BUILD = "V239";
 
 let config = {
   version: "V102",
@@ -2163,12 +2163,33 @@ function renderInviteRankV92(){
     top3.innerHTML=`<p class="state-text">아직 ${label} 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>`;
     list.innerHTML="";
   }else{
-    top3.innerHTML=podium.map(x=>`
-      <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
-        <span class="podium-art-v228" aria-hidden="true"></span>
-        <b class="podium-name-v228">${escapeHtml(x.nickname||"")}</b>
-        <strong class="podium-count-v228">${x.score}명</strong>
-      </button>`).join("");
+    const p1=podium.find(x=>x.rank===1)||null;
+    const p2=podium.find(x=>x.rank===2)||null;
+    const p3=podium.find(x=>x.rank===3)||null;
+    const rankText=(x,field)=>x?escapeHtml(field==="name"?(x.nickname||""):`${x.score}명`):"";
+    const rankId=x=>x?escapeHtml(String(x.instagram||x.nickname||"")):"";
+
+    top3.innerHTML=`
+      <svg class="invite-top3-svg-v239" viewBox="0 0 1030 585" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-label="초대 랭킹 1위 2위 3위">
+        <image href="top3_scene_v239.jpg?v=2390" x="0" y="0" width="1030" height="585"
+               preserveAspectRatio="none"></image>
+
+        ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
+          <text class="rank-name-v239 rank2-v239" x="196" y="434" text-anchor="middle">${rankText(p2,"name")}</text>
+          <text class="rank-count-v239 rank2-v239" x="196" y="482" text-anchor="middle">${rankText(p2,"count")}</text>
+        </g>`:""}
+
+        ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
+          <text class="rank-name-v239 rank1-v239" x="530" y="376" text-anchor="middle">${rankText(p1,"name")}</text>
+          <text class="rank-count-v239 rank1-v239" x="530" y="424" text-anchor="middle">${rankText(p1,"count")}</text>
+        </g>`:""}
+
+        ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">
+          <text class="rank-name-v239 rank3-v239" x="833" y="434" text-anchor="middle">${rankText(p3,"name")}</text>
+          <text class="rank-count-v239 rank3-v239" x="833" y="482" text-anchor="middle">${rankText(p3,"count")}</text>
+        </g>`:""}
+      </svg>`;
 
     list.innerHTML=rest.map(x=>`
       <button class="invite-game-rank-row" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">

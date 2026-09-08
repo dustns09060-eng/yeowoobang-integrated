@@ -971,9 +971,13 @@
 
 
 
-<style id="v238-top3-exact-plaque">
-/* V238: TOP3 실제 빈 명패 좌표에 동적 텍스트를 직접 배치.
-   모바일/PC 모두 같은 이미지 비율과 같은 좌표를 사용하므로 겹침이 발생하지 않음. */
+
+
+
+<style id="v239-top3-svg-stage">
+/* V239
+   이미지와 닉네임/인원수를 하나의 SVG 좌표계 안에 넣어
+   모바일/PC에서 절대로 서로 다른 위치로 밀리지 않게 고정. */
 
 .invite-rank-summary{margin-bottom:0!important}
 
@@ -981,116 +985,69 @@
   position:relative!important;
   display:block!important;
   width:100%!important;
+  height:auto!important;
+  margin:0 0 8px!important;
   padding:0!important;
   overflow:hidden!important;
-  background-image:url("top3_scene_v237.jpg")!important;
-  background-repeat:no-repeat!important;
-  background-position:center center!important;
-  background-size:100% 100%!important;
+  border-radius:20px!important;
+  background:#fff5f8!important;
   box-shadow:0 8px 20px rgba(214,70,120,.10)!important;
 }
 
-.invite-top3::before,
-.invite-top3::after{
-  content:none!important;
-  display:none!important;
-}
-
-.podium-art-v228{
-  display:none!important;
-}
-
-/* 버튼 자체를 '명패 영역'으로 사용 */
-.invite-podium{
-  position:absolute!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  transform:none!important;
-  overflow:hidden!important;
-  z-index:5!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:7%!important;
-}
-
-/* 1030x585 원본 이미지의 실제 빈 명패 좌표를 비율로 변환 */
-.invite-podium.rank-2{
-  left:10.58%!important;
-  top:67.18%!important;
-  width:17.38%!important;
-  height:19.49%!important;
-}
-
-.invite-podium.rank-1{
-  left:39.81%!important;
-  top:57.26%!important;
-  width:22.72%!important;
-  height:20.34%!important;
-}
-
-.invite-podium.rank-3{
-  left:72.04%!important;
-  right:auto!important;
-  top:67.18%!important;
-  width:17.86%!important;
-  height:19.49%!important;
-}
-
-/* 동적 닉네임/숫자는 명패 내부에서만 표시 */
-.podium-name-v228,
-.podium-count-v228{
-  position:static!important;
+.invite-top3-svg-v239{
   display:block!important;
-  width:92%!important;
-  max-width:92%!important;
+  width:100%!important;
   height:auto!important;
-  margin:0!important;
-  padding:0!important;
-  box-sizing:border-box!important;
-  text-align:center!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  font-weight:1000!important;
-  line-height:1!important;
-  background:transparent!important;
-  border:0!important;
-  border-radius:0!important;
+  aspect-ratio:1030/585!important;
+  overflow:visible!important;
 }
 
-.invite-podium.rank-2 .podium-name-v228{
-  color:#173b64!important;
-  font-size:clamp(12px,1.35vw,18px)!important;
-}
-.invite-podium.rank-2 .podium-count-v228{
-  color:#0b4d88!important;
-  font-size:clamp(21px,2.35vw,32px)!important;
-  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
+.invite-rank-svg-hit-v239{
+  cursor:pointer;
 }
 
-.invite-podium.rank-1 .podium-name-v228{
-  color:#372100!important;
-  font-size:clamp(14px,1.55vw,21px)!important;
-}
-.invite-podium.rank-1 .podium-count-v228{
-  color:#ed1451!important;
-  font-size:clamp(25px,2.8vw,38px)!important;
-  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
+.invite-top3-svg-v239 text{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+  font-weight:900;
+  dominant-baseline:middle;
+  paint-order:stroke fill;
+  stroke:#fff;
+  stroke-width:2.6px;
+  stroke-linejoin:round;
 }
 
-.invite-podium.rank-3 .podium-name-v228{
-  color:#5f2914!important;
-  font-size:clamp(12px,1.35vw,18px)!important;
+.rank-name-v239{
+  font-size:25px;
 }
-.invite-podium.rank-3 .podium-count-v228{
-  color:#9a3c19!important;
-  font-size:clamp(21px,2.35vw,32px)!important;
-  text-shadow:0 2px 0 rgba(255,255,255,.85)!important;
+
+.rank-count-v239{
+  font-size:42px;
+}
+
+.rank-name-v239.rank1-v239{
+  font-size:28px;
+  fill:#3c2400;
+}
+
+.rank-count-v239.rank1-v239{
+  font-size:48px;
+  fill:#ed1451;
+}
+
+.rank-name-v239.rank2-v239{
+  fill:#173b64;
+}
+
+.rank-count-v239.rank2-v239{
+  fill:#0b4d88;
+}
+
+.rank-name-v239.rank3-v239{
+  fill:#5f2914;
+}
+
+.rank-count-v239.rank3-v239{
+  fill:#9a3c19;
 }
 
 .invite-rank-list{
@@ -1098,32 +1055,12 @@
   padding-top:0!important;
 }
 
-/* 모바일 */
+/* 모바일도 같은 SVG를 그대로 축소 */
 @media(max-width:520px){
   .invite-top3{
-    height:286px!important;
     margin:0 -8px 4px!important;
     width:calc(100% + 16px)!important;
     border-radius:18px!important;
-  }
-
-  .invite-podium{
-    gap:7px!important;
-  }
-
-  .invite-podium.rank-2 .podium-name-v228,
-  .invite-podium.rank-3 .podium-name-v228{
-    font-size:11px!important;
-  }
-  .invite-podium.rank-2 .podium-count-v228,
-  .invite-podium.rank-3 .podium-count-v228{
-    font-size:19px!important;
-  }
-  .invite-podium.rank-1 .podium-name-v228{
-    font-size:13px!important;
-  }
-  .invite-podium.rank-1 .podium-count-v228{
-    font-size:24px!important;
   }
 
   .invite-game-rank-row{
@@ -1132,44 +1069,11 @@
   }
 }
 
-@media(max-width:380px){
-  .invite-top3{
-    height:260px!important;
-    margin:0 -6px 3px!important;
-    width:calc(100% + 12px)!important;
-  }
-
-  .invite-podium{
-    gap:5px!important;
-  }
-
-  .invite-podium.rank-2 .podium-name-v228,
-  .invite-podium.rank-3 .podium-name-v228{
-    font-size:10px!important;
-  }
-  .invite-podium.rank-2 .podium-count-v228,
-  .invite-podium.rank-3 .podium-count-v228{
-    font-size:17px!important;
-  }
-  .invite-podium.rank-1 .podium-name-v228{
-    font-size:12px!important;
-  }
-  .invite-podium.rank-1 .podium-count-v228{
-    font-size:21px!important;
-  }
-}
-
-/* PC/태블릿도 같은 원본 비율을 그대로 사용 */
+/* PC도 별도 위치값 없음 — 동일 SVG 비율 */
 @media(min-width:521px){
   .invite-top3{
-    aspect-ratio:1030/585!important;
-    height:auto!important;
     margin:0 0 10px!important;
     border-radius:22px!important;
-  }
-
-  .invite-podium{
-    gap:8%!important;
   }
 }
 </style>
@@ -2013,7 +1917,7 @@
 
   <div id="toast" class="toast"></div>
   
-  <script src="app.js?v=2380"></script>
+  <script src="app.js?v=2390"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
