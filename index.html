@@ -782,120 +782,181 @@
 </style>
 
 
-<style id="v217-invite-ranking-top3">
-/* V217 초대랭킹 TOP3 전용 디자인 */
-.invite-ranking-top1-v217,
-.invite-ranking-top2-v217,
-.invite-ranking-top3-v217{
+<style id="v217-invite-podium-glam">
+/* V217 초대랭킹 TOP3 */
+.invite-top3{
+  display:grid !important;
+  grid-template-columns:1fr 1.12fr 1fr !important;
+  align-items:end !important;
+  gap:10px !important;
+  padding:30px 4px 8px !important;
+  overflow:visible !important;
+}
+.invite-podium{
   position:relative !important;
-  overflow:hidden !important;
-  border-width:2px !important;
-  border-style:solid !important;
-  transform-origin:center;
-  box-shadow:0 10px 24px rgba(0,0,0,.10) !important;
+  overflow:visible !important;
+  min-width:0 !important;
+  border-radius:24px 24px 18px 18px !important;
+  padding:23px 7px 17px !important;
+  border:2px solid transparent !important;
+  box-shadow:0 10px 24px rgba(77,52,80,.13) !important;
+  isolation:isolate;
+  transform:translateZ(0);
 }
-
-.invite-ranking-top1-v217{
-  border-color:#e9bd35 !important;
-  background:
-    radial-gradient(circle at 15% 18%,rgba(255,255,255,.95) 0 3%,transparent 4%),
-    radial-gradient(circle at 86% 24%,rgba(255,255,255,.82) 0 2%,transparent 3%),
-    linear-gradient(135deg,#fffdf4 0%,#fff4bc 48%,#ffe281 100%) !important;
-  box-shadow:0 14px 30px rgba(204,154,27,.28), inset 0 1px 0 rgba(255,255,255,.9) !important;
-}
-
-.invite-ranking-top2-v217{
-  border-color:#b8c0cc !important;
-  background:linear-gradient(135deg,#ffffff 0%,#eef1f5 50%,#dfe4eb 100%) !important;
-  box-shadow:0 12px 26px rgba(120,130,145,.20), inset 0 1px 0 rgba(255,255,255,.95) !important;
-}
-
-.invite-ranking-top3-v217{
-  border-color:#c4875e !important;
-  background:linear-gradient(135deg,#fffaf6 0%,#f3d7c5 52%,#deb08f 100%) !important;
-  box-shadow:0 12px 26px rgba(167,105,67,.20), inset 0 1px 0 rgba(255,255,255,.92) !important;
-}
-
-.invite-ranking-top1-v217::before,
-.invite-ranking-top2-v217::before,
-.invite-ranking-top3-v217::before{
-  position:absolute;
-  top:10px;
-  left:12px;
-  z-index:2;
-  font-size:25px;
-  line-height:1;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.10));
-}
-
-.invite-ranking-top1-v217::before{content:"🏆";}
-.invite-ranking-top2-v217::before{content:"🥈";}
-.invite-ranking-top3-v217::before{content:"🥉";}
-
-.invite-ranking-top1-v217::after{
+.invite-podium::before{
   content:"";
   position:absolute;
-  inset:-70% -25%;
-  background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.62) 50%,transparent 60%);
-  transform:translateX(-55%) rotate(8deg);
-  animation:v217RankShine 4.8s ease-in-out infinite;
+  inset:5px;
+  border-radius:19px 19px 14px 14px;
+  border:1px solid rgba(255,255,255,.85);
+  pointer-events:none;
+  z-index:-1;
+}
+.invite-podium::after{
+  content:"";
+  position:absolute;
+  left:12%;
+  right:12%;
+  bottom:-9px;
+  height:15px;
+  border-radius:50%;
+  filter:blur(9px);
+  opacity:.32;
+  z-index:-2;
+}
+.invite-podium .podium-medal{
+  display:block !important;
+  font-size:38px !important;
+  line-height:1 !important;
+  margin-bottom:8px !important;
+  filter:drop-shadow(0 4px 5px rgba(0,0,0,.14));
+}
+.invite-podium b{
+  display:block !important;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:17px !important;
+  font-weight:950 !important;
+  letter-spacing:-.5px;
+  margin:5px 0 3px !important;
+}
+.invite-podium strong{
+  display:block !important;
+  font-size:25px !important;
+  font-weight:950 !important;
+  margin:3px 0 !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+}
+.invite-podium small{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  height:25px;
+  padding:0 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  font-weight:900 !important;
+}
+.podium-rank-label-v217{
+  display:inline-block;
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:8px;
+  line-height:1.1;
+  font-weight:950;
+  letter-spacing:.7px;
+  background:rgba(255,255,255,.72);
+  margin-bottom:1px;
+}
+.podium-sparkles-v217{
+  position:absolute;
+  top:8px;
+  right:9px;
+  font-size:13px;
+  letter-spacing:-3px;
   pointer-events:none;
 }
 
-@keyframes v217RankShine{
-  0%,62%{transform:translateX(-60%) rotate(8deg);}
-  78%,100%{transform:translateX(65%) rotate(8deg);}
+/* 1위: 왕관 + 골드 챔피언 */
+.invite-podium.rank-1{
+  order:2;
+  min-height:214px !important;
+  padding-top:38px !important;
+  background:
+    radial-gradient(circle at 78% 14%,rgba(255,255,255,.98) 0 5%,transparent 6%),
+    linear-gradient(145deg,#fff9c9 0%,#ffe373 42%,#fff1a6 68%,#ffd654 100%) !important;
+  border-color:#e6b51f !important;
+  box-shadow:
+    0 14px 30px rgba(207,155,0,.27),
+    0 0 0 4px rgba(255,224,102,.18) !important;
+  transform:translateY(-14px) scale(1.045) !important;
+}
+.invite-podium.rank-1::after{background:#e4b300;}
+.invite-podium.rank-1 b{font-size:19px !important;color:#4e3500 !important;}
+.invite-podium.rank-1 strong{font-size:30px !important;color:#9b6500 !important;}
+.invite-podium.rank-1 .podium-rank-label-v217{color:#9d6a00;}
+.podium-crown-v217{
+  position:absolute;
+  top:-31px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:39px;
+  line-height:1;
+  filter:drop-shadow(0 5px 5px rgba(166,113,0,.24));
+  animation:v217CrownFloat 2.3s ease-in-out infinite;
+}
+.invite-podium.rank-1 .podium-sparkles-v217{
+  top:-3px;
+  right:5px;
+  font-size:17px;
+  animation:v217Sparkle 1.7s ease-in-out infinite alternate;
 }
 
-.invite-ranking-top1-v217 .invite-rank-badge-v217,
-.invite-ranking-top2-v217 .invite-rank-badge-v217,
-.invite-ranking-top3-v217 .invite-rank-badge-v217{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width:46px;
-  height:30px;
-  padding:0 10px;
-  border-radius:999px;
-  font-weight:1000;
-  font-size:13px;
-  letter-spacing:-.2px;
-  margin-right:8px;
-  box-shadow:0 3px 8px rgba(0,0,0,.10);
+/* 2위: 실버 */
+.invite-podium.rank-2{
+  order:1;
+  min-height:183px !important;
+  background:linear-gradient(150deg,#fafcff 0%,#dce2e9 46%,#f8fafc 100%) !important;
+  border-color:#bcc6d1 !important;
 }
+.invite-podium.rank-2::after{background:#9ba7b4;}
+.invite-podium.rank-2 b{color:#3f4853 !important;}
+.invite-podium.rank-2 strong{color:#687583 !important;}
+.invite-podium.rank-2 .podium-rank-label-v217{color:#697684;}
 
-.invite-ranking-top1-v217 .invite-rank-badge-v217{
-  background:linear-gradient(135deg,#f6cb52,#d99b12);
-  color:#fff;
+/* 3위: 브론즈/로즈 */
+.invite-podium.rank-3{
+  order:3;
+  min-height:174px !important;
+  background:linear-gradient(150deg,#fff2e8 0%,#efb27f 46%,#ffe7d3 100%) !important;
+  border-color:#d8925d !important;
 }
-.invite-ranking-top2-v217 .invite-rank-badge-v217{
-  background:linear-gradient(135deg,#cfd5dc,#929dac);
-  color:#fff;
-}
-.invite-ranking-top3-v217 .invite-rank-badge-v217{
-  background:linear-gradient(135deg,#d7a07e,#a86b48);
-  color:#fff;
-}
+.invite-podium.rank-3::after{background:#c67a48;}
+.invite-podium.rank-3 b{color:#6e3e21 !important;}
+.invite-podium.rank-3 strong{color:#a75c2e !important;}
+.invite-podium.rank-3 .podium-rank-label-v217{color:#9d5c34;}
 
-.invite-ranking-top1-v217 .invite-count-emphasis-v217,
-.invite-ranking-top2-v217 .invite-count-emphasis-v217,
-.invite-ranking-top3-v217 .invite-count-emphasis-v217{
-  font-size:1.13em !important;
-  font-weight:1000 !important;
+@keyframes v217CrownFloat{
+  0%,100%{transform:translateX(-50%) translateY(0) rotate(-3deg)}
+  50%{transform:translateX(-50%) translateY(-4px) rotate(3deg)}
 }
-
-.invite-ranking-top1-v217 .invite-count-emphasis-v217{color:#a96f00 !important;}
-.invite-ranking-top2-v217 .invite-count-emphasis-v217{color:#65707e !important;}
-.invite-ranking-top3-v217 .invite-count-emphasis-v217{color:#8f5638 !important;}
-
-/* 모바일에서 1등만 살짝 강조 */
-@media (max-width:700px){
-  .invite-ranking-top1-v217{transform:scale(1.012);}
+@keyframes v217Sparkle{
+  from{opacity:.48;transform:scale(.88)}
+  to{opacity:1;transform:scale(1.12)}
 }
-
-/* 사용자가 모션 줄이기를 선택한 경우 반짝임 중단 */
-@media (prefers-reduced-motion: reduce){
-  .invite-ranking-top1-v217::after{animation:none !important;}
+@media (prefers-reduced-motion:reduce){
+  .podium-crown-v217,.invite-podium.rank-1 .podium-sparkles-v217{animation:none !important;}
+}
+@media (max-width:390px){
+  .invite-top3{gap:6px !important;}
+  .invite-podium{padding-left:4px !important;padding-right:4px !important;}
+  .invite-podium b{font-size:15px !important;}
+  .invite-podium strong{font-size:22px !important;}
+  .invite-podium.rank-1 b{font-size:17px !important;}
+  .invite-podium.rank-1 strong{font-size:27px !important;}
 }
 </style>
 
@@ -1226,22 +1287,22 @@
       <div class="section-title-row invite-rank-head">
         <div>
           <h3>🏆 초대 랭킹</h3>
-          <p class="subtext"><span id="inviteMonthlyLabel">이번 달</span> 초대 순위와 총누적 순위를 확인해요.</p>
+          <p class="subtext"><span id="inviteMonthlyLabel">초대월</span> 초대 순위와 총누적 순위를 확인해요.</p>
         </div>
         <button id="refreshInviteLeaderboardBtn" class="outline small" type="button">새로고침</button>
       </div>
       <div class="invite-rank-tabs">
-        <button id="inviteMonthlyTab" class="invite-rank-tab active" type="button">이번 달</button>
+        <button id="inviteMonthlyTab" class="invite-rank-tab active" type="button">초대월</button>
         <button id="inviteTotalTab" class="invite-rank-tab" type="button">총누적</button>
       </div>
       <div class="invite-rank-summary">
-        <span id="inviteRankSummaryLabel">이번 달 초대 랭킹</span>
+        <span id="inviteRankSummaryLabel">초대 랭킹</span>
         <strong id="inviteRankSummaryCount">0명</strong>
       </div>
       <div id="inviteTop3" class="invite-top3"></div>
       <div id="inviteRankList" class="invite-rank-list"></div>
       <div class="invite-my-rank-card dual">
-        <div><span>내 이번 달 순위</span><strong id="inviteMyMonthlyRankText">-</strong></div>
+        <div><span>내 초대월 순위</span><strong id="inviteMyMonthlyRankText">-</strong></div>
         <div><span>내 총누적 순위</span><strong id="inviteMyTotalRankText">-</strong></div>
         <small id="inviteMyRankSub">회원 로그인 계정 기준으로 표시됩니다.</small>
       </div>
@@ -1253,7 +1314,7 @@
       <div class="section-title-row">
         <div>
           <h3>🎁 <span id="inviteBenefitMonthLabel">8월</span> 혜택 대상</h3>
-          <p class="subtext">이번 달 새로 달성한 최고 혜택 단계만 중복 없이 표시해요.</p>
+          <p class="subtext">해당 초대월에 새로 달성한 최고 혜택 단계만 중복 없이 표시해요.</p>
         </div>
       </div>
       <div class="invite-benefit-list">
@@ -1794,74 +1855,6 @@ window.addEventListener('DOMContentLoaded', function(){
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",hideThemeButton,{once:true});
   else hideThemeButton();
-})();
-</script>
-
-
-<script id="v217-invite-ranking-decorator">
-(function(){
-  function rankFromText(el){
-    var text=(el.textContent||"").replace(/\s+/g," ").trim();
-    var m=text.match(/(?:^|\s)([123])\s*(?:위|등)(?:\s|$)/);
-    if(m) return Number(m[1]);
-    m=text.match(/(?:^|\s)([123])\s*(?:st|nd|rd)(?:\s|$)/i);
-    return m ? Number(m[1]) : 0;
-  }
-
-  function isRankingCandidate(el){
-    if(!el || el.children.length===0) return false;
-    var text=(el.textContent||"").replace(/\s+/g," ").trim();
-    if(!/(?:1\s*(?:위|등)|2\s*(?:위|등)|3\s*(?:위|등))/.test(text)) return false;
-    if(text.length>260) return false;
-    var cls=((el.className||"")+" "+(el.id||"")).toLowerCase();
-    var pcls=el.parentElement ? (((el.parentElement.className||"")+" "+(el.parentElement.id||"")).toLowerCase()) : "";
-    return /invite|초대|rank|ranking|leader/.test(cls+" "+pcls) || /초대/.test(text);
-  }
-
-  function decorateInviteRankingV217(){
-    var all=[].slice.call(document.querySelectorAll("div,li,article,tr"));
-    all.forEach(function(el){
-      if(!isRankingCandidate(el)) return;
-      var rank=rankFromText(el);
-      if(rank<1 || rank>3) return;
-
-      el.classList.remove("invite-ranking-top1-v217","invite-ranking-top2-v217","invite-ranking-top3-v217");
-      el.classList.add("invite-ranking-top"+rank+"-v217");
-
-      /* 기존 1위/2위/3위 텍스트가 있으면 뱃지 스타일만 부여 */
-      var descendants=[].slice.call(el.querySelectorAll("span,b,strong,em,div"));
-      var rankNode=descendants.find(function(n){
-        var t=(n.textContent||"").trim();
-        return new RegExp("^"+rank+"\\s*(?:위|등)$").test(t);
-      });
-      if(rankNode) rankNode.classList.add("invite-rank-badge-v217");
-
-      /* 초대 수 숫자 노드를 가능한 범위에서 강조 */
-      descendants.forEach(function(n){
-        var t=(n.textContent||"").trim();
-        if(/^\d+\s*(?:명|개|회)$/.test(t) || /초대\s*\d+/.test(t)){
-          n.classList.add("invite-count-emphasis-v217");
-        }
-      });
-    });
-  }
-
-  function run(){
-    decorateInviteRankingV217();
-    var root=document.getElementById("inviteView") || document.body;
-    if(!root || typeof MutationObserver==="undefined") return;
-    var timer=null;
-    new MutationObserver(function(){
-      clearTimeout(timer);
-      timer=setTimeout(decorateInviteRankingV217,80);
-    }).observe(root,{childList:true,subtree:true});
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",run,{once:true});
-  }else{
-    run();
-  }
 })();
 </script>
 

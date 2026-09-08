@@ -2117,10 +2117,14 @@ async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await 
 
 let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
+let inviteDisplayMonthLabelV217="";
 
 function currentInviteMonthLabelV92(){
+  if(inviteDisplayMonthLabelV217) return inviteDisplayMonthLabelV217;
   const d=new Date();
-  return `${d.getMonth()+1}월`;
+  const current=d.getMonth()+1;
+  const source=current%2===0?current:(current===1?12:current-1);
+  return `${source}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2161,7 +2165,10 @@ function renderInviteRankV92(){
   }else{
     top3.innerHTML=podium.map(x=>`
       <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
+        ${x.rank===1?'<span class="podium-crown-v217" aria-hidden="true">👑</span>':''}
+        <span class="podium-sparkles-v217" aria-hidden="true">${x.rank===1?'✨ ✨':'✦'}</span>
         <span class="podium-medal">${medal(x.rank)}</span>
+        <span class="podium-rank-label-v217">${x.rank===1?'CHAMPION':x.rank===2?'2nd PLACE':'3rd PLACE'}</span>
         <b>${escapeHtml(x.nickname||"")}</b>
         <strong>${x.score}명</strong>
         <small>${x.rank}위</small>
@@ -2194,7 +2201,7 @@ function renderInviteRankV92(){
         <div class="invite-rank-detail-head">
           <div>
             <b>${escapeHtml(x.nickname||"")}</b>
-            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>📅 ${escapeHtml(currentInviteMonthLabelV92())} ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
             <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
           </div>
           <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
@@ -2283,8 +2290,13 @@ async function loadInviteLeaderboard(forceV183 = false){
 
   const taskV183 = (async () => {
   try{
-    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
+    inviteDisplayMonthLabelV217=String(d.monthLabel||"").trim()||currentInviteMonthLabelV92();
+
+    if($("inviteMonthlyLabel")) $("inviteMonthlyLabel").textContent=inviteDisplayMonthLabelV217;
+    if($("inviteMonthlyTab")) $("inviteMonthlyTab").textContent=inviteDisplayMonthLabelV217;
+    if($("inviteBenefitMonthLabel")) $("inviteBenefitMonthLabel").textContent=inviteDisplayMonthLabelV217;
+
     V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
@@ -2307,6 +2319,8 @@ async function loadInviteLeaderboard(forceV183 = false){
 
     if(mine){
       $("inviteMyMonthlyRankText").textContent=`${monthlyRank?.rank||"-"}위 · ${Number(mine.invite||0)}명`;
+      const myMonthlyLabel=$("inviteMyMonthlyRankText")?.previousElementSibling;
+      if(myMonthlyLabel) myMonthlyLabel.textContent=`내 ${currentInviteMonthLabelV92()} 순위`;
       $("inviteMyTotalRankText").textContent=`${totalRank?.rank||"-"}위 · ${Number(mine.total||0)}명`;
       $("inviteMyRankSub").textContent=
         (monthlyRank?.rank<=10||totalRank?.rank<=10)
