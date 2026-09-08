@@ -772,6 +772,15 @@
 }
 </style>
 
+
+<style id="v216-light-only">
+:root,html,body{color-scheme:light !important;}
+#themeToggle,#themeBtn,#darkModeToggle,#darkModeBtn,
+[data-theme-toggle],.theme-toggle,.theme-btn,.dark-mode-toggle{
+  display:none !important;
+}
+</style>
+
 </head>
 <body>
   <div id="bootScreen" role="status" aria-live="polite">
@@ -1614,7 +1623,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2180"></script>
+  <script src="app.js?v=2160"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
@@ -1653,5 +1662,22 @@ window.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
+
+<script id="v216-hide-theme-button">
+(function(){
+  function hideThemeButton(){
+    document.querySelectorAll("button,a,[role='button']").forEach(function(el){
+      var s=((el.textContent||"")+" "+(el.getAttribute("aria-label")||"")+" "+(el.getAttribute("title")||"")).toLowerCase();
+      var c=((el.id||"")+" "+(typeof el.className==="string"?el.className:"")).toLowerCase();
+      if(/테마|밤\s*모드|다크\s*모드|dark\s*mode/.test(s) || /theme(toggle|btn)|darkmode(toggle|btn)/.test(c)){
+        el.style.setProperty("display","none","important");
+      }
+    });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",hideThemeButton,{once:true});
+  else hideThemeButton();
+})();
+</script>
+
 </body>
 </html>

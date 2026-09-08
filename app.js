@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V215";
-window.YEOWOOBANG_BUILD = "V215";
+const APP_VERSION = "V216";
+window.YEOWOOBANG_BUILD = "V216";
 
 let config = {
   version: "V102",
@@ -2117,14 +2117,10 @@ async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await 
 
 let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
-let inviteRankMonthLabelV218="";
 
 function currentInviteMonthLabelV92(){
-  if(inviteRankMonthLabelV218)return inviteRankMonthLabelV218;
   const d=new Date();
-  const currentMonth=d.getMonth()+1;
-  const sourceMonth=currentMonth%2===0?currentMonth:(currentMonth===1?12:currentMonth-1);
-  return `${sourceMonth}월`;
+  return `${d.getMonth()+1}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2289,8 +2285,6 @@ async function loadInviteLeaderboard(forceV183 = false){
   try{
     $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
-    inviteRankMonthLabelV218=String(d.monthLabel||currentInviteMonthLabelV92());
-    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
@@ -2392,8 +2386,6 @@ function isOperatorMode_() {
 }
 
 function showView(id) {
-  const previousViewId = document.querySelector(".view.active")?.id || "";
-
   if (id === "myPageView") {
     setTimeout(() => loadUnifiedMyInfoV142().catch(() => {}), 0);
   }
@@ -2417,11 +2409,6 @@ function showView(id) {
   }
 
   if (id === "matchView") {
-    // V217: 다른 메뉴에서 맞팔확인으로 다시 들어오면 이전 검색 조건을 남기지 않습니다.
-    if (previousViewId !== "matchView" && $("searchInput")) {
-      $("searchInput").value = "";
-      if (result.all.length) renderMatchList();
-    }
     applyMatchLock();
     prefillMatchRequestIdentity();
     loadMatchRequestConfig().catch(()=>{});
@@ -3145,11 +3132,6 @@ async function sendMatchRequest(target, forceMismatch=false){
     : `@${target}님에게 맞팔 확인 요청을 보낼까요?`;
   if(!confirm(confirmText))return;
 
-  const requestButton=[...document.querySelectorAll("[data-match-request-to]")]
-    .find(button=>normalize(button.dataset.matchRequestTo)===target);
-  const originalButtonText=requestButton?.textContent||"";
-  if(requestButton){requestButton.disabled=true;requestButton.textContent="요청 중...";}
-
   try{
     const data=await apiPost("sendMatchRequest",{
       from,
@@ -3165,25 +3147,7 @@ async function sendMatchRequest(target, forceMismatch=false){
     await loadMatchRequests();
     if(result.all.length) renderMatchList();
   }catch(e){
-    // V217: Apps Script 응답만 늦고 요청은 이미 저장된 경우 실제 서버 상태를 재확인합니다.
-    const transient=e?.code==="TIMEOUT" || e instanceof TypeError ||
-      /Failed to fetch|NetworkError|Load failed|서버 응답이 늦어/i.test(String(e?.message||""));
-    if(transient){
-      toast("요청 접수 여부를 확인하고 있어요.");
-      await loadMatchRequests();
-      if(getSentMatchRequestStateV198(target)){
-        V183_SPEED.notificationsLoadedAt=0;
-        if(result.all.length) renderMatchList();
-        toast("맞팔 요청이 접수되었습니다.");
-        return;
-      }
-    }
     toast(e.message||"맞팔 요청을 보내지 못했습니다.");
-  }finally{
-    if(requestButton?.isConnected && !getSentMatchRequestStateV198(target)){
-      requestButton.disabled=!matchRequestPeriod.active;
-      requestButton.textContent=originalButtonText;
-    }
   }
 }
 async function loadMatchRequests(){
@@ -4647,3 +4611,26 @@ document.addEventListener("DOMContentLoaded",()=>{
   try{ bindBulkMatchRequestV200(); }catch(_){}
 });
 setTimeout(()=>{ try{ bindBulkMatchRequestV200(); }catch(_){} },800);
+
+/* V216 - 낮모드 고정 */
+(function(){
+  function forceLightV216(){
+    try{
+      localStorage.setItem("theme","light");
+      localStorage.setItem("yeowooTheme","light");
+      localStorage.setItem("yeowoobangTheme","light");
+    }catch(e){}
+    var root=document.documentElement, body=document.body;
+    [root,body].forEach(function(el){
+      if(!el) return;
+      el.removeAttribute("data-theme");
+      el.classList.remove("dark","dark-mode","theme-dark");
+      el.classList.add("light","light-mode","theme-light");
+    });
+    root.style.colorScheme="light";
+  }
+  forceLightV216();
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",forceLightV216,{once:true});
+  }
+})();
