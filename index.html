@@ -871,23 +871,23 @@
   background:rgba(255,255,255,.72);
   margin-bottom:1px;
 }
-.podium-sparkles-v217{
+.podium-sparkle-v217{
   position:absolute;
-  top:8px;
-  right:9px;
-  font-size:13px;
-  letter-spacing:-3px;
+  top:9px;
+  font-size:15px;
+  line-height:1;
   pointer-events:none;
+  animation:v217Sparkle 1.7s ease-in-out infinite alternate;
 }
+.invite-podium.rank-1 .podium-sparkle-v217.sparkle-left{left:13px;}
+.invite-podium.rank-1 .podium-sparkle-v217.sparkle-right{right:13px;animation-delay:.45s;}
 
 /* 1위: 왕관 + 골드 챔피언 */
 .invite-podium.rank-1{
   order:2;
   min-height:214px !important;
   padding-top:38px !important;
-  background:
-    radial-gradient(circle at 78% 14%,rgba(255,255,255,.98) 0 5%,transparent 6%),
-    linear-gradient(145deg,#fff9c9 0%,#ffe373 42%,#fff1a6 68%,#ffd654 100%) !important;
+  background:linear-gradient(145deg,#fff9c9 0%,#ffe373 42%,#fff1a6 68%,#ffd654 100%) !important;
   border-color:#e6b51f !important;
   box-shadow:
     0 14px 30px rgba(207,155,0,.27),
@@ -907,12 +907,6 @@
   line-height:1;
   filter:drop-shadow(0 5px 5px rgba(166,113,0,.24));
   animation:v217CrownFloat 2.3s ease-in-out infinite;
-}
-.invite-podium.rank-1 .podium-sparkles-v217{
-  top:-3px;
-  right:5px;
-  font-size:17px;
-  animation:v217Sparkle 1.7s ease-in-out infinite alternate;
 }
 
 /* 2위: 실버 */
@@ -948,7 +942,7 @@
   to{opacity:1;transform:scale(1.12)}
 }
 @media (prefers-reduced-motion:reduce){
-  .podium-crown-v217,.invite-podium.rank-1 .podium-sparkles-v217{animation:none !important;}
+  .podium-crown-v217,.podium-sparkle-v217{animation:none !important;}
 }
 @media (max-width:390px){
   .invite-top3{gap:6px !important;}
@@ -1802,7 +1796,7 @@
 
   <div id="toast" class="toast"></div>
   <script src="pumasi-config.js?v=1520"></script>
-  <script src="app.js?v=2170"></script>
+  <script src="app.js?v=2171"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
