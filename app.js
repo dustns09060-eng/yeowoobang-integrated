@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V249";
-window.YEOWOOBANG_BUILD = "V249";
+const APP_VERSION = "V250";
+window.YEOWOOBANG_BUILD = "V250";
 
 let config = {
   version: "V102",
@@ -2172,7 +2172,7 @@ function renderInviteRankV92(){
     top3.innerHTML=`
       <svg class="invite-top3-svg-v239" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid meet"
            role="img" aria-label="초대 랭킹 1위 2위 3위">
-        <image href="top3_scene_v243.jpg?v=2491" x="0" y="0" width="1774" height="887"
+        <image href="top3_scene_v243.jpg?v=2501" x="0" y="0" width="1774" height="887"
                preserveAspectRatio="none"></image>
 
         ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
@@ -2181,8 +2181,8 @@ function renderInviteRankV92(){
         </g>`:""}
 
         ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
-          <text class="rank-name-v239 rank1-v239" x="862" y="592" text-anchor="middle">${rankText(p1,"name")}</text>
-          <text class="rank-count-v239 rank1-v239" x="862" y="647" text-anchor="middle">${rankText(p1,"count")}</text>
+          <text class="rank-name-v239 rank1-v239" x="862" y="586" text-anchor="middle">${rankText(p1,"name")}</text>
+          <text class="rank-count-v239 rank1-v239" x="862" y="641" text-anchor="middle">${rankText(p1,"count")}</text>
         </g>`:""}
 
         ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">
