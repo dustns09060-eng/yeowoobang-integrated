@@ -1132,7 +1132,7 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
 .invite-podium.rank-2{order:1;background:linear-gradient(180deg,#f7f8fb 0%,#fff 72%)}
 .invite-podium.rank-3{order:3;background:linear-gradient(180deg,#fff0e7 0%,#fff 72%)}
 .podium-medal{font-size:29px;line-height:1}
-.invite-podium b{font-size:18px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.invite-podium b{font-size:24px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .invite-podium strong{font-size:23px;color:#ed547e}
 .invite-podium small{font-size:11px;color:#8f8589}
 .invite-rank-list{display:grid;gap:7px}
@@ -1174,7 +1174,7 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
   .invite-podium{padding:12px 4px 10px;min-height:116px}
   .invite-podium.rank-1{min-height:134px}
   .podium-medal{font-size:25px}
-  .invite-podium b{font-size:16px}
+  .invite-podium b{font-size:21px}
   .invite-podium strong{font-size:20px}
   .invite-milestones{gap:5px}
   .invite-milestones article{padding:9px 4px}
