@@ -1132,11 +1132,11 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
 .invite-podium.rank-2{order:1;background:linear-gradient(180deg,#f7f8fb 0%,#fff 72%)}
 .invite-podium.rank-3{order:3;background:linear-gradient(180deg,#fff0e7 0%,#fff 72%)}
 .podium-medal{font-size:29px;line-height:1}
-.invite-podium b{font-size:24px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.invite-podium b{font-size:29px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .invite-podium strong{font-size:23px;color:#ed547e}
 .invite-podium small{font-size:11px;color:#8f8589}
-.invite-rank-list{display:grid;gap:7px}
-.invite-game-rank-row{width:100%;border:1px solid #eee2e7;background:#fff;border-radius:15px;padding:10px 11px;display:grid;grid-template-columns:34px 1fr auto 18px;gap:8px;align-items:center;text-align:left}
+.invite-rank-list{display:grid;gap:6px;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+.invite-game-rank-row{width:100%;border:1px solid #eee2e7;background:#fff;border-radius:15px;padding:7px 11px;display:grid;grid-template-columns:34px 1fr auto 18px;gap:8px;align-items:center;text-align:left}
 .game-rank-no{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff1f5;color:#e55379;font-weight:1000}
 .game-rank-name b,.game-rank-name small{display:block}
 .game-rank-name b{font-size:14px}.game-rank-name small{margin-top:2px;font-size:10px;color:#989095}
@@ -1174,7 +1174,7 @@ body.dark .admin-mode-switch.active-admin-mode,html[data-theme="dark"] .admin-mo
   .invite-podium{padding:12px 4px 10px;min-height:116px}
   .invite-podium.rank-1{min-height:134px}
   .podium-medal{font-size:25px}
-  .invite-podium b{font-size:21px}
+  .invite-podium b{font-size:25px}
   .invite-podium strong{font-size:20px}
   .invite-milestones{gap:5px}
   .invite-milestones article{padding:9px 4px}
