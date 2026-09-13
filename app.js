@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V218";
-window.YEOWOOBANG_BUILD = "V218";
+const APP_VERSION = "V250";
+window.YEOWOOBANG_BUILD = "V250";
 
 let config = {
   version: "V102",
@@ -533,42 +533,27 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
   }
 }
 
-const FALLBACK_API_URL_V218 = "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec";
-
-function validAppsScriptExecUrlV218(value){
-  const url=String(value||"").trim();
-  return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:[?#].*)?$/i.test(url);
-}
+const FIXED_API_URL_V182 = "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec";
 
 async function loadConfig() {
-  // V218:
-  // Apps Script 배포 주소를 app.js에 영구 고정하지 않습니다.
-  // config.json의 apiUrl을 우선 사용하므로 새 배포 URL이 생겨도 config.json만 바꾸면 됩니다.
-  config.apiUrl = validAppsScriptExecUrlV218(config.apiUrl)
-    ? config.apiUrl
-    : FALLBACK_API_URL_V218;
+  // V182: API 주소는 현재 운영 중인 Apps Script /exec 주소로 고정합니다.
+  // config.json에 과거 apiUrl이 남아 있어도 로그인/맞팔/초대별 API를 덮어쓰지 못합니다.
+  config.apiUrl = FIXED_API_URL_V182;
 
   try {
-    const response = await fetchWithTimeout("config.json?v=2180", { cache: "no-store" }, 3500);
+    const response = await fetchWithTimeout("config.json?v=1820", { cache: "no-store" }, 2500);
     if (response.ok) {
       const remoteConfig = await response.json();
+
+      // apiUrl만 제외하고 나머지 설정은 기존처럼 반영
       if (remoteConfig && typeof remoteConfig === "object") {
-        const remoteApi=String(remoteConfig.apiUrl||"").trim();
-        config = {
-          ...config,
-          ...remoteConfig,
-          apiUrl: validAppsScriptExecUrlV218(remoteApi)
-            ? remoteApi
-            : config.apiUrl
-        };
+        const { apiUrl: _ignoredOldApiUrl, ...safeConfig } = remoteConfig;
+        config = { ...config, ...safeConfig, apiUrl: FIXED_API_URL_V182 };
       }
     }
   } catch (_) {
-    // config.json이 실패해도 마지막으로 알고 있는 /exec 주소를 사용합니다.
-  }
-
-  if(!validAppsScriptExecUrlV218(config.apiUrl)){
-    config.apiUrl=FALLBACK_API_URL_V218;
+    // config.json 로드 실패 시에도 고정 API 주소로 정상 진행
+    config.apiUrl = FIXED_API_URL_V182;
   }
 }
 const API_GET_INFLIGHT_V209 = new Map();
@@ -595,14 +580,7 @@ async function apiGet(action, timeoutMs = 20000) {
           redirect: "follow",
         }, effectiveTimeout);
 
-        if (!response.ok) {
-        const err=new Error(response.status===404
-          ? "서버 배포 주소를 찾을 수 없습니다. (API 404)"
-          : `API HTTP ${response.status}`);
-        err.code=response.status===404 ? "API_404" : `HTTP_${response.status}`;
-        err.status=response.status;
-        throw err;
-      }
+        if (!response.ok) throw new Error(`API HTTP ${response.status}`);
         const data = await response.json();
         if (!data.ok) throw new Error(data.error || data.message || "API 요청 실패");
         return data;
@@ -648,14 +626,7 @@ async function apiPost(action, payload = {}, timeoutMs = 9000) {
         redirect: "follow",
       }, effectiveTimeout);
 
-      if (!response.ok) {
-        const err=new Error(response.status===404
-          ? "서버 배포 주소를 찾을 수 없습니다. (API 404)"
-          : `API HTTP ${response.status}`);
-        err.code=response.status===404 ? "API_404" : `HTTP_${response.status}`;
-        err.status=response.status;
-        throw err;
-      }
+      if (!response.ok) throw new Error(`API HTTP ${response.status}`);
 
       const text = await response.text();
       let data;
@@ -1848,63 +1819,6 @@ function rowsToRoom(rows) {
   });
 }
 
-
-async function loadFollowListFallbackV218(){
-  if(!memberSession?.token) return [];
-
-  // 1) 같은 로그인 세션에서 이미 받아둔 최신 명단
-  try{
-    const raw=sessionStorage.getItem(FOLLOW_LIST_CACHE_KEY);
-    if(raw){
-      const saved=JSON.parse(raw);
-      const currentMemberId=String(memberSession?.member?.memberId||memberSession?.member?.id||"");
-      if(
-        saved &&
-        Array.isArray(saved.list) &&
-        saved.list.length &&
-        (!saved.memberId || !currentMemberId || String(saved.memberId)===currentMemberId)
-      ){
-        return saved.list;
-      }
-    }
-  }catch(_){}
-
-  // 2) API 배포 장애 시 GitHub의 마지막 배포 명단을 임시 복구용으로 사용.
-  // 회원 로그인 세션이 있는 상태에서만 실행합니다.
-  try{
-    const csvUrl=String(config.fallbackCsv||"room-list.csv");
-    const response=await fetch(`${csvUrl}${csvUrl.includes("?")?"&":"?"}v=2180`,{
-      cache:"no-store"
-    });
-    if(!response.ok) return [];
-    const rows=parseCsv(await response.text());
-    const list=[];
-    rows.forEach((row,index)=>{
-      const joined=row.join(" ");
-      if(index===0 && (joined.includes("번호")||joined.includes("닉네임")||joined.includes("아이디"))) return;
-      const no=String(row[0]||"").trim();
-      const name=String(row[1]||"").trim();
-      const id=normalize(row[2]||"");
-      if(!no||!name) return;
-      if(String(no)==="1826"){
-        list.push({no,name:name||"챤쥰맘",id:"",status:"SUSPENDED",statusLabel:"계정정지"});
-        return;
-      }
-      if(!id||!validUsername(id)) return;
-      list.push({no,name,id,status:"ACTIVE",statusLabel:""});
-    });
-    const seen=new Set();
-    return list.filter(item=>{
-      const key=item.status==="SUSPENDED"?`SUSPENDED:${item.no}`:item.id;
-      if(seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }catch(_){
-    return [];
-  }
-}
-
 async function loadRoomList(show = false, forceV183 = false) {
   const force = Boolean(forceV183 || show);
 
@@ -1990,46 +1904,12 @@ async function loadRoomList(show = false, forceV183 = false) {
     if (adminLoggedIn) renderRosterAudit();
     if (show) toast("명단 새로고침 완료");
   } catch (error) {
-    // V218: Apps Script 배포 URL이 404여도 로그인된 회원의 화면을 빈 목록으로 만들지 않습니다.
-    if(error?.code==="API_404" || error?.status===404 || /API\s*(?:HTTP\s*)?404/i.test(String(error?.message||""))){
-      const fallback=await loadFollowListFallbackV218();
-      if(fallback.length){
-        roomList=fallback;
-        V183_SPEED.roomLoadedAt=Date.now();
-
-        matchRoomList=roomList.map(item=>{
-          const id=normalize(item.id||"");
-          const available=Boolean(id&&validUsername(id));
-          return {
-            no:item.no,
-            name:item.name,
-            id:available?id:"",
-            statusSource:String(item.status||""),
-            statusLabelSource:String(item.statusLabel||""),
-            matchAvailable:available
-          };
-        });
-
-        setSheetState("임시 명단 · 서버 재연결 필요");
-        updateFollowStats();
-        renderGroupTabs();
-        renderCopyBatches();
-        renderFollowList();
-        renderResumeCard();
-        updateFollowWatermarkV104?.();
-        if(adminLoggedIn) renderRosterAudit();
-        if(show) toast("서버 재배포 확인이 필요해 임시 명단을 표시합니다.");
-        return roomList;
-      }
-    }
-
-    // 기존 동작: 이미 캐시 명단이 있으면 0명으로 덮어쓰지 않음
+    // V118: 이미 로그인 후 캐시 명단을 표시 중이면 0명으로 덮어쓰지 않습니다.
     if (roomList.length) {
       setSheetState("기존 명단 표시 · 새로고침 실패");
       if (show) toast(error.message || "최신 명단 확인이 늦어 기존 명단을 표시합니다.");
-      return roomList;
+      return;
     }
-
     roomList=[];
     setSheetState("접근 제한");
     renderGroupTabs();
@@ -2237,10 +2117,14 @@ async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await 
 
 let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
+let inviteDisplayMonthLabelV217="";
 
 function currentInviteMonthLabelV92(){
+  if(inviteDisplayMonthLabelV217) return inviteDisplayMonthLabelV217;
   const d=new Date();
-  return `${d.getMonth()+1}월`;
+  const current=d.getMonth()+1;
+  const source=current%2===0?current:(current===1?12:current-1);
+  return `${source}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2279,13 +2163,33 @@ function renderInviteRankV92(){
     top3.innerHTML=`<p class="state-text">아직 ${label} 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>`;
     list.innerHTML="";
   }else{
-    top3.innerHTML=podium.map(x=>`
-      <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
-        <span class="podium-medal">${medal(x.rank)}</span>
-        <b>${escapeHtml(x.nickname||"")}</b>
-        <strong>${x.score}명</strong>
-        <small>${x.rank}위</small>
-      </button>`).join("");
+    const p1=podium.find(x=>x.rank===1)||null;
+    const p2=podium.find(x=>x.rank===2)||null;
+    const p3=podium.find(x=>x.rank===3)||null;
+    const rankText=(x,field)=>x?escapeHtml(field==="name"?(x.nickname||""):`${x.score}명`):"";
+    const rankId=x=>x?escapeHtml(String(x.instagram||x.nickname||"")):"";
+
+    top3.innerHTML=`
+      <svg class="invite-top3-svg-v239" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-label="초대 랭킹 1위 2위 3위">
+        <image href="top3_scene_v243.jpg?v=2501" x="0" y="0" width="1774" height="887"
+               preserveAspectRatio="none"></image>
+
+        ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
+          <text class="rank-name-v239 rank2-v239" x="332" y="634" text-anchor="middle">${rankText(p2,"name")}</text>
+          <text class="rank-count-v239 rank2-v239" x="332" y="693" text-anchor="middle">${rankText(p2,"count")}</text>
+        </g>`:""}
+
+        ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
+          <text class="rank-name-v239 rank1-v239" x="862" y="586" text-anchor="middle">${rankText(p1,"name")}</text>
+          <text class="rank-count-v239 rank1-v239" x="862" y="649" text-anchor="middle">${rankText(p1,"count")}</text>
+        </g>`:""}
+
+        ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">
+          <text class="rank-name-v239 rank3-v239" x="1421" y="634" text-anchor="middle">${rankText(p3,"name")}</text>
+          <text class="rank-count-v239 rank3-v239" x="1421" y="693" text-anchor="middle">${rankText(p3,"count")}</text>
+        </g>`:""}
+      </svg>`;
 
     list.innerHTML=rest.map(x=>`
       <button class="invite-game-rank-row" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
@@ -2314,7 +2218,7 @@ function renderInviteRankV92(){
         <div class="invite-rank-detail-head">
           <div>
             <b>${escapeHtml(x.nickname||"")}</b>
-            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>📅 ${escapeHtml(currentInviteMonthLabelV92())} ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
             <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
           </div>
           <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
@@ -2403,8 +2307,13 @@ async function loadInviteLeaderboard(forceV183 = false){
 
   const taskV183 = (async () => {
   try{
-    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
+    inviteDisplayMonthLabelV217=String(d.monthLabel||"").trim()||currentInviteMonthLabelV92();
+
+    if($("inviteMonthlyLabel")) $("inviteMonthlyLabel").textContent=inviteDisplayMonthLabelV217;
+    if($("inviteMonthlyTab")) $("inviteMonthlyTab").textContent=inviteDisplayMonthLabelV217;
+    if($("inviteBenefitMonthLabel")) $("inviteBenefitMonthLabel").textContent=inviteDisplayMonthLabelV217;
+
     V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
@@ -2427,6 +2336,8 @@ async function loadInviteLeaderboard(forceV183 = false){
 
     if(mine){
       $("inviteMyMonthlyRankText").textContent=`${monthlyRank?.rank||"-"}위 · ${Number(mine.invite||0)}명`;
+      const myMonthlyLabel=$("inviteMyMonthlyRankText")?.previousElementSibling;
+      if(myMonthlyLabel) myMonthlyLabel.textContent=`내 ${currentInviteMonthLabelV92()} 순위`;
       $("inviteMyTotalRankText").textContent=`${totalRank?.rank||"-"}위 · ${Number(mine.total||0)}명`;
       $("inviteMyRankSub").textContent=
         (monthlyRank?.rank<=10||totalRank?.rank<=10)
@@ -3676,14 +3587,6 @@ if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member")
 document.querySelectorAll("[data-home-view]").forEach((button) => {
   button.onclick = () => showView(button.dataset.homeView);
 });
-if ($("homePumasiBtn")) {
-  $("homePumasiBtn").onclick = () => {
-    const configured = window.YEOWOOBANG_PUMASI_URL || "";
-    if (configured) window.location.href = configured;
-    else toast("품앗이 연결 주소를 등록하면 바로 이동할 수 있어요.");
-  };
-}
-
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
@@ -3860,7 +3763,7 @@ finishBootScreen();
           .catch(() => {});
       }
     } else {
-      navigator.serviceWorker.register("sw.js?v=1870").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=2420").catch(() => {});
     }
   }
 
@@ -4094,23 +3997,14 @@ function openInstagramProfileV199(instagramId){
   if(!id)return false;
 
   const url=`https://www.instagram.com/${encodeURIComponent(id)}/`;
-  const isYeowooAndroid=/YeowoobangAndroid/i.test(navigator.userAgent||"");
 
+  // 실제 사용자의 버튼 클릭 흐름 안에서 링크를 만들어 열어
+  // 모바일 브라우저/Android WebView의 외부링크 처리와 최대한 동일하게 동작시킵니다.
   try{
-    // V217:
-    // Android WebView에서 target=_blank/window.open을 사용하면 일부 기기에서
-    // Instagram이 intent:// 주소로 전환한 뒤 ERR_UNKNOWN_URL_SCHEME가 발생할 수 있습니다.
-    // 앱 WebView에서는 현재 프레임의 HTTPS URL만 넘겨 네이티브 shouldOverrideUrlLoading이
-    // Instagram 앱/브라우저로 안전하게 처리하도록 합니다.
-    if(isYeowooAndroid){
-      window.location.assign(url);
-      return true;
-    }
-
     const a=document.createElement("a");
     a.href=url;
     a.target="_blank";
-    a.rel="noopener noreferrer";
+    a.rel="noopener";
     a.style.display="none";
     document.body.appendChild(a);
     a.click();
@@ -4118,7 +4012,7 @@ function openInstagramProfileV199(instagramId){
     return true;
   }catch(_){
     try{
-      window.location.assign(url);
+      window.open(url,"_blank");
       return true;
     }catch(__){
       return false;
