@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V250";
-window.YEOWOOBANG_BUILD = "V250";
+const APP_VERSION = "V251";
+window.YEOWOOBANG_BUILD = "V251";
 
 let config = {
   version: "V102",
@@ -558,12 +558,13 @@ async function loadConfig() {
 }
 const API_GET_INFLIGHT_V209 = new Map();
 
-async function apiGet(action, timeoutMs = 20000) {
+async function apiGet(action, timeoutMs = 20000, params = {}) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
-  // V209: 같은 GET action이 동시에 여러 번 호출되면 네트워크 요청은 1번만 보냅니다.
-  if (API_GET_INFLIGHT_V209.has(action)) {
-    return API_GET_INFLIGHT_V209.get(action);
+  // V251: 같은 action + query 조합만 중복 요청으로 묶습니다.
+  const inflightKey = `${action}:${JSON.stringify(params || {})}`;
+  if (API_GET_INFLIGHT_V209.has(inflightKey)) {
+    return API_GET_INFLIGHT_V209.get(inflightKey);
   }
 
   const task = (async () => {
@@ -571,6 +572,11 @@ async function apiGet(action, timeoutMs = 20000) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const url = new URL(config.apiUrl);
       url.searchParams.set("action", action);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, String(value));
+        }
+      });
       url.searchParams.set("_t", Date.now().toString());
       try {
         const effectiveTimeout = Math.max(Number(timeoutMs) || 0, 20000);
@@ -593,11 +599,11 @@ async function apiGet(action, timeoutMs = 20000) {
     throw lastError || new Error("API 요청 실패");
   })();
 
-  API_GET_INFLIGHT_V209.set(action, task);
+  API_GET_INFLIGHT_V209.set(inflightKey, task);
   try {
     return await task;
   } finally {
-    API_GET_INFLIGHT_V209.delete(action);
+    API_GET_INFLIGHT_V209.delete(inflightKey);
   }
 }
 async function apiPost(action, payload = {}, timeoutMs = 9000) {
@@ -2119,12 +2125,11 @@ let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
 let inviteDisplayMonthLabelV217="";
 
+const INVITE_SOURCE_MONTH_V251 = 8;
+const INVITE_SOURCE_MONTH_LABEL_V251 = "8월";
+
 function currentInviteMonthLabelV92(){
-  if(inviteDisplayMonthLabelV217) return inviteDisplayMonthLabelV217;
-  const d=new Date();
-  const current=d.getMonth()+1;
-  const source=current%2===0?current:(current===1?12:current-1);
-  return `${source}월`;
+  return inviteDisplayMonthLabelV217 || INVITE_SOURCE_MONTH_LABEL_V251;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2307,8 +2312,19 @@ async function loadInviteLeaderboard(forceV183 = false){
 
   const taskV183 = (async () => {
   try{
-    const d=await apiGet("getInviteLeaderboard",30000);
-    inviteDisplayMonthLabelV217=String(d.monthLabel||"").trim()||currentInviteMonthLabelV92();
+    // V251: 초대별은 현재 날짜와 무관하게 8월 시트를 요청합니다.
+    // 서버 Apps Script가 month/sourceMonth 파라미터를 읽도록 되어 있으면 8월 시트를 반환합니다.
+    const d=await apiGet("getInviteLeaderboard",30000,{
+      month: INVITE_SOURCE_MONTH_V251,
+      sourceMonth: INVITE_SOURCE_MONTH_V251,
+      monthLabel: INVITE_SOURCE_MONTH_LABEL_V251
+    });
+
+    const serverMonthLabel=String(d.monthLabel||"").trim();
+    if(serverMonthLabel && serverMonthLabel!==INVITE_SOURCE_MONTH_LABEL_V251){
+      throw new Error(`초대별 서버가 ${serverMonthLabel} 데이터를 반환했습니다. 8월 시트 설정을 확인해주세요.`);
+    }
+    inviteDisplayMonthLabelV217=INVITE_SOURCE_MONTH_LABEL_V251;
 
     if($("inviteMonthlyLabel")) $("inviteMonthlyLabel").textContent=inviteDisplayMonthLabelV217;
     if($("inviteMonthlyTab")) $("inviteMonthlyTab").textContent=inviteDisplayMonthLabelV217;
