@@ -31,8 +31,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V250";
-window.YEOWOOBANG_BUILD = "V250";
+const APP_VERSION = "V217";
+window.YEOWOOBANG_BUILD = "V217";
 
 let config = {
   version: "V102",
@@ -2117,14 +2117,10 @@ async function loadInviteSummary(){if(!inviteAdminLoggedIn)return;const d=await 
 
 let inviteRankModeV92="monthly";
 let inviteRankDataV92=[];
-let inviteDisplayMonthLabelV217="";
 
 function currentInviteMonthLabelV92(){
-  if(inviteDisplayMonthLabelV217) return inviteDisplayMonthLabelV217;
   const d=new Date();
-  const current=d.getMonth()+1;
-  const source=current%2===0?current:(current===1?12:current-1);
-  return `${source}월`;
+  return `${d.getMonth()+1}월`;
 }
 
 function rankInviteItemsV92(items,mode){
@@ -2163,33 +2159,13 @@ function renderInviteRankV92(){
     top3.innerHTML=`<p class="state-text">아직 ${label} 실적이 없습니다. 첫 번째 랭커가 되어보세요! 🎮</p>`;
     list.innerHTML="";
   }else{
-    const p1=podium.find(x=>x.rank===1)||null;
-    const p2=podium.find(x=>x.rank===2)||null;
-    const p3=podium.find(x=>x.rank===3)||null;
-    const rankText=(x,field)=>x?escapeHtml(field==="name"?(x.nickname||""):`${x.score}명`):"";
-    const rankId=x=>x?escapeHtml(String(x.instagram||x.nickname||"")):"";
-
-    top3.innerHTML=`
-      <svg class="invite-top3-svg-v239" viewBox="0 0 1774 887" preserveAspectRatio="xMidYMid meet"
-           role="img" aria-label="초대 랭킹 1위 2위 3위">
-        <image href="top3_scene_v243.jpg?v=2501" x="0" y="0" width="1774" height="887"
-               preserveAspectRatio="none"></image>
-
-        ${p2?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p2)}">
-          <text class="rank-name-v239 rank2-v239" x="332" y="634" text-anchor="middle">${rankText(p2,"name")}</text>
-          <text class="rank-count-v239 rank2-v239" x="332" y="693" text-anchor="middle">${rankText(p2,"count")}</text>
-        </g>`:""}
-
-        ${p1?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p1)}">
-          <text class="rank-name-v239 rank1-v239" x="862" y="586" text-anchor="middle">${rankText(p1,"name")}</text>
-          <text class="rank-count-v239 rank1-v239" x="862" y="649" text-anchor="middle">${rankText(p1,"count")}</text>
-        </g>`:""}
-
-        ${p3?`<g class="invite-rank-svg-hit-v239" data-rank-id="${rankId(p3)}">
-          <text class="rank-name-v239 rank3-v239" x="1421" y="634" text-anchor="middle">${rankText(p3,"name")}</text>
-          <text class="rank-count-v239 rank3-v239" x="1421" y="693" text-anchor="middle">${rankText(p3,"count")}</text>
-        </g>`:""}
-      </svg>`;
+    top3.innerHTML=podium.map(x=>`
+      <button class="invite-podium rank-${x.rank}" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
+        <span class="podium-medal">${medal(x.rank)}</span>
+        <b>${escapeHtml(x.nickname||"")}</b>
+        <strong>${x.score}명</strong>
+        <small>${x.rank}위</small>
+      </button>`).join("");
 
     list.innerHTML=rest.map(x=>`
       <button class="invite-game-rank-row" type="button" data-rank-id="${escapeHtml(String(x.instagram||x.nickname||""))}">
@@ -2218,7 +2194,7 @@ function renderInviteRankV92(){
         <div class="invite-rank-detail-head">
           <div>
             <b>${escapeHtml(x.nickname||"")}</b>
-            <span>📅 ${escapeHtml(currentInviteMonthLabelV92())} ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
+            <span>📅 이번달 ${Number(x.invite||0)}명 · ${monthRank?.rank||"-"}위</span>
             <span>🏆 총누적 ${Number(x.total||0)}명 · ${totalRank?.rank||"-"}위</span>
           </div>
           <button id="closeInviteRankDetail" class="outline small" type="button">닫기</button>
@@ -2307,13 +2283,8 @@ async function loadInviteLeaderboard(forceV183 = false){
 
   const taskV183 = (async () => {
   try{
+    $("inviteMonthlyLabel").textContent=currentInviteMonthLabelV92();
     const d=await apiGet("getInviteLeaderboard",30000);
-    inviteDisplayMonthLabelV217=String(d.monthLabel||"").trim()||currentInviteMonthLabelV92();
-
-    if($("inviteMonthlyLabel")) $("inviteMonthlyLabel").textContent=inviteDisplayMonthLabelV217;
-    if($("inviteMonthlyTab")) $("inviteMonthlyTab").textContent=inviteDisplayMonthLabelV217;
-    if($("inviteBenefitMonthLabel")) $("inviteBenefitMonthLabel").textContent=inviteDisplayMonthLabelV217;
-
     V183_SPEED.inviteLoadedAt = Date.now();
     inviteRankDataV92=(d.items||[]).map(x=>({
       ...x,
@@ -2336,8 +2307,6 @@ async function loadInviteLeaderboard(forceV183 = false){
 
     if(mine){
       $("inviteMyMonthlyRankText").textContent=`${monthlyRank?.rank||"-"}위 · ${Number(mine.invite||0)}명`;
-      const myMonthlyLabel=$("inviteMyMonthlyRankText")?.previousElementSibling;
-      if(myMonthlyLabel) myMonthlyLabel.textContent=`내 ${currentInviteMonthLabelV92()} 순위`;
       $("inviteMyTotalRankText").textContent=`${totalRank?.rank||"-"}위 · ${Number(mine.total||0)}명`;
       $("inviteMyRankSub").textContent=
         (monthlyRank?.rank<=10||totalRank?.rank<=10)
@@ -3587,6 +3556,14 @@ if($("inviteMemberTab"))$("inviteMemberTab").onclick=()=>setInviteMode("member")
 document.querySelectorAll("[data-home-view]").forEach((button) => {
   button.onclick = () => showView(button.dataset.homeView);
 });
+if ($("homePumasiBtn")) {
+  $("homePumasiBtn").onclick = () => {
+    const configured = window.YEOWOOBANG_PUMASI_URL || "";
+    if (configured) window.location.href = configured;
+    else toast("품앗이 연결 주소를 등록하면 바로 이동할 수 있어요.");
+  };
+}
+
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.onclick = () => showView(button.dataset.view);
 });
@@ -3763,7 +3740,7 @@ finishBootScreen();
           .catch(() => {});
       }
     } else {
-      navigator.serviceWorker.register("sw.js?v=2420").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=1870").catch(() => {});
     }
   }
 
@@ -3997,14 +3974,23 @@ function openInstagramProfileV199(instagramId){
   if(!id)return false;
 
   const url=`https://www.instagram.com/${encodeURIComponent(id)}/`;
+  const isYeowooAndroid=/YeowoobangAndroid/i.test(navigator.userAgent||"");
 
-  // 실제 사용자의 버튼 클릭 흐름 안에서 링크를 만들어 열어
-  // 모바일 브라우저/Android WebView의 외부링크 처리와 최대한 동일하게 동작시킵니다.
   try{
+    // V217:
+    // Android WebView에서 target=_blank/window.open을 사용하면 일부 기기에서
+    // Instagram이 intent:// 주소로 전환한 뒤 ERR_UNKNOWN_URL_SCHEME가 발생할 수 있습니다.
+    // 앱 WebView에서는 현재 프레임의 HTTPS URL만 넘겨 네이티브 shouldOverrideUrlLoading이
+    // Instagram 앱/브라우저로 안전하게 처리하도록 합니다.
+    if(isYeowooAndroid){
+      window.location.assign(url);
+      return true;
+    }
+
     const a=document.createElement("a");
     a.href=url;
     a.target="_blank";
-    a.rel="noopener";
+    a.rel="noopener noreferrer";
     a.style.display="none";
     document.body.appendChild(a);
     a.click();
@@ -4012,7 +3998,7 @@ function openInstagramProfileV199(instagramId){
     return true;
   }catch(_){
     try{
-      window.open(url,"_blank");
+      window.location.assign(url);
       return true;
     }catch(__){
       return false;
