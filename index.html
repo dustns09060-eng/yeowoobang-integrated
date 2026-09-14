@@ -408,138 +408,10 @@
 </style>
 
 
-<style id="v198-match-request-status-style">
-/* V198 맞팔요청 버튼 상태 구분 */
-
-/* 요청 전 */
-.match-request-send-btn.match-request-ready-v198{
-  background:#fff0f5 !important;
-  border-color:#efbfd0 !important;
-  color:#d94f78 !important;
-}
-
-/* 내가 이미 요청을 보낸 상태 */
-.match-request-send-btn.match-request-sent-v198,
-.match-request-send-btn.match-request-sent-v198:disabled{
-  background:#f1edff !important;
-  border-color:#cfc2f6 !important;
-  color:#7356b8 !important;
-  opacity:1 !important;
-  cursor:default !important;
-}
-
-/* 상대방이 요청 확인까지 완료 */
-.match-request-send-btn.match-request-confirmed-v198,
-.match-request-send-btn.match-request-confirmed-v198:disabled{
-  background:#eaf8ef !important;
-  border-color:#bfe3cc !important;
-  color:#258653 !important;
-  opacity:1 !important;
-  cursor:default !important;
-}
-
-/* disabled 전역 opacity 때문에 상태색이 흐려지지 않도록 */
-.match-request-send-btn[data-match-request-state]:disabled{
-  filter:none !important;
-  -webkit-text-fill-color:currentColor !important;
-}
-
-@media (max-width:480px){
-  .match-request-send-btn{
-    white-space:nowrap;
-  }
-}
-</style>
 
 
-<style id="v199-mutual-exception-style">
-/* 프로그램상 맞팔이지만 실제 인스타와 다른 경우 사용하는 예외 요청 */
-.match-request-send-btn.match-request-force-v199{
-  background:#fff6e8 !important;
-  border-color:#efcf9d !important;
-  color:#a66b17 !important;
-  opacity:1 !important;
-  white-space:nowrap;
-}
-</style>
 
 
-<style id="v200-bulk-match-request-style">
-.bulk-match-request-v200{
-  margin:16px 0;
-  padding:16px;
-  border:1px solid #efd3dc;
-  border-radius:20px;
-  background:#fffafc;
-  display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  gap:12px;
-  align-items:center;
-  box-sizing:border-box;
-}
-
-.bulk-match-request-copy-v200{
-  min-width:0;
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-}
-
-.bulk-match-request-copy-v200 strong{
-  font-size:15px;
-  font-weight:900;
-}
-
-.bulk-match-request-copy-v200 span{
-  font-size:12px;
-  color:#888;
-  line-height:1.4;
-}
-
-.bulk-match-option-v200{
-  grid-column:1 / -1;
-  display:flex;
-  align-items:center;
-  gap:7px;
-  font-size:13px;
-  color:#666;
-  cursor:pointer;
-}
-
-#bulkMatchRequestBtnV200{
-  border:1px solid #efbfd0;
-  border-radius:999px;
-  padding:11px 18px;
-  background:#f65f88;
-  color:#fff;
-  font-size:14px;
-  font-weight:900;
-  white-space:nowrap;
-}
-
-#bulkMatchRequestBtnV200:disabled{
-  opacity:.6;
-}
-
-.bulk-match-progress-v200{
-  grid-column:1 / -1;
-  padding:10px 12px;
-  border-radius:12px;
-  background:#fff;
-  color:#666;
-  font-size:12px;
-  line-height:1.4;
-}
-
-@media (max-width:480px){
-  .bulk-match-request-v200{
-    grid-template-columns:1fr;
-  }
-  #bulkMatchRequestBtnV200{
-    width:100%;
-  }
-}
-</style>
 
 
 <style id="v203-notification-page-style">
@@ -754,22 +626,6 @@
 .match-lock-period-grid-v208 label{display:flex;flex-direction:column;gap:6px;min-width:0;font-weight:800;font-size:13px}.match-lock-period-grid-v208 input{width:100%;min-width:0;box-sizing:border-box}
 .match-lock-period-actions-v208{margin-top:12px}#matchPeriodReserveBadge.active{background:#fff0f5;color:#d6537c;border-color:#efc4d2}
 @media(max-width:620px){.match-lock-period-grid-v208{grid-template-columns:1fr}}
-</style>
-<style id="v214-match-request-sender-status-style">
-.notification-sent-wait-v214{
-  display:inline-block;
-  max-width:100%;
-  padding:9px 14px;
-  border-radius:999px;
-  background:#f1edff;
-  color:#7356b8;
-  border:1px solid #d8cef6;
-  font-weight:900;
-  font-size:13px;
-  line-height:1.35;
-  white-space:normal;
-  writing-mode:horizontal-tb !important;
-}
 </style>
 
 
@@ -1321,19 +1177,6 @@
           <button id="analyzeBtn" class="primary" type="button">맞팔 분석 시작 <span>→</span></button>
           <p id="status" class="status">단톡방 명단을 불러온 뒤 ZIP 파일을 선택해 주세요.</p>
         
-<div id="bulkMatchRequestBarV200" class="bulk-match-request-v200">
-  <div class="bulk-match-request-copy-v200">
-    <strong>맞팔요청 한번에 보내기</strong>
-    <span>아직 요청하지 않은 대상에게 순차적으로 요청해요.</span>
-  </div>
-  <label class="bulk-match-option-v200">
-    <input id="bulkIncludeMutualV200" type="checkbox">
-    <span>프로그램상 맞팔 포함</span>
-  </label>
-  <button id="bulkMatchRequestBtnV200" type="button">전체 맞팔요청</button>
-  <div id="bulkMatchRequestProgressV200" class="bulk-match-progress-v200" hidden></div>
-</div>
-
 </section>
 
         <section id="summarySection" class="card hidden">
@@ -1445,13 +1288,13 @@
         <span id="inviteProgressNumbers">0 / 10명</span>
       </div>
       <div class="invite-milestones">
-        <article data-milestone="10"><span>10명</span><strong>1단계 혜택</strong><small>앞번호 이동 · 품앗이 프리패스</small></article>
+        <article data-milestone="10"><span>10명</span><strong>1단계 혜택</strong><small>팔로우리스트 앞번호 이동</small></article>
         <article data-milestone="20"><span>20명</span><strong>2단계 혜택</strong><small>다이아 · 추가 혜택</small></article>
         <article data-milestone="40"><span>40명</span><strong>3단계 혜택</strong><small>쌍다이아 · 최고 혜택</small></article>
       </div>
     </section>
 
-    <section class="card invite-card"><h3>💌 초대왕 혜택 제공</h3><div class="invite-benefit-list"><article><strong>10명 이상 초대 시</strong><p>💛 팔로우리스트 앞번호로 이동<br>🌱 무기한 품앗이 프리패스 1회권 지급</p></article><article><strong>20명 이상 초대 시</strong><p>💎 프로필 내 다이아몬드 부여<br>🎟 폭스바겐 우선 탑승권 1회<br>🌱 무기한 품앗이 프리패스 3회권 지급</p></article><article><strong>40명 이상 초대 시</strong><p>💎 프로필 내 쌍 다이아몬드 💎 부여<br>🎟 폭스바겐 우선 탑승권 3회<br>🌱 무기한 품앗이 프리패스 10회권 지급</p></article></div><div class="invite-warning">⚠ 초대받으신 분이 무단 퇴장 시 기존 부여되었던 초대별은 무효화됩니다.</div><div class="invite-contact">💬 수정 사항 또는 문의 사항은 보살 1:1 채팅 또는 <b>@yeolmu.___.v</b> DM으로 문의해주세요.</div></section>
+    <section class="card invite-card"><h3>💌 초대왕 혜택 제공</h3><div class="invite-benefit-list"><article><strong>10명 이상 초대 시</strong><p>💛 팔로우리스트 앞번호로 이동</p></article><article><strong>20명 이상 초대 시</strong><p>💎 프로필 내 다이아몬드 부여<br>🎟 폭스바겐 우선 탑승권 1회</p></article><article><strong>40명 이상 초대 시</strong><p>💎 프로필 내 쌍 다이아몬드 💎 부여<br>🎟 폭스바겐 우선 탑승권 3회</p></article></div><div class="invite-warning">⚠ 초대받으신 분이 무단 퇴장 시 기존 부여되었던 초대별은 무효화됩니다.</div><div class="invite-contact">💬 수정 사항 또는 문의 사항은 보살 1:1 채팅 또는 <b>@yeolmu.___.v</b> DM으로 문의해주세요.</div></section>
   </div>
   <div id="inviteAdminMode" class="hidden">
     <section class="card invite-admin-topbar"><div><h3>관리자 화면</h3><p class="subtext">초대 승인과 회원별 누적 현황을 관리합니다.</p></div><button id="inviteAdminLogoutBtn" class="outline" type="button">관리자 나가기</button></section>
@@ -1909,7 +1752,7 @@
 
   <div id="toast" class="toast"></div>
   
-  <script src="app.js?v=2510"></script>
+  <script src="app.js?v=2520"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

@@ -6,12 +6,6 @@ let roomAuditSource = [];
 let matchRoomList = [];
 let result = { all: [], mutual: [], onlyMe: [], fansOnly: [], neither: [], unavailable: [] };
 let currentTab = "all";
-let matchRequestIdentity = "";
-let matchRequestIdentityName = "";
-let matchRequestPeriod = { active:false, startAt:"", endAt:"" };
-let matchRequestData = { received:[], sent:[] };
-let matchRequestTab = "received";
-let pendingMatchRequestTarget = "";
 let currentGroup = 0;
 let currentCopyBatch = 0;
 let installPrompt = null;
@@ -31,8 +25,8 @@ let memberAuthGenerationV133 = 0; // V133: 오래된 세션 검증 요청이 새
 const MEMBER_SESSION_KEY = "yeowoobang:memberSession:v1";
 let securityVersion = "";
 let noticeSignature = "";
-const APP_VERSION = "V251";
-window.YEOWOOBANG_BUILD = "V251";
+const APP_VERSION = "V252";
+window.YEOWOOBANG_BUILD = "V252";
 
 let config = {
   version: "V102",
@@ -60,8 +54,6 @@ const V183_SPEED = {
   inviteInFlight: null,
   publicConfigLoadedAt: 0,
   publicConfigInFlight: null,
-  matchRequestConfigLoadedAt: 0,
-  matchRequestConfigInFlight: null,
   notificationsLoadedAt: 0,
   notificationsInFlight: null,
 };
@@ -70,7 +62,6 @@ const V183_TTL = {
   room: 5 * 60 * 1000,
   invite: 2 * 60 * 1000,
   publicConfig: 2 * 60 * 1000,
-  matchRequestConfig: 60 * 1000,
   notifications: 3 * 60 * 1000,
 };
 
@@ -2457,8 +2448,6 @@ function showView(id) {
 
   if (id === "matchView") {
     applyMatchLock();
-    prefillMatchRequestIdentity();
-    loadMatchRequestConfig().catch(()=>{});
     const canAnalyze = isMatchPeriodOpen() && (Boolean(memberSession?.token) || adminLoggedIn);
     if (canAnalyze) {
       loadMatchRoomList(false, false).catch(() => {});
@@ -2708,224 +2697,6 @@ function matchFiltered() {
 }
 
 
-function getSentMatchRequestStateV198(targetId){
-  const target=normalize(targetId);
-  if(!target) return null;
-
-  const sent=Array.isArray(matchRequestData?.sent) ? matchRequestData.sent : [];
-  const matches=sent.filter(x=>normalize(x.toInstagram||x.to||"")===target);
-  if(!matches.length) return null;
-
-  // 같은 사람에게 여러 요청이 있으면 가장 최근 요청을 우선 사용
-  const latest=matches[0];
-  const read=String(latest.status||"").toUpperCase()==="READ" || !!latest.readAt;
-
-  return {
-    request: latest,
-    read,
-    label: read ? "확인 완료" : "요청 보냄",
-    className: read ? "match-request-confirmed-v198" : "match-request-sent-v198"
-  };
-}
-
-function matchRequestButtonV198(item){
-  // V199: 이미 보낸 요청이 있으면 맞팔 판정과 관계없이 요청 상태를 가장 먼저 표시
-  const state=getSentMatchRequestStateV198(item.id);
-  if(state){
-    const time=state.read && state.request?.readAt
-      ? ` title="상대방 확인: ${escapeHtml(state.request.readAt)}"`
-      : "";
-    return `<button
-      class="match-request-send-btn ${state.className}"
-      type="button"
-      data-match-request-state="${state.read?"read":"sent"}"
-      disabled${time}>${state.read?"✓ 확인 완료":"요청 보냄"}</button>`;
-  }
-
-  // 프로그램에서는 맞팔로 나오지만 실제 인스타에서 맞팔이 아닌 경우를 위한 예외 요청
-  if(item.status==="mutual"){
-    return `<button
-      class="match-request-send-btn match-request-force-v199"
-      type="button"
-      data-match-request-to="${escapeHtml(item.id)}"
-      data-match-request-force="1"
-      ${matchRequestPeriod.active ? "" : "disabled"}>실제 맞팔 아님 · 요청</button>`;
-  }
-
-  return `<button
-    class="match-request-send-btn match-request-ready-v198"
-    type="button"
-    data-match-request-to="${escapeHtml(item.id)}"
-    ${matchRequestPeriod.active ? "" : "disabled"}>맞팔 요청</button>`;
-}
-
-
-/* =========================================================
-   V200 - 전체 맞팔요청
-   기존 단건 요청 로직은 건드리지 않고 별도 순차 전송 함수로 추가합니다.
-   ========================================================= */
-
-function getBulkMatchTargetsV200(includeMutual=false){
-  const all = Array.isArray(result?.all) ? result.all : [];
-  const out = [];
-
-  all.forEach(item=>{
-    if(!item || !item.id) return;
-
-    // 이미 요청 보냄/확인 완료면 제외
-    if(getSentMatchRequestStateV198(item.id)) return;
-
-    // 기본: 프로그램상 미맞팔 대상만
-    if(item.status!=="mutual"){
-      out.push({id:item.id, forceMismatch:false});
-      return;
-    }
-
-    // 선택 시에만 프로그램상 맞팔도 포함
-    if(includeMutual){
-      out.push({id:item.id, forceMismatch:true});
-    }
-  });
-
-  return out;
-}
-
-async function sendMatchRequestSilentV200(target, forceMismatch=false){
-  target=normalize(target);
-  const from=normalize(matchRequestIdentity||currentMemberInstagramV181());
-
-  if(!target) return {ok:false,target,error:"대상 아이디 없음"};
-  if(!from) return {ok:false,target,error:"로그인 회원 인스타 아이디 확인 불가"};
-  if(target===from) return {ok:false,target,error:"본인 계정"};
-
-  try{
-    const data=await apiPost("sendMatchRequest",{
-      from,
-      to:target,
-      instagramId:from,
-      targetInstagram:target,
-      fromInstagram:from,
-      toInstagram:target,
-      forceMismatch:Boolean(forceMismatch)
-    },10000);
-
-    return {
-      ok:true,
-      target,
-      message:data?.message||"맞팔 요청을 보냈습니다."
-    };
-  }catch(e){
-    return {
-      ok:false,
-      target,
-      error:e?.message||"요청 실패"
-    };
-  }
-}
-
-function sleepV200(ms){
-  return new Promise(resolve=>setTimeout(resolve,ms));
-}
-
-async function runBulkMatchRequestV200(){
-  const btn=$("bulkMatchRequestBtnV200");
-  const progress=$("bulkMatchRequestProgressV200");
-  const includeMutual=Boolean($("bulkIncludeMutualV200")?.checked);
-
-  if(!matchRequestPeriod.active){
-    toast("현재는 맞팔요청 기간이 아닙니다.");
-    return;
-  }
-
-  if(!matchRequestIdentity){
-    const ok=await ensureMatchRequestIdentityV181("");
-    if(!ok) return;
-  }
-
-  const targets=getBulkMatchTargetsV200(includeMutual);
-
-  if(!targets.length){
-    toast("새로 요청할 대상이 없습니다.");
-    return;
-  }
-
-  const extra = includeMutual
-    ? "\n프로그램상 맞팔 대상도 포함됩니다."
-    : "";
-
-  if(!confirm(
-    `아직 요청하지 않은 ${targets.length}명에게 맞팔요청을 순차 전송할까요?${extra}\n\n이미 요청 보냄/확인 완료인 회원은 자동 제외됩니다.`
-  )) return;
-
-  if(btn){
-    btn.disabled=true;
-    btn.textContent="전체 요청 중...";
-  }
-
-  if(progress){
-    progress.hidden=false;
-    progress.textContent=`0 / ${targets.length}명 처리 중`;
-  }
-
-  let success=0;
-  let fail=0;
-  const failed=[];
-
-  for(let i=0;i<targets.length;i++){
-    const t=targets[i];
-
-    if(progress){
-      progress.textContent=`${i+1} / ${targets.length}명 · @${t.id} 요청 중`;
-    }
-
-    const res=await sendMatchRequestSilentV200(t.id,t.forceMismatch);
-
-    if(res.ok){
-      success++;
-    }else{
-      fail++;
-      failed.push({id:t.id,error:res.error});
-    }
-
-    // 서버 과부하/중복 호출 방지용 짧은 간격
-    if(i < targets.length-1) await sleepV200(350);
-  }
-
-  // 한 번만 최신 요청목록 다시 불러와 버튼 상태 전체 갱신
-  try{
-    await loadMatchRequests();
-  }catch(_){}
-
-  if(result.all.length) renderMatchList();
-
-  if(progress){
-    const failText=fail ? ` · 실패 ${fail}명` : "";
-    progress.textContent=`완료 · 성공 ${success}명${failText}`;
-  }
-
-  if(btn){
-    btn.disabled=false;
-    btn.textContent="전체 맞팔요청";
-  }
-
-  V183_SPEED.notificationsLoadedAt=0;
-
-  if(fail){
-    const sample=failed.slice(0,5).map(x=>`@${x.id}: ${x.error}`).join("\n");
-    alert(`전체 맞팔요청 완료\n\n성공 ${success}명\n실패 ${fail}명\n\n${sample}${failed.length>5?"\n외 실패 내역 있음":""}`);
-  }else{
-    toast(`${success}명에게 맞팔요청을 보냈습니다.`);
-  }
-}
-
-function bindBulkMatchRequestV200(){
-  const btn=$("bulkMatchRequestBtnV200");
-  if(btn && !btn.dataset.boundV200){
-    btn.dataset.boundV200="1";
-    btn.addEventListener("click",runBulkMatchRequestV200);
-  }
-}
-
 function renderMatchList() {
   const items = matchFiltered();
   $("list").innerHTML = items.length
@@ -2942,17 +2713,10 @@ function renderMatchList() {
         <div class="match-item-actions">
           ${item.status === "unavailable"
             ? `<span class="muted">분석 제외</span>`
-            : `<a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>
-               ${matchRequestButtonV198(item)}`}
+            : `<a class="insta" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" aria-label="인스타그램 열기">↗ 열기</a>`}
         </div>
       </div>`).join("")
     : '<div class="empty-state">결과가 없습니다.</div>';
-  document.querySelectorAll("[data-match-request-to]").forEach((button) => {
-    button.onclick = () => beginMatchRequest(
-      button.dataset.matchRequestTo,
-      button.dataset.matchRequestForce === "1"
-    );
-  });
 }
 
 async function writeClipboardText(text) {
@@ -3015,264 +2779,6 @@ async function copyMentions() {
   }
 }
 
-
-function matchRequestDateText(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" });
-}
-async function loadMatchRequestConfig(forceV183 = false) {
-  if (!forceV183 && freshV183(V183_SPEED.matchRequestConfigLoadedAt, V183_TTL.matchRequestConfig)) {
-    return matchRequestPeriod;
-  }
-  if (!forceV183 && V183_SPEED.matchRequestConfigInFlight) {
-    return V183_SPEED.matchRequestConfigInFlight;
-  }
-
-  const taskV183 = (async () => {
-  try {
-    const data=await apiGet("getMatchRequestConfig",8000);
-    matchRequestPeriod=data.period||{active:false,startAt:"",endAt:""};
-    V183_SPEED.matchRequestConfigLoadedAt = Date.now();
-  } catch (_) { matchRequestPeriod={active:false,startAt:"",endAt:""}; }
-  const badge=$("matchRequestPeriodBadge");
-  if(badge){badge.textContent=matchRequestPeriod.active?"요청 가능":"기간 아님";badge.className=`lock-state ${matchRequestPeriod.active?"unlocked":"locked"}`;}
-  if($("matchRequestAdminBadge")){ $("matchRequestAdminBadge").textContent=matchRequestPeriod.active?"진행중":"기간 아님"; $("matchRequestAdminBadge").className=`lock-state ${matchRequestPeriod.active?"unlocked":"locked"}`; }
-  const text=$("matchRequestPeriodText");
-  if(text) text.textContent=matchRequestPeriod.startAt&&matchRequestPeriod.endAt?`${matchRequestDateText(matchRequestPeriod.startAt)} ~ ${matchRequestDateText(matchRequestPeriod.endAt)} · ${matchRequestPeriod.active?"현재 요청 가능":"현재 요청 불가"}`:"운영진이 맞팔 요청 기간을 설정하면 요청 기능이 열립니다.";
-  if($("matchRequestStartAt")) $("matchRequestStartAt").value=matchRequestPeriod.startAt?new Date(matchRequestPeriod.startAt).toISOString().slice(0,16):"";
-  if($("matchRequestEndAt")) $("matchRequestEndAt").value=matchRequestPeriod.endAt?new Date(matchRequestPeriod.endAt).toISOString().slice(0,16):"";
-  if(result.all.length) renderMatchList();
-  return matchRequestPeriod;
-  })();
-
-  if (!forceV183) V183_SPEED.matchRequestConfigInFlight = taskV183;
-  try {
-    return await taskV183;
-  } finally {
-    if (!forceV183 && V183_SPEED.matchRequestConfigInFlight === taskV183) {
-      V183_SPEED.matchRequestConfigInFlight = null;
-    }
-  }
-}
-
-/* =========================================================
-   V181 - 맞팔 요청 로그인 회원 ID 자동 인식
-   일부 세션은 instagramId 대신 instagram_username 등의 키를 쓸 수 있어
-   여러 키를 모두 확인하고, 맞팔 요청 버튼 클릭 시 자동 검증합니다.
-   ========================================================= */
-function currentMemberInstagramV181(){
-  const m = memberSession?.member || {};
-  return normalize(
-    m.instagramId ||
-    m.instagram_username ||
-    m.instagram ||
-    m.username ||
-    ""
-  );
-}
-
-async function ensureMatchRequestIdentityV181(target="", forceMismatch=false){
-  if(matchRequestIdentity) return true;
-
-  const sessionId = currentMemberInstagramV181();
-  if(!sessionId) return false;
-
-  try{
-    const data = await apiPost(
-      "verifyMatchRequestIdentity",
-      { instagramId: sessionId },
-      10000
-    );
-
-    matchRequestIdentity = normalize(
-      data?.member?.instagramId ||
-      data?.member?.instagram_username ||
-      sessionId
-    );
-    matchRequestIdentityName = String(
-      data?.member?.nickname ||
-      memberSession?.member?.nickname ||
-      ""
-    );
-
-    if($("matchRequestMyInstagram")){
-      $("matchRequestMyInstagram").value = `@${matchRequestIdentity}`;
-    }
-
-    $("matchRequestIdentityBox")?.classList.add("hidden");
-    $("matchRequestVerifiedBox")?.classList.remove("hidden");
-
-    if($("matchRequestVerifiedText")){
-      $("matchRequestVerifiedText").textContent =
-        `${matchRequestIdentityName || "회원"} · @${matchRequestIdentity}`;
-    }
-
-    await loadMatchRequests();
-    renderMatchList();
-
-    if(target){
-      await sendMatchRequest(target, forceMismatch);
-    }
-    return true;
-  }catch(e){
-    console.warn("V181 맞팔 요청 회원 ID 자동 확인 실패", e);
-    return false;
-  }
-}
-
-function prefillMatchRequestIdentity() {
-  if(matchRequestIdentity) return;
-  const id=currentMemberInstagramV181();
-  if(id && $("matchRequestMyInstagram")) $("matchRequestMyInstagram").value=`@${id}`;
-}
-async function verifyMatchRequestIdentity() {
-  const input=normalize(currentMemberInstagramV181()||$("matchRequestMyInstagram")?.value||"");
-  if(!input) return toast("내 인스타 아이디를 입력해주세요.");
-  try{
-    const data=await apiPost("verifyMatchRequestIdentity",{instagramId:input},10000);
-    matchRequestIdentity=normalize(data.member?.instagramId||data.member?.instagram_username||input);
-    matchRequestIdentityName=String(data.member?.nickname||"");
-    $("matchRequestIdentityBox")?.classList.add("hidden");
-    $("matchRequestVerifiedBox")?.classList.remove("hidden");
-    if($("matchRequestVerifiedText")) $("matchRequestVerifiedText").textContent=`${matchRequestIdentityName||"회원"} · @${matchRequestIdentity}`;
-    await loadMatchRequests();
-    renderMatchList();
-    if(pendingMatchRequestTarget){const target=pendingMatchRequestTarget;pendingMatchRequestTarget="";await sendMatchRequest(target);}
-  }catch(e){if($("matchRequestIdentityMsg"))$("matchRequestIdentityMsg").textContent=e.message||"아이디를 확인하지 못했습니다.";toast(e.message||"아이디 확인 실패");}
-}
-function changeMatchRequestIdentity(){matchRequestIdentity="";matchRequestIdentityName="";$("matchRequestIdentityBox")?.classList.remove("hidden");$("matchRequestVerifiedBox")?.classList.add("hidden");if($("matchRequestList"))$("matchRequestList").innerHTML='<p class="state-text">내 아이디를 확인하면 요청 내역이 표시됩니다.</p>';prefillMatchRequestIdentity();renderMatchList();}
-async function beginMatchRequest(target, forceMismatch=false){
-  if(!matchRequestPeriod.active)return toast("현재는 맞팔 요청 가능 기간이 아닙니다.");
-
-  target=normalize(target);
-  if(!target)return;
-
-  if(matchRequestIdentity){
-    return void sendMatchRequest(target, forceMismatch);
-  }
-
-  // 로그인된 회원 ID가 있으면 별도 '내 아이디 확인' 단계 없이 자동 확인 후 요청
-  const sessionId=currentMemberInstagramV181();
-  if(sessionId){
-    const ok=await ensureMatchRequestIdentityV181(target, forceMismatch);
-    if(ok)return;
-  }
-
-  // 정말 ID가 없는 경우에만 수동 확인 영역 안내
-  pendingMatchRequestTarget=target;
-  prefillMatchRequestIdentity();
-  $("matchRequestSection")?.scrollIntoView({behavior:"smooth",block:"start"});
-  $("matchRequestMyInstagram")?.focus();
-  toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다. 내 아이디를 확인해주세요.");
-}
-async function sendMatchRequest(target, forceMismatch=false){
-  target=normalize(target);
-  const from=normalize(matchRequestIdentity||currentMemberInstagramV181());
-
-  if(!target)return;
-  if(!from)return toast("로그인 회원의 인스타 아이디를 확인할 수 없습니다.");
-  if(target===from)return toast("본인에게는 요청할 수 없습니다.");
-  const confirmText = forceMismatch
-    ? `프로그램에서는 @${target}님과 맞팔로 확인됩니다.\n실제 인스타그램에서 맞팔이 아닌 경우에만 요청해주세요.\n\n맞팔 확인 요청을 보낼까요?`
-    : `@${target}님에게 맞팔 확인 요청을 보낼까요?`;
-  if(!confirm(confirmText))return;
-
-  try{
-    const data=await apiPost("sendMatchRequest",{
-      from,
-      to:target,
-      // V188 이전 서버와도 호환
-      instagramId:from,
-      targetInstagram:target,
-      fromInstagram:from,
-      toInstagram:target
-    },10000);
-    toast(data.message||"맞팔 요청을 보냈습니다.");
-    V183_SPEED.notificationsLoadedAt=0;
-    await loadMatchRequests();
-    if(result.all.length) renderMatchList();
-  }catch(e){
-    toast(e.message||"맞팔 요청을 보내지 못했습니다.");
-  }
-}
-async function loadMatchRequests(){
-  if(!matchRequestIdentity)return;
-  try{
-    const data=await apiPost("getMatchRequests",{instagramId:matchRequestIdentity,instagram:matchRequestIdentity},10000);
-    const normalizeItemV188=x=>({
-      ...x,
-      fromInstagram:normalize(x.fromInstagram||x.from||""),
-      toInstagram:normalize(x.toInstagram||x.to||""),
-      fromName:String(x.fromName||x.senderName||""),
-      toName:String(x.toName||x.targetName||"")
-    });
-    matchRequestData={
-      received:(data.received||[]).map(normalizeItemV188),
-      sent:(data.sent||[]).map(normalizeItemV188)
-    };
-    if($("receivedRequestCount"))$("receivedRequestCount").textContent=matchRequestData.received.filter(x=>x.status!=="READ").length;
-    if($("sentRequestCount"))$("sentRequestCount").textContent=matchRequestData.sent.length;
-    renderMatchRequestList();
-
-    // V198: 보낸 요청/확인 여부를 맞팔 분석 목록 버튼 색상에도 즉시 반영
-    if(result.all.length) renderMatchList();
-  }
-  catch(e){if($("matchRequestList"))$("matchRequestList").innerHTML=`<p class="state-text">${escapeHtml(e.message||"요청 내역을 불러오지 못했습니다.")}</p>`;}
-}
-function showMatchRequestTab(tab){matchRequestTab=tab;document.querySelectorAll(".match-request-tab").forEach(b=>b.classList.toggle("active",b.dataset.requestTab===tab));renderMatchRequestList();}
-const MATCH_REQUEST_PENDING_KEY_V213 = "yeowoobang:matchRequestPending:v213";
-function getMatchRequestPendingV213(){
-  try{return JSON.parse(sessionStorage.getItem(MATCH_REQUEST_PENDING_KEY_V213)||"{}");}catch(_){return {};}
-}
-function setMatchRequestPendingV213(id,value=true){
-  const map=getMatchRequestPendingV213();
-  if(value) map[String(id||"")]=Date.now(); else delete map[String(id||"")];
-  try{sessionStorage.setItem(MATCH_REQUEST_PENDING_KEY_V213,JSON.stringify(map));}catch(_){}
-}
-function isMatchRequestPendingV213(id){return !!getMatchRequestPendingV213()[String(id||"")];}
-function renderMatchRequestList(){
-  const box=$("matchRequestList");if(!box)return;
-  const items=matchRequestData[matchRequestTab]||[];
-  box.innerHTML=items.length?items.map(x=>{
-    const received=matchRequestTab==="received";const read=x.status==="READ"||!!x.readAt;
-    const pending=!read&&isMatchRequestPendingV213(x.id);
-    return `<div class="match-request-row"><div><strong>${received?`${escapeHtml(x.fromName||"")} · @${escapeHtml(x.fromInstagram||"")}`:`${escapeHtml(x.toName||"")} · @${escapeHtml(x.toInstagram||"")}`}</strong><span>${received?`요청 ${escapeHtml(x.createdAt||"")}`:(read?`확인함 · ${escapeHtml(x.readAt||"")}`:"확인 전")}</span></div>${received?`<div class="match-request-row-actions">${read?'<span class="request-read-label">확인 완료</span>':`<button class="outline small" data-request-check-v213="${escapeHtml(x.id)}" data-request-from-v213="${escapeHtml(x.fromInstagram||'')}" type="button">${pending?'확인 완료':'요청 확인'}</button>`}</div>`:`<span class="request-status ${read?"read":"unread"}">${read?"확인 완료":"확인 전"}</span>`}</div>`;
-  }).join(""):'<p class="state-text">표시할 맞팔 요청이 없습니다.</p>';
-  box.querySelectorAll("[data-request-check-v213]").forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.requestCheckV213, from=normalize(b.dataset.requestFromV213||"");
-    if(!isMatchRequestPendingV213(id)){
-      setMatchRequestPendingV213(id,true);
-      b.textContent="확인 완료";
-      if(from) openInstagramProfileV199(from);
-      toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
-      return;
-    }
-    await markMatchRequestRead(id);
-  });
-}
-async function markMatchRequestRead(id){
-  try{
-    await apiPost("completeMatchRequestV215",{
-      requestId:id,
-      token:memberSession?.token||""
-    },12000);
-    setMatchRequestPendingV213(id,false);
-    await loadMatchRequests();
-    if(result.all.length) renderMatchList();
-    V183_SPEED.notificationsLoadedAt=0;
-    toast("확인 완료로 처리했습니다.");
-  }catch(e){
-    toast(e.message||"확인 처리 실패");
-  }
-}
-async function saveMatchRequestPeriod(){
-  const startValue=$("matchRequestStartAt")?.value||"",endValue=$("matchRequestEndAt")?.value||"";
-  if(!startValue||!endValue)return toast("시작일과 종료일을 모두 입력해주세요.");
-  const data=await runAdminAction("setMatchRequestPeriod",{startAt:new Date(startValue).toISOString(),endAt:new Date(endValue).toISOString()},"맞팔 요청 기간을 저장했습니다.");
-  if(data){matchRequestPeriod=data.period||matchRequestPeriod;await loadMatchRequestConfig();}
-}
 
 function resetAnalysis() {
   $("zipFile").value = "";
@@ -3693,11 +3199,6 @@ $("resetBtn").onclick = resetAnalysis;
 $("searchInput").oninput = renderMatchList;
 $("copyBtn").onclick = copyCurrent;
 $("mentionBtn").onclick = copyMentions;
-$("verifyMatchRequestIdentityBtn")?.addEventListener("click",verifyMatchRequestIdentity);
-$("changeMatchRequestIdentityBtn")?.addEventListener("click",changeMatchRequestIdentity);
-$("matchRequestMyInstagram")?.addEventListener("keydown",e=>{if(e.key==="Enter")verifyMatchRequestIdentity();});
-document.querySelectorAll(".match-request-tab").forEach(b=>b.addEventListener("click",()=>showMatchRequestTab(b.dataset.requestTab)));
-$("saveMatchRequestPeriodBtn")?.addEventListener("click",saveMatchRequestPeriod);
 
 $("refreshInviteLeaderboardBtn")?.addEventListener("click",()=>loadInviteLeaderboard(true));
 
@@ -3997,112 +3498,38 @@ async function loadNotificationsV76(forceV183 = false){
 }
 
 
-function openNotificationTargetV189(item){
-  const type=String(item?.type||"").toUpperCase();
-  if(type==="MATCH_REQUEST" || type==="MATCH"){
-    showView("matchView");
-    loadMatchRequests().catch(()=>{});
-    return true;
-  }
-  return false;
-}
-
-
-function openInstagramProfileV199(instagramId){
-  const id=normalize(instagramId);
-  if(!id)return false;
-
-  const url=`https://www.instagram.com/${encodeURIComponent(id)}/`;
-
-  // 실제 사용자의 버튼 클릭 흐름 안에서 링크를 만들어 열어
-  // 모바일 브라우저/Android WebView의 외부링크 처리와 최대한 동일하게 동작시킵니다.
-  try{
-    const a=document.createElement("a");
-    a.href=url;
-    a.target="_blank";
-    a.rel="noopener";
-    a.style.display="none";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return true;
-  }catch(_){
-    try{
-      window.open(url,"_blank");
-      return true;
-    }catch(__){
-      return false;
-    }
-  }
-}
+function openNotificationTargetV189(item){ return false; }
 
 function renderNotificationsV76(){
   const box=$("notificationList");
   if(!box)return;
 
-  if(!v76Notifications.length){
+  const visible=v76Notifications.filter(x=>
+    !["MATCH_REQUEST","MATCH_REQUEST_SENT","MATCH_REQUEST_DONE","MATCH"]
+      .includes(String(x?.type||"").toUpperCase())
+  );
+
+  if(!visible.length){
     box.innerHTML='<div class="notification-empty">새 알림이 없어요 🦊</div>';
     return;
   }
 
-  box.innerHTML=v76Notifications.map(x=>{
-    const type=String(x.type||'').toUpperCase();
-    const isMatch=type==='MATCH_REQUEST'||type==='MATCH';
-    const isSentMatch=type==='MATCH_REQUEST_SENT';
-    const isDoneNotice=type==='MATCH_REQUEST_DONE';
-    const checked=String(x.requestStatus||'').toUpperCase()==='READ';
-    const canConfirm=isMatch;
-
-    return `
-      <article class="notification-card-v196 ${x.read?'is-read':'is-unread'}"
-        data-notification-key="${escapeHtml(x.key||'')}"
-        data-notification-type="${escapeHtml(x.type||'')}">
-
-        <button class="notification-open-v196" type="button"
-          data-notification-open="${escapeHtml(x.key||'')}">
-          <span class="notification-icon-v196">${escapeHtml(x.icon||'🔔')}</span>
-
-          <span class="notification-text-v196">
-            <strong class="notification-title-v196">${escapeHtml(x.title||'알림')}</strong>
-            <span class="notification-message-v196">${escapeHtml(x.message||'')}</span>
-            <small class="notification-time-v196">${escapeHtml(x.createdAt||'')}</small>
-          </span>
-
-          ${x.read?'':'<span class="notification-dot-v196" aria-hidden="true"></span>'}
-        </button>
-
-        ${canConfirm ? `
-          <div class="notification-action-row-v196">
-            ${
-              checked
-                ? `<span class="notification-confirmed-v196">✅ 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
-                : `<button class="notification-confirm-v196" type="button"
-                    data-confirm-match-request="${escapeHtml(x.requestId||'')}"
-                    data-notification-key-confirm="${escapeHtml(x.key||'')}">
-                    ${isMatchRequestPendingV213(x.requestId)?'확인 완료':'요청 확인'}
-                  </button>`
-            }
-          </div>
-        ` : ''}
-
-        ${isSentMatch ? `
-          <div class="notification-action-row-v196">
-            ${
-              checked
-                ? `<span class="notification-confirmed-v196">✅ 상대방 확인 완료${x.requestReadAt?` · ${escapeHtml(x.requestReadAt)}`:''}</span>`
-                : `<span class="notification-sent-wait-v214">⏳ 상대방 확인중</span>`
-            }
-          </div>
-        ` : ''}
-
-        ${isDoneNotice && x.requestReadAt ? `
-          <div class="notification-action-row-v196">
-            <span class="notification-confirmed-v196">✅ 확인 완료 · ${escapeHtml(x.requestReadAt)}</span>
-          </div>
-        ` : ''}
-      </article>
-    `;
-  }).join('');
+  box.innerHTML=visible.map(x=>`
+    <article class="notification-card-v196 ${x.read?'is-read':'is-unread'}"
+      data-notification-key="${escapeHtml(x.key||'')}"
+      data-notification-type="${escapeHtml(x.type||'')}">
+      <button class="notification-open-v196" type="button"
+        data-notification-open="${escapeHtml(x.key||'')}">
+        <span class="notification-icon-v196">${escapeHtml(x.icon||'🔔')}</span>
+        <span class="notification-text-v196">
+          <strong class="notification-title-v196">${escapeHtml(x.title||'알림')}</strong>
+          <span class="notification-message-v196">${escapeHtml(x.message||'')}</span>
+          <small class="notification-time-v196">${escapeHtml(x.createdAt||'')}</small>
+        </span>
+        ${x.read?'':'<span class="notification-dot-v196" aria-hidden="true"></span>'}
+      </button>
+    </article>
+  `).join('');
 
   box.querySelectorAll('[data-notification-open]').forEach(el=>el.addEventListener('click',async()=>{
     const key=el.dataset.notificationOpen;
@@ -4118,76 +3545,8 @@ function renderNotificationsV76(){
     renderNotificationsV76();
 
     const type=String(item.type||'').toUpperCase();
-
-    // V215: 보낸 요청/완료 알림은 상태 확인용이므로
-    // 카드를 눌러도 알림센터에서 갑자기 홈으로 이동하지 않습니다.
-    if(type==='MATCH_REQUEST_SENT' || type==='MATCH_REQUEST_DONE'){
-      renderNotificationsV76();
-      return;
-    }
-
-    if(type==='MATCH' || type==='MATCH_REQUEST'){
-      showView('matchView');
-      loadMatchRequests().catch(()=>{});
-    }else if(type==='NOTICE'){
-      showView('noticeView');
-    }else if(type==='INVITE'){
-      showView('inviteView');
-    }
-  }));
-
-  box.querySelectorAll('[data-confirm-match-request]').forEach(btn=>btn.addEventListener('click',async(e)=>{
-    e.stopPropagation();
-    if(btn.disabled)return;
-
-    const requestId=btn.dataset.confirmMatchRequest;
-    const notificationKey=btn.dataset.notificationKeyConfirm;
-    const item=v76Notifications.find(x=>x.key===notificationKey);
-    const sender=normalize(item?.requestFromInstagram||"");
-
-    // V213: 첫 클릭은 인스타 확인만. 서버의 확인완료 상태는 절대 바꾸지 않습니다.
-    if(!isMatchRequestPendingV213(requestId)){
-      setMatchRequestPendingV213(requestId,true);
-      btn.textContent='확인 완료';
-      if(sender) openInstagramProfileV199(sender);
-      else {
-        showView('matchView');
-        loadMatchRequests().catch(()=>{});
-      }
-      toast("인스타에서 확인 후 돌아와 '확인 완료'를 눌러주세요.");
-      return;
-    }
-
-    // 두 번째 클릭에서만 실제 확인완료 저장
-    btn.disabled=true;
-    btn.textContent='처리 중...';
-    try{
-      const result=await apiPost('completeMatchRequestV215',{
-        requestId,
-        notificationKey,
-        token:memberSession.token
-      },12000);
-
-      setMatchRequestPendingV213(requestId,false);
-      if(item){
-        item.requestStatus='READ';
-        item.requestReadAt=result.readAt||'';
-        item.requestFromInstagram=normalize(item.requestFromInstagram || result.fromInstagram || "");
-        item.read=true;
-      }
-      try{
-        await apiPost('markNotificationReadV76',{token:memberSession.token,key:notificationKey},8000);
-      }catch(_){}
-      setNotificationBadgeV76(v76Notifications.filter(x=>!x.read).length);
-      renderNotificationsV76();
-      V183_SPEED.notificationsLoadedAt=0;
-      loadMatchRequests().catch(()=>{});
-      toast('확인 완료로 처리했습니다.');
-    }catch(err){
-      btn.disabled=false;
-      btn.textContent='확인 완료';
-      toast(err?.message||'확인 완료 처리에 실패했습니다.');
-    }
+    if(type==='NOTICE') showView('noticeView');
+    else if(type==='INVITE') showView('inviteView');
   }));
 }
 
@@ -4586,7 +3945,6 @@ window.androidBackActionV165 = function() {
    V178 - Android 뒤로가기 보강
    - 일반 서브뷰(.view.active) -> 홈
    - 로그인/가입/비밀번호 화면 -> 이전 로그인 화면
-   - 외부 품앗이 페이지는 Android WebView history에서 처리
    ========================================================= */
 window.androidBackActionV178 = function(){
   try{
