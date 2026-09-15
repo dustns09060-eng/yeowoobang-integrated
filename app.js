@@ -35,7 +35,7 @@ const APP_VERSION = "V254";
 window.YEOWOOBANG_BUILD = "V254";
 
 let config = {
-  version: "V256-1",
+  version: "V256-2",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
@@ -1030,6 +1030,13 @@ async function completeMemberLogin(result, showToast = true) {
   window.setTimeout(() => {
     if (memberSession?.token) void loadNotificationsV76();
   }, 2600);
+
+  // V256-2: 로그인 기록은 메인화면 진입을 막지 않고 5초 뒤 별도 저장합니다.
+  window.setTimeout(() => {
+    if (memberSession?.token) {
+      void apiPost("logLoginActivityV256_2", {token:memberSession.token}, 10000).catch(()=>{});
+    }
+  }, 5000);
 
   idleV183(() => {
     if (memberSession?.token) void loadAfterAuthV256_1Light();
