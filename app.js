@@ -35,7 +35,7 @@ const APP_VERSION = "V254";
 window.YEOWOOBANG_BUILD = "V254";
 
 let config = {
-  version: "V256-2",
+  version: "V256-3.1",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
@@ -1075,23 +1075,66 @@ async function loginMemberFromGate() {
     // V107: Supabase가 활성화된 경우 먼저 서버 인증/회원상태를 검증합니다.
     // 검증 후에는 기존 Apps Script 세션도 발급받아 기존 기능을 그대로 유지합니다.
     let result;
-    if (window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled()) {
+    const __perfLoginStart=performance.now();
+    const __perfEnabledStart=performance.now();
+    const __supabaseEnabled=!!(window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled());
+    const __perfEnabledMs=Math.round(performance.now()-__perfEnabledStart);
+    if (__supabaseEnabled) {
+      const __perfSupabaseStart=performance.now();
       const supabaseResult = await window.YW_SUPABASE_AUTH_V107.signIn(instagramId, password);
+      const __perfSupabaseMs=Math.round(performance.now()-__perfSupabaseStart);
       const sm = supabaseResult.member || {};
       if (String(sm.status || '').toLowerCase() !== 'active') {
         throw new Error('현재 로그인할 수 없는 회원 상태입니다.');
       }
       btn.textContent = "프로그램 여는 중…";
       $("gateError").textContent = "회원 확인 완료 · 프로그램을 여는 중이에요.";
+      const __perfSessionStart=performance.now();
       result = await apiPost("supabaseMemberSessionV114", {
         accessToken: supabaseResult.access_token
       }, 20000);
+      const __perfSessionMs=Math.round(performance.now()-__perfSessionStart);
+      const __perfResultV256_31={
+        path:"SUPABASE",
+        enabledCheckMs:__perfEnabledMs,
+        supabaseAuthMs:__perfSupabaseMs,
+        appsScriptSessionMs:__perfSessionMs,
+        totalBeforeHomeMs:Math.round(performance.now()-__perfLoginStart)
+      };
+      console.info("[V256-3.1 LOGIN PERF]", __perfResultV256_31);
+      window.__YW_LOGIN_PERF_V256_31=__perfResultV256_31;
     } else {
       // 비상용 레거시 폴백. Supabase 설정이 꺼진 경우에만 사용됩니다.
+      const __perfLegacyStart=performance.now();
       result = await apiPost("memberLogin", { instagramId, password }, 15000);
+      const __perfLegacyMs=Math.round(performance.now()-__perfLegacyStart);
+      const __perfResultV256_31={
+        path:"APPS_SCRIPT",
+        enabledCheckMs:__perfEnabledMs,
+        appsScriptLoginRoundTripMs:__perfLegacyMs,
+        appsScriptServerMs:result?.perfV256_3?.serverTotalMs ?? null,
+        totalBeforeHomeMs:Math.round(performance.now()-__perfLoginStart)
+      };
+      console.info("[V256-3.1 LOGIN PERF]", __perfResultV256_31);
+      window.__YW_LOGIN_PERF_V256_31=__perfResultV256_31;
     }
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
+
+    // V256-3.1: 개발자도구 없이 로그인 병목을 확인할 수 있도록 12초간 화면 표시.
+    const __p=window.__YW_LOGIN_PERF_V256_31;
+    if(__p){
+      const __box=document.createElement("div");
+      __box.id="loginPerfV25631";
+      __box.style.cssText="position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;background:#111;color:#fff;padding:13px 14px;border-radius:12px;font-size:13px;line-height:1.6;box-shadow:0 4px 18px rgba(0,0,0,.28);";
+      if(__p.path==="SUPABASE"){
+        __box.innerHTML="<b>V256-3.1 로그인 성능 측정</b><br>경로: Supabase<br>설정 확인: "+__p.enabledCheckMs+"ms<br>Supabase 인증: "+__p.supabaseAuthMs+"ms<br>Apps Script 세션: "+__p.appsScriptSessionMs+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
+      }else{
+        __box.innerHTML="<b>V256-3.1 로그인 성능 측정</b><br>경로: Apps Script<br>설정 확인: "+__p.enabledCheckMs+"ms<br>로그인 왕복: "+__p.appsScriptLoginRoundTripMs+"ms<br>서버 내부: "+(__p.appsScriptServerMs ?? "측정없음")+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
+      }
+      document.body.appendChild(__box);
+      window.setTimeout(()=>__box.remove(),12000);
+    }
   } catch (error) {
     const raw = String(error?.message || "");
     // V154: 로그인 화면에서는 팔로우리스트 회원 존재와 프로그램 계정 존재를 혼동하지 않도록 안내한다.
