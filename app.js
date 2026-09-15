@@ -35,7 +35,7 @@ const APP_VERSION = "V254";
 window.YEOWOOBANG_BUILD = "V254";
 
 let config = {
-  version: "V256-3.1",
+  version: "V256-4",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
@@ -1101,7 +1101,7 @@ async function loginMemberFromGate() {
         appsScriptSessionMs:__perfSessionMs,
         totalBeforeHomeMs:Math.round(performance.now()-__perfLoginStart)
       };
-      console.info("[V256-3.1 LOGIN PERF]", __perfResultV256_31);
+      console.info("[V256-4 LOGIN PERF]", __perfResultV256_31);
       window.__YW_LOGIN_PERF_V256_31=__perfResultV256_31;
     } else {
       // 비상용 레거시 폴백. Supabase 설정이 꺼진 경우에만 사용됩니다.
@@ -1112,10 +1112,11 @@ async function loginMemberFromGate() {
         path:"APPS_SCRIPT",
         enabledCheckMs:__perfEnabledMs,
         appsScriptLoginRoundTripMs:__perfLegacyMs,
-        appsScriptServerMs:result?.perfV256_3?.serverTotalMs ?? null,
+        appsScriptServerMs:result?.perfV256_4?.serverTotalMs ?? result?.perfV256_3?.serverTotalMs ?? null,
+        serverBreakdown:result?.perfV256_4 || null,
         totalBeforeHomeMs:Math.round(performance.now()-__perfLoginStart)
       };
-      console.info("[V256-3.1 LOGIN PERF]", __perfResultV256_31);
+      console.info("[V256-4 LOGIN PERF]", __perfResultV256_31);
       window.__YW_LOGIN_PERF_V256_31=__perfResultV256_31;
     }
     $("memberLoginPassword").value = "";
@@ -1128,9 +1129,10 @@ async function loginMemberFromGate() {
       __box.id="loginPerfV25631";
       __box.style.cssText="position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;background:#111;color:#fff;padding:13px 14px;border-radius:12px;font-size:13px;line-height:1.6;box-shadow:0 4px 18px rgba(0,0,0,.28);";
       if(__p.path==="SUPABASE"){
-        __box.innerHTML="<b>V256-3.1 로그인 성능 측정</b><br>경로: Supabase<br>설정 확인: "+__p.enabledCheckMs+"ms<br>Supabase 인증: "+__p.supabaseAuthMs+"ms<br>Apps Script 세션: "+__p.appsScriptSessionMs+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
+        __box.innerHTML="<b>V256-4 로그인 성능 측정</b><br>경로: Supabase<br>설정 확인: "+__p.enabledCheckMs+"ms<br>Supabase 인증: "+__p.supabaseAuthMs+"ms<br>Apps Script 세션: "+__p.appsScriptSessionMs+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
       }else{
-        __box.innerHTML="<b>V256-3.1 로그인 성능 측정</b><br>경로: Apps Script<br>설정 확인: "+__p.enabledCheckMs+"ms<br>로그인 왕복: "+__p.appsScriptLoginRoundTripMs+"ms<br>서버 내부: "+(__p.appsScriptServerMs ?? "측정없음")+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
+        const __b=__p.serverBreakdown||{};
+        __box.innerHTML="<b>V256-4 로그인 성능 측정</b><br>경로: Apps Script<br>설정 확인: "+__p.enabledCheckMs+"ms<br>로그인 왕복: "+__p.appsScriptLoginRoundTripMs+"ms<br>서버 내부: "+(__p.appsScriptServerMs ?? "측정없음")+"ms<br>└ 회원조회: "+(__b.memberLookupMs ?? "-")+"ms / 계정조회: "+(__b.accountLookupMs ?? "-")+"ms<br>└ 비밀번호: "+(__b.passwordCheckMs ?? "-")+"ms / 세션: "+(__b.sessionIssueMs ?? "-")+"ms / payload: "+(__b.payloadMs ?? "-")+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
       }
       document.body.appendChild(__box);
       window.setTimeout(()=>__box.remove(),12000);
