@@ -4672,3 +4672,93 @@ setTimeout(()=>{ try{ bindBulkMatchRequestV200(); }catch(_){} },800);
     document.addEventListener("DOMContentLoaded",forceLightV216,{once:true});
   }
 })();
+
+/* =========================================================
+   V255-8G.1 - 더보기 7개 메뉴 클릭 동작 최종 복구
+   - 마이페이지 / 비밀번호 변경 / 공지사항 / FAQ / 문의하기 / 활동기록 / 로그아웃
+   ========================================================= */
+(function bindMemberDrawerMenuV255_8G1(){
+  function fillMyPageLocalV255(){
+    const m = memberSession?.member || {};
+    const nick = m.nickname || "회원";
+    const instaRaw = m.instagramId || m.instagram_username || "";
+    const insta = instaRaw ? `@${String(instaRaw).replace(/^@/,"")}` : "-";
+    if ($("myPageName")) $("myPageName").textContent = nick;
+    if ($("myPageInstagram")) $("myPageInstagram").textContent = insta === "-" ? "" : insta;
+    if ($("myPageNickname")) $("myPageNickname").textContent = nick;
+    if ($("myPageInsta")) $("myPageInsta").textContent = insta;
+    if ($("myPageMemberId")) $("myPageMemberId").textContent = m.memberId ?? m.id ?? "-";
+  }
+
+  async function openMyPageV255(){
+    if (!memberSession?.token) return toast("회원 로그인이 필요합니다.");
+    fillMyPageLocalV255();
+    openAccountModal("myPageModal");
+    try {
+      const data = await apiPost("getMyPage", { token: memberSession.token }, 15000);
+      const m = data?.member || {};
+      const f = data?.follow || {};
+      if ($("myPageName")) $("myPageName").textContent = m.nickname || memberSession.member?.nickname || "회원";
+      if ($("myPageInstagram")) $("myPageInstagram").textContent = m.instagramId ? `@${String(m.instagramId).replace(/^@/,"")}` : ($("myPageInstagram")?.textContent || "");
+      if ($("myPageNickname")) $("myPageNickname").textContent = m.nickname || memberSession.member?.nickname || "-";
+      if ($("myPageInsta")) $("myPageInsta").textContent = m.instagramId ? `@${String(m.instagramId).replace(/^@/,"")}` : ($("myPageInsta")?.textContent || "-");
+      if ($("myPageJoinDate")) $("myPageJoinDate").textContent = m.joinDate || m.createdAt || m.joinedAt || "-";
+      if ($("myPageMemberId")) $("myPageMemberId").textContent = m.memberId ?? memberSession.member?.memberId ?? "-";
+      const done = Number(f.done ?? f.completed ?? f.current ?? f.count ?? 0);
+      const total = Number(f.total ?? roomList.length ?? 0);
+      const pct = total > 0 ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
+      if ($("myPageFollowText")) $("myPageFollowText").textContent = `${done} / ${total}명`;
+      if ($("myPageFollowPercent")) $("myPageFollowPercent").textContent = `${pct}%`;
+      if ($("myPageFollowBar")) $("myPageFollowBar").style.width = `${pct}%`;
+      const match = data?.match || data?.matchVote || {};
+      if ($("myPageMatchText")) $("myPageMatchText").textContent = match.status || match.submissionStatus || "미제출";
+      if ($("myPageMatchDate")) $("myPageMatchDate").textContent = match.at || match.submittedAt || "";
+    } catch (e) {
+      console.warn("마이페이지 불러오기 실패", e);
+    }
+  }
+
+  document.addEventListener("click", function(e){
+    const target = e.target;
+
+    if (target.closest("#openMyPageBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      void openMyPageV255();
+      return;
+    }
+    if (target.closest("#openPasswordChangeBtn") || target.closest("#myPagePasswordBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      openAccountModal("passwordChangeModal");
+      return;
+    }
+    if (target.closest("#drawerNoticeBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      closeMemberDrawer();
+      showView("noticeView");
+      try { void loadNotices(false); } catch (_) {}
+      return;
+    }
+    if (target.closest("#openFaqBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      openAccountModal("faqModal");
+      return;
+    }
+    if (target.closest("#openInquiryBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      openAccountModal("inquiryModal");
+      return;
+    }
+    if (target.closest("#openActivityBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      void openActivityHistory();
+      return;
+    }
+    if (target.closest("#drawerLogoutBtn")) {
+      e.preventDefault(); e.stopPropagation();
+      if (!confirm("로그아웃할까요?")) return;
+      closeMemberDrawer();
+      logoutMember();
+      return;
+    }
+  }, true);
+})();
