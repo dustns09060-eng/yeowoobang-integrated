@@ -35,7 +35,7 @@ const APP_VERSION = "V254";
 window.YEOWOOBANG_BUILD = "V254";
 
 let config = {
-  version: "V102",
+  version: "V256-1",
   appName: "여우방 통합 프로그램",
   apiUrl: "https://script.google.com/macros/s/AKfycbww39Xk_v0C8NgyXMUH76F4dEr63aPNgE_KG5tpzMh1UKM31YA05E2E_ZmyKHk5RCA/exec",
   sheetId: "1PxeAtZrHS2N2VlKFTfxERyq8SAzgAn7o815q43gZzTY",
@@ -1016,13 +1016,24 @@ async function completeMemberLogin(result, showToast = true) {
   setMemberHeader(result.member);
   hideGate();
 
-  // V118: 메인 화면을 먼저 보여주고, 네트워크 작업은 뒤에서 병렬 처리합니다.
+  // V256-1: 로그인 성공 즉시 홈을 표시하고 초기 서버 요청을 시간차로 분산합니다.
   showView("homeView");
-  void loadAfterAuth();
-  void loadMemberFollowProgress();
+  renderResumeCard();
+
+  // 대용량 팔로우리스트는 로그인 순간에 새로 받지 않고 세션 캐시만 즉시 복원합니다.
+  restoreFollowListCache();
+
+  window.setTimeout(() => {
+    if (memberSession?.token) void loadMemberFollowProgress();
+  }, 900);
+
   window.setTimeout(() => {
     if (memberSession?.token) void loadNotificationsV76();
-  }, 1200);
+  }, 2600);
+
+  idleV183(() => {
+    if (memberSession?.token) void loadAfterAuthV256_1Light();
+  }, 3500);
 
   // V133: 로그인 직후 예전 비동기 작업이 게이트를 다시 띄워도 현재 세션이 살아있으면 복구
   window.setTimeout(() => {
@@ -1518,6 +1529,15 @@ accessGranted = true;
   } finally {
     $("gateSubmitBtn").disabled = false;
   }
+}
+
+async function loadAfterAuthV256_1Light() {
+  // 로그인 직후 홈에 필요 없는 가벼운 설정/공지 작업만 유휴 시간에 처리합니다.
+  // 2,700명 규모 팔로우리스트 최신 조회는 여기서 하지 않습니다.
+  const jobs=[];
+  try { if (typeof refreshPublicConfig === "function") jobs.push(refreshPublicConfig(true)); } catch (_) {}
+  try { if (typeof loadNotices === "function") jobs.push(loadNotices(false)); } catch (_) {}
+  if (jobs.length) await Promise.allSettled(jobs);
 }
 
 async function loadAfterAuth() {
@@ -4671,94 +4691,4 @@ setTimeout(()=>{ try{ bindBulkMatchRequestV200(); }catch(_){} },800);
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",forceLightV216,{once:true});
   }
-})();
-
-/* =========================================================
-   V255-8G.1 - 더보기 7개 메뉴 클릭 동작 최종 복구
-   - 마이페이지 / 비밀번호 변경 / 공지사항 / FAQ / 문의하기 / 활동기록 / 로그아웃
-   ========================================================= */
-(function bindMemberDrawerMenuV255_8G1(){
-  function fillMyPageLocalV255(){
-    const m = memberSession?.member || {};
-    const nick = m.nickname || "회원";
-    const instaRaw = m.instagramId || m.instagram_username || "";
-    const insta = instaRaw ? `@${String(instaRaw).replace(/^@/,"")}` : "-";
-    if ($("myPageName")) $("myPageName").textContent = nick;
-    if ($("myPageInstagram")) $("myPageInstagram").textContent = insta === "-" ? "" : insta;
-    if ($("myPageNickname")) $("myPageNickname").textContent = nick;
-    if ($("myPageInsta")) $("myPageInsta").textContent = insta;
-    if ($("myPageMemberId")) $("myPageMemberId").textContent = m.memberId ?? m.id ?? "-";
-  }
-
-  async function openMyPageV255(){
-    if (!memberSession?.token) return toast("회원 로그인이 필요합니다.");
-    fillMyPageLocalV255();
-    openAccountModal("myPageModal");
-    try {
-      const data = await apiPost("getMyPage", { token: memberSession.token }, 15000);
-      const m = data?.member || {};
-      const f = data?.follow || {};
-      if ($("myPageName")) $("myPageName").textContent = m.nickname || memberSession.member?.nickname || "회원";
-      if ($("myPageInstagram")) $("myPageInstagram").textContent = m.instagramId ? `@${String(m.instagramId).replace(/^@/,"")}` : ($("myPageInstagram")?.textContent || "");
-      if ($("myPageNickname")) $("myPageNickname").textContent = m.nickname || memberSession.member?.nickname || "-";
-      if ($("myPageInsta")) $("myPageInsta").textContent = m.instagramId ? `@${String(m.instagramId).replace(/^@/,"")}` : ($("myPageInsta")?.textContent || "-");
-      if ($("myPageJoinDate")) $("myPageJoinDate").textContent = m.joinDate || m.createdAt || m.joinedAt || "-";
-      if ($("myPageMemberId")) $("myPageMemberId").textContent = m.memberId ?? memberSession.member?.memberId ?? "-";
-      const done = Number(f.done ?? f.completed ?? f.current ?? f.count ?? 0);
-      const total = Number(f.total ?? roomList.length ?? 0);
-      const pct = total > 0 ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
-      if ($("myPageFollowText")) $("myPageFollowText").textContent = `${done} / ${total}명`;
-      if ($("myPageFollowPercent")) $("myPageFollowPercent").textContent = `${pct}%`;
-      if ($("myPageFollowBar")) $("myPageFollowBar").style.width = `${pct}%`;
-      const match = data?.match || data?.matchVote || {};
-      if ($("myPageMatchText")) $("myPageMatchText").textContent = match.status || match.submissionStatus || "미제출";
-      if ($("myPageMatchDate")) $("myPageMatchDate").textContent = match.at || match.submittedAt || "";
-    } catch (e) {
-      console.warn("마이페이지 불러오기 실패", e);
-    }
-  }
-
-  document.addEventListener("click", function(e){
-    const target = e.target;
-
-    if (target.closest("#openMyPageBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      void openMyPageV255();
-      return;
-    }
-    if (target.closest("#openPasswordChangeBtn") || target.closest("#myPagePasswordBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      openAccountModal("passwordChangeModal");
-      return;
-    }
-    if (target.closest("#drawerNoticeBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      closeMemberDrawer();
-      showView("noticeView");
-      try { void loadNotices(false); } catch (_) {}
-      return;
-    }
-    if (target.closest("#openFaqBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      openAccountModal("faqModal");
-      return;
-    }
-    if (target.closest("#openInquiryBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      openAccountModal("inquiryModal");
-      return;
-    }
-    if (target.closest("#openActivityBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      void openActivityHistory();
-      return;
-    }
-    if (target.closest("#drawerLogoutBtn")) {
-      e.preventDefault(); e.stopPropagation();
-      if (!confirm("로그아웃할까요?")) return;
-      closeMemberDrawer();
-      logoutMember();
-      return;
-    }
-  }, true);
 })();
