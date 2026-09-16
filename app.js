@@ -1075,6 +1075,12 @@ async function loginMemberFromGate() {
     // V107: Supabase가 활성화된 경우 먼저 서버 인증/회원상태를 검증합니다.
     // 검증 후에는 기존 Apps Script 세션도 발급받아 기존 기능을 그대로 유지합니다.
     let result;
+    if (window.YW_CANARY_V257?.eligible(instagramId)) {
+      const canary = await window.YW_CANARY_V257.login(instagramId, password, config.apiUrl,
+        () => apiPost("memberLogin", {instagramId, password}, 15000));
+      result = canary.result;
+      window.__YW_LOGIN_PERF_V256_31 = canary.perf;
+    } else {
     const __perfLoginStart=performance.now();
     const __perfEnabledStart=performance.now();
     const __supabaseEnabled=!!(window.YW_SUPABASE_AUTH_V107 && await window.YW_SUPABASE_AUTH_V107.enabled());
@@ -1119,6 +1125,7 @@ async function loginMemberFromGate() {
       console.info("[V256-5 LOGIN PERF]", __perfResultV256_31);
       window.__YW_LOGIN_PERF_V256_31=__perfResultV256_31;
     }
+    }
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
 
@@ -1128,7 +1135,12 @@ async function loginMemberFromGate() {
       const __box=document.createElement("div");
       __box.id="loginPerfV25631";
       __box.style.cssText="position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;background:#111;color:#fff;padding:13px 14px;border-radius:12px;font-size:13px;line-height:1.6;box-shadow:0 4px 18px rgba(0,0,0,.28);";
-      if(__p.path==="SUPABASE"){
+      if (__p.path === "V257_CANARY" || __p.path === "V257_FALLBACK") {
+        __box.textContent = "V257 Canary 측정 · " + (__p.fallback ? "기존 로그인으로 복귀" : "Canary 성공") +
+          " | Supabase: " + (__p.edgeMs ?? "-") + "ms | 세션: " + (__p.bridgeMs ?? "-") +
+          "ms | 홈 직전 총시간: " + __p.totalBeforeHomeMs + "ms" +
+          (__p.fallback ? " | Canary 대기: " + __p.canaryAttemptMs + "ms (" + __p.reason + ")" : "");
+      } else if(__p.path==="SUPABASE"){
         __box.innerHTML="<b>V256-5 로그인 성능 측정</b><br>경로: Supabase<br>설정 확인: "+__p.enabledCheckMs+"ms<br>Supabase 인증: "+__p.supabaseAuthMs+"ms<br>Apps Script 세션: "+__p.appsScriptSessionMs+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
       }else{
         const __b=__p.serverBreakdown||{};
