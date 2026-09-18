@@ -1,6 +1,6 @@
 // V257 Canary: disabled until server setup is verified.
 window.YW_CANARY_V257_CONFIG = Object.freeze({
-  "enabled": false,
+  "enabled": true,
   "testInstagramIds": [
     "coco0015a"
   ],
