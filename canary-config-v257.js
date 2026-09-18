@@ -1,4 +1,4 @@
-// V257 Canary: disabled until server setup is verified.
+// V257 Canary: only the configured test account is selected.
 window.YW_CANARY_V257_CONFIG = Object.freeze({
   "enabled": true,
   "testInstagramIds": [
