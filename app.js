@@ -1129,26 +1129,6 @@ async function loginMemberFromGate() {
     $("memberLoginPassword").value = "";
     await completeMemberLogin(result, true);
 
-    // V256-3.1: 개발자도구 없이 로그인 병목을 확인할 수 있도록 12초간 화면 표시.
-    const __p=window.__YW_LOGIN_PERF_V256_31;
-    if(__p){
-      const __box=document.createElement("div");
-      __box.id="loginPerfV25631";
-      __box.style.cssText="position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;background:#111;color:#fff;padding:13px 14px;border-radius:12px;font-size:13px;line-height:1.6;box-shadow:0 4px 18px rgba(0,0,0,.28);";
-      if (__p.path === "V257_CANARY" || __p.path === "V257_FALLBACK") {
-        __box.textContent = "V257 Canary 측정 · " + (__p.fallback ? "기존 로그인으로 복귀" : "Canary 성공") +
-          " | Supabase: " + (__p.edgeMs ?? "-") + "ms | 세션: " + (__p.bridgeMs ?? "-") +
-          "ms | 홈 직전 총시간: " + __p.totalBeforeHomeMs + "ms" +
-          (__p.fallback ? " | Canary 대기: " + __p.canaryAttemptMs + "ms (" + __p.reason + ")" : "");
-      } else if(__p.path==="SUPABASE"){
-        __box.innerHTML="<b>V256-5 로그인 성능 측정</b><br>경로: Supabase<br>설정 확인: "+__p.enabledCheckMs+"ms<br>Supabase 인증: "+__p.supabaseAuthMs+"ms<br>Apps Script 세션: "+__p.appsScriptSessionMs+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
-      }else{
-        const __b=__p.serverBreakdown||{};
-        __box.innerHTML="<b>V256-5 로그인 성능 측정</b><br>경로: Apps Script<br>설정 확인: "+__p.enabledCheckMs+"ms<br>로그인 왕복: "+__p.appsScriptLoginRoundTripMs+"ms<br>서버 내부: "+(__p.appsScriptServerMs ?? "측정없음")+"ms<br>└ 회원조회: "+(__b.memberLookupMs ?? "-")+"ms / 계정조회: "+(__b.accountLookupMs ?? "-")+"ms<br>└ 비밀번호: "+(__b.passwordCheckMs ?? "-")+"ms / 세션: "+(__b.sessionIssueMs ?? "-")+"ms / payload: "+(__b.payloadMs ?? "-")+"ms<br><b>홈 직전 총시간: "+__p.totalBeforeHomeMs+"ms</b>";
-      }
-      document.body.appendChild(__box);
-      window.setTimeout(()=>__box.remove(),12000);
-    }
   } catch (error) {
     const raw = String(error?.message || "");
     // V154: 로그인 화면에서는 팔로우리스트 회원 존재와 프로그램 계정 존재를 혼동하지 않도록 안내한다.
