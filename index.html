@@ -1070,35 +1070,26 @@
 }
 </style>
 
-
-<style id="followOpenContrast20260927">
-/* Only the profile-opening buttons in the follow list. */
+<style id="follow-last-open-blue">
+/* Only the most recently opened follow button is blue. */
 #followList .follow-item a.insta-btn {
-  background: #A82050;
-  color: #FFFFFF;
-  border-color: #A82050;
-  font-weight: 900;
+  background: #FFF0F5;
+  border-color: #E8B5C5;
+  color: #9A3656;
 }
-#followList .follow-item a.insta-btn:visited { color: #FFFFFF; }
 #followList .follow-item a.insta-btn:hover {
-  background: #8A1940;
-  color: #FFFFFF;
-  border-color: #8A1940;
+  background: #FFE2EC;
 }
-#followList .follow-item a.insta-btn:active {
-  background: #701332;
-  color: #FFFFFF;
-  border-color: #701332;
+#followList .follow-item a.insta-btn.last-follow-open,
+#followList .follow-item a.insta-btn.last-follow-open:hover {
+  background: #A9D5FF;
+  border-color: #2468A8;
+  color: #123E69;
+  box-shadow: inset 0 0 0 1px #2468A8;
 }
 #followList .follow-item a.insta-btn:focus-visible {
-  outline: 3px solid #173D75;
+  outline: 3px solid #2468A8;
   outline-offset: 3px;
-}
-html[data-theme="dark"] #followList .follow-item a.insta-btn {
-  border-color: #FFBDD1;
-}
-html[data-theme="dark"] #followList .follow-item a.insta-btn:focus-visible {
-  outline-color: #FFE0EA;
 }
 </style>
 </head>
@@ -1943,7 +1934,7 @@ html[data-theme="dark"] #followList .follow-item a.insta-btn:focus-visible {
   
   <script src="canary-config-v257.js?v=25720260918"></script>
   <script src="canary-login-v257.js?v=25720260918"></script>
-  <script src="app.js?v=2565-hide-perf-20260921"></script>
+  <script src="app.js?v=2565-last-open-blue-20260928"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {

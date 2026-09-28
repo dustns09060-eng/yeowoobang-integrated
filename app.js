@@ -225,7 +225,25 @@ function canonicalizeFollowProgress(progress) {
   };
 }
 
+function updateLastFollowButton() {
+  const lastId = normalize(getLastFollowPosition()?.id || "");
+  let marked = false;
+  document.querySelectorAll("#followList a[data-save-follow]").forEach((button) => {
+    const selected = !marked && !!lastId && normalize(button.dataset.saveFollow) === lastId;
+    button.classList.toggle("last-follow-open", selected);
+    if (selected) {
+      marked = true;
+      button.setAttribute("aria-current", "true");
+      button.setAttribute("aria-label", "인스타그램 열기 · 마지막으로 연 계정");
+    } else {
+      button.removeAttribute("aria-current");
+      button.setAttribute("aria-label", "인스타그램 열기");
+    }
+  });
+}
+
 function renderResumeCard() {
+  updateLastFollowButton();
   const card = $("resumeCard");
   if (!card) return;
 
@@ -2166,6 +2184,7 @@ function renderFollowList() {
         <a class="insta-btn" href="https://www.instagram.com/${encodeURIComponent(item.id)}/" target="_blank" rel="noopener" data-save-follow="${escapeHtml(item.id)}" aria-label="인스타그램 열기">↗ 열기</a>
       </div>`).join("")
     : '<div class="empty-state">검색 결과가 없습니다.</div>';
+  updateLastFollowButton();
 }
 
 
