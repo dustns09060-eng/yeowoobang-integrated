@@ -624,7 +624,27 @@ async function apiGet(action, timeoutMs = 20000, params = {}) {
     API_GET_INFLIGHT_V209.delete(inflightKey);
   }
 }
+// Sept30: share pending requests only; completed responses are never cached.
+const TRAFFIC_READ_ACTIONS = new Set([
+  "getFollowProgress", "getSecureFollowList", "getMatchRequests",
+  "getNotificationsV76", "getMyActivity", "getMyAnalysisHistory", "getMyPage"
+]);
+const TRAFFIC_SHARED_ACTIONS = new Set([
+  ...TRAFFIC_READ_ACTIONS, "memberLogin", "registerMemberAccount",
+  "prepareMemberAccountRegistrationV155", "sendMatchRequest", "completeMatchRequestV215"
+]);
+const TRAFFIC_POST_PENDING = new Map();
 async function apiPost(action, payload = {}, timeoutMs = 9000) {
+  if (!TRAFFIC_SHARED_ACTIONS.has(action)) return apiPostOnceSept30(action, payload, timeoutMs);
+  // Include identity and admin context; never share across different request bodies.
+  const key = JSON.stringify([action, payload, adminLoggedIn ? adminModeToken : ""]);
+  if (TRAFFIC_POST_PENDING.has(key)) return TRAFFIC_POST_PENDING.get(key);
+  const task = apiPostOnceSept30(action, payload, timeoutMs);
+  TRAFFIC_POST_PENDING.set(key, task);
+  try { return await task; }
+  finally { if (TRAFFIC_POST_PENDING.get(key) === task) TRAFFIC_POST_PENDING.delete(key); }
+}
+async function apiPostOnceSept30(action, payload = {}, timeoutMs = 9000) {
   if (!config.apiUrl) throw new Error("Apps Script 주소가 설정되지 않았습니다.");
 
   const requestBody = {
@@ -668,14 +688,27 @@ async function apiPost(action, payload = {}, timeoutMs = 9000) {
     } catch (error) {
       lastError = error;
 
-      // TIMEOUT / 일시적 네트워크 실패만 1회 재시도.
-      // API가 명확한 업무 오류를 응답한 경우에는 중복 실행하지 않습니다.
+      // A lost response does not prove that a write failed. Never replay writes automatically.
+      // Retry only these known read operations, with randomized delay.
       const timeout = error?.code === "TIMEOUT";
       const network = error instanceof TypeError ||
         /Failed to fetch|NetworkError|Load failed/i.test(String(error?.message || ""));
 
-      if ((!timeout && !network) || attempt === 1) break;
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if ((!timeout && !network) || !TRAFFIC_READ_ACTIONS.has(action) || attempt === 1) {
+        if ((timeout || network) && !TRAFFIC_READ_ACTIONS.has(action)) {
+          const uncertain = new Error(
+            action === "registerMemberAccount"
+              ? "서버 응답을 확인하지 못했습니다. 등록됐을 수 있으니 입력한 비밀번호로 먼저 로그인해 주세요."
+              : action === "sendMatchRequest" || action === "completeMatchRequestV215"
+                ? "처리 결과를 확인하지 못했습니다. 다시 누르기 전에 요청 내역을 확인해 주세요."
+                : "서버 응답을 확인하지 못했습니다. 잠시 후 처리 상태를 확인해 주세요."
+          );
+          uncertain.code = "RESULT_UNCONFIRMED";
+          lastError = uncertain;
+        }
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 800 + Math.floor(Math.random() * 1600)));
     }
   }
 
@@ -1042,19 +1075,19 @@ async function completeMemberLogin(result, showToast = true) {
   restoreFollowListCache();
 
   window.setTimeout(() => {
-    if (memberSession?.token) void loadMemberFollowProgress();
-  }, 900);
+    if (memberSession?.token === result.token) void loadMemberFollowProgress();
+  }, 900 + Math.floor(Math.random() * 4000));
 
   window.setTimeout(() => {
-    if (memberSession?.token) void loadNotificationsV76();
-  }, 2600);
+    if (memberSession?.token === result.token) void loadNotificationsV76();
+  }, 2600 + Math.floor(Math.random() * 6000));
 
   // V256-2: 로그인 기록은 메인화면 진입을 막지 않고 5초 뒤 별도 저장합니다.
   window.setTimeout(() => {
-    if (memberSession?.token) {
+    if (memberSession?.token === result.token) {
       void apiPost("logLoginActivityV256_2", {token:memberSession.token}, 10000).catch(()=>{});
     }
-  }, 5000);
+  }, 5000 + Math.floor(Math.random() * 10000));
 
   idleV183(() => {
     if (memberSession?.token) void loadAfterAuthV256_1Light();
@@ -1075,6 +1108,7 @@ async function completeMemberLogin(result, showToast = true) {
 }
 
 async function loginMemberFromGate() {
+  if ($("memberLoginBtn")?.disabled || $("memberRegisterBtn")?.disabled) return;
   // V133: 지금부터 시작하는 로그인보다 먼저 출발한 세션 검증은 결과를 무시
   memberAuthGenerationV133++;
   const instagramId = normalize($("memberLoginInstagram")?.value || "");
@@ -1246,6 +1280,7 @@ function resetNewMemberInviteGate() {
 }
 
 async function registerMemberFromGate() {
+  if ($("memberRegisterBtn")?.disabled || $("memberLoginBtn")?.disabled) return;
   const nickname = String($("memberRegisterNickname")?.value || "").trim();
   const instagramId = normalize($("memberRegisterInstagram")?.value || "");
   const password = $("memberRegisterPassword")?.value || "";
