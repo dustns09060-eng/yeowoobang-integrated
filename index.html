@@ -1135,24 +1135,20 @@
         <button id="memberLoginBackBtn" class="text-btn" type="button">뒤로</button>
       </div>
 
-      <div id="memberForgotForm" class="gate-form member-auth-form hidden">
-        <div class="member-auth-title">
-          <strong>비밀번호 찾기</strong>
-          <span>여우방 회원정보와 정확히 일치해야 새 비밀번호를 설정할 수 있어요.</span>
-        </div>
-        <input id="memberForgotNickname" type="text" autocomplete="nickname" placeholder="여우방 닉네임" />
-        <input id="memberForgotInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디" />
-        <input id="memberForgotId" type="text" inputmode="text" placeholder="MemberID (팔로우리스트 번호/부계)" />
-        <input id="memberForgotPassword" type="password" autocomplete="new-password" placeholder="새 비밀번호 (4~6자)" />
-        <input id="memberForgotPasswordConfirm" type="password" autocomplete="new-password" placeholder="새 비밀번호 확인" />
-        <button id="memberForgotBtn" class="primary" type="button">새 비밀번호 설정</button>
-        <button id="backFromForgotBtn" class="text-btn" type="button">로그인으로 돌아가기</button>
-      </div>
-
+      <div id="memberForgotForm" class="gate-form member-auth-form hidden">
+        <div class="member-auth-title">
+          <strong>비밀번호 재설정 안내</strong>
+          <span>비밀번호를 잊으셨다면 운영진에게 닉네임과 인스타 아이디를 알려 주세요. 계정 확인 후 새 비밀번호로 재설정해 드립니다.</span>
+        </div>
+        <p class="subtext">기존 비밀번호는 확인할 수 없습니다. 처음 이용하시는 분은 아래 계정등록으로 진행해 주세요. 회원번호는 자동으로 연결됩니다.</p>
+        <button id="memberForgotBtn" class="primary" type="button">처음 이용해요 · 계정등록</button>
+        <button id="backFromForgotBtn" class="text-btn" type="button">로그인으로 돌아가기</button>
+      </div>
+
       <div id="memberRegisterForm" class="gate-form member-auth-form hidden">
         <div class="member-auth-title">
           <strong>처음 이용 계정 등록</strong>
-          <span>팔로우리스트의 닉네임과 인스타 아이디가 정확히 일치해야 해요.</span>
+          <span>명단의 닉네임과 인스타 아이디를 입력해 주세요. 회원번호는 자동으로 연결됩니다.</span>
         </div>
         <input id="memberRegisterNickname" type="text" autocomplete="nickname" placeholder="여우방 닉네임" />
         <input id="memberRegisterInstagram" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="인스타 아이디" />
@@ -1935,7 +1931,7 @@
   <script src="canary-config-v257.js?v=25720260918"></script>
   <script src="canary-login-v257.js?v=25720260918"></script>
   <script src="main-connection-yw261.js?v=2612"></script>
-  <script src="app-main-yw261.js?v=2612"></script>
+  <script src="app-main-yw263.js?v=2631"></script>
 
 <script id="v77MoreMenuScript">
 document.addEventListener('DOMContentLoaded', () => {
