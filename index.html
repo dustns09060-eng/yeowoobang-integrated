@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="ko">
-<head>
+<head>
+<script id="yw264-https-entry">
+// Always open the production site securely before member forms are used.
+if (window.location.protocol === 'http:' &&
+    ['www.yeowoobang.com', 'yeowoobang.com'].includes(window.location.hostname)) {
+  window.location.replace('https://www.yeowoobang.com' + window.location.pathname + window.location.search + window.location.hash);
+}
+</script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#ffffff" />
