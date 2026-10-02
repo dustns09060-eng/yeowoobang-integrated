@@ -3723,6 +3723,13 @@ if (window.location.protocol === 'http:' &&
 
 
         <p id="followLockedPeriod" class="state-text"></p>
+        <form id="yw286FollowForm" class="hidden" style="max-width:420px;margin:16px auto">
+          <label for="yw286FollowPassword">팔로우리스트 비밀번호</label>
+          <input id="yw286FollowPassword" type="password" autocomplete="off" maxlength="100" required style="width:100%;box-sizing:border-box;margin:12px 0" />
+          <button id="yw286FollowSubmit" class="primary" type="submit">비밀번호 확인</button>
+          <p id="yw286FollowError" role="status"></p>
+          <p class="state-text">로그아웃하거나 로그인 시간이 만료되면 다시 입력해 주세요.</p>
+        </form>
 
 
       </section>
@@ -5738,8 +5745,8 @@ if (window.location.protocol === 'http:' &&
   <script src="canary-login-v257.js?v=25720260918"></script>
 
 
-  <script src="main-connection-yw284.js?v=2841"></script>
-  <script src="app-main-yw285.js?v=2851"></script>
+  <script src="main-connection-yw286.js?v=2861"></script>
+  <script src="app-main-yw286.js?v=2861"></script>
 
 
 
