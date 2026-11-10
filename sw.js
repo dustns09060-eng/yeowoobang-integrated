@@ -1,17 +1,17 @@
 /* V256-3.2 - Service Worker 응답 clone 오류/로그인 API 캐시 제외 */
-const CACHE = "yeowoobang-v256-3-2";
+const CACHE = "yeowoobang-yw292";
 
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./style.css?v=2501",
-  "./app.js?v=25631",
+  "./app-main-yw292.js?v=2921",
   "./manifest.json?v=720",
   "./app-logo-v20.png?v=430",
   "./favicon-v20.png?v=430",
   "./icon-192-v20.png?v=430",
   "./icon-512-v20.png?v=430",
-  "./top3_scene_v243.jpg?v=2501",
+  "./main-connection-yw292.js?v=2921",
 ];
 
 self.addEventListener("install", (event) => {
